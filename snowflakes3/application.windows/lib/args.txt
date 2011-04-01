@@ -1,0 +1,3 @@
+ -Xms64m -Xmx600m
+snowflakes3
+snowflakes3.jar,core.jar,controlP5.jar

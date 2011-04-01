@@ -1,0 +1,15 @@
+ 16mhz clock
+avrdude -V -p ATmega168 -P /dev/ttyACM0 -c stk500v2 -U lfuse:w:0xff:m
+
+standalone use:
+
+need to use internal clock (8mhz)
+lfuse 1111 0010 = 0xf2
+ avrdude -V -p ATmega168 -P /dev/ttyACM0 -c stk500v2 -U lfuse:w:0xf2:m
+
+sometimes fuses come set so that default clock speed of avrdude don't work, use -B
+ avrdude -F -B 1000 -V -p ATmega168 -P /dev/ttyACM0 -c stk500v2 -U lfuse:w:0xf2:m
+
+if not getting a signature then check connections. pin 1, 17, 18 and 19 should all be doing things on a mega168. Some circuits can prevent these signals.
+
+ sometimes fuses are so bad need to generate a 1MHZ clock signal (see arduino program) and then connect pin 2 arduino to pin 9 atmel (xtal1). Then use above to reprog fuses
