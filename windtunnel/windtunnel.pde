@@ -38,6 +38,12 @@ State Safe = State( safe, nullFunc, nullFunc );
 
 FSM stateMachine = FSM( Unsafe );
 
+#include <TimedAction.h>
+
+//this initializes a TimedAction class that will change the state of an LED every second.
+TimedAction fsmUpdateAction = TimedAction(100,fsmUpdate);
+TimedAction measureAction = TimedAction(5,measure);
+
 Button onButton = Button( GO_SWITCH, PULLUP );
 Button offButton = Button( STOP_SWITCH, PULLUP );
 Button safetySwitch = Button( SAFETY_SWITCH, PULLUP );
@@ -47,7 +53,7 @@ Button safetySwitch = Button( SAFETY_SWITCH, PULLUP );
 int serialSend = 0;
 int turbineSpeed = 0;
 int turbineVoltage = 0;
-const int N = 125; //averaging history number
+const int N = 25; //125 works but is slow125; //averaging history number
 volatile unsigned int encoder0Pos = 0;
 volatile boolean movedEncoder = false;
 volatile byte clockFlag = false;
@@ -63,7 +69,7 @@ volatile byte tachoCount;
 int lastTachoCount = 0;
 int lastTachoPeriod = 0;
 float rpm;
-unsigned long timeold;
+unsigned long timeold  = 0;
 
 void setup() { 
 
@@ -134,9 +140,15 @@ void loop(){
     if( digitalRead( SAFETY_SWITCH ) == HIGH )
       stateMachine.transitionTo( Unsafe );
   }
-  stateMachine.update();
+//  stateMachine.update();
+  fsmUpdateAction.check();
+  measureAction.check();
 }
 
+void fsmUpdate()
+{
+   stateMachine.update();
+}
 void nullFunc()
 {
 }
@@ -167,19 +179,38 @@ void unSafe()
   ledControl( GO_SWITCH_LED, OFF );
 }
 
+void enterRunning()
+{
+  Serial.println( "state:running" );
+}
+
 void running()
 {
   analogWrite( motorControl, 255 - encoder0Pos );
+  
+
+
+
+
   turbineVoltage = analogRead( TURBINE_VOLTAGE );
-
-
   addToHistory( turbineVoltageHistory, turbineVoltage );
 
+  Serial.println( "state:running" );
+    Serial.print( encoder0Pos );
+    Serial.print( "," );
+    Serial.print( rpm );
+    Serial.print( "," );
+    Serial.println( movingAverage( turbineVoltageHistory ) );
+
+}
+
+void measure()
+{
   //http://www.arduino.cc/playground/Main/ReadingRPM
   if( clockFlag )
   {
     tachoCount ++;
-    delay(20);
+    delay(2);
     clockFlag = false;
   }
   if (tachoCount >= 10) { 
@@ -190,31 +221,18 @@ void running()
     lastTachoPeriod = period;
     rpm = (1000/period)*tachoCount;
     rpm *= 60;
-    lastTachoCount = tachoCount;
+
     timeold = millis();
     tachoCount = 0;
 
   }
-
-
-  if( serialSend ++ > 200 )
+  //reset counters if no reading for a while
+  else if( timeold > 0 && millis() - timeold > 10000 )
   {
-    serialSend = 0;
-    //sample the data
-    // Serial.print("freeMem: ");
-    //   Serial.println( freeMemory() );  
-    Serial.println( "state:running" ); 
-    Serial.print( encoder0Pos );
-    Serial.print( "," );
-    Serial.print( rpm );
-    Serial.print( "," );
- /*   Serial.print( lastTachoCount  );
-    Serial.print( "," );    
-    Serial.print( lastTachoPeriod );
-    Serial.print( "," );*/
-    Serial.println( movingAverage( turbineVoltageHistory ) );
+    //restet counters
+    timeold = 0;
+    rpm = 0;
   }
-
 }
 
 void switchOn()
