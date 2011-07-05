@@ -1,24 +1,30 @@
 int lcdScreen = 0;
 
-void updateLCD()
+void flashLED()
 {
   //update LED too
   statusLED = ! statusLED;
   digitalWrite( PIN_ledGreen, statusLED );
+}
 
+void updateLCD()
+{
+  
   lcd.clear();
   lcd.setCursor(0,0);
   
   //page through screens
-  if( lcdScreen ++ > 2 )
+  if( lcdScreen ++ >= 2 )
     lcdScreen = 0;
-    
+  
+  lcdScreen = 2;
+  
   switch( lcdScreen )
   {
     case 0: //errors
       lcd.print( "errs: " );
       printErrors();
-  
+      break;
     case 1: //battery status
       if( rawCurrent > CURRENT_CHARGING_VALUE )
       {
@@ -34,14 +40,16 @@ void updateLCD()
       {
         lcd.write( history[i] );
       } 
-     
+      break;
+      
     case 2: //other vars
       lcd.print( "bat:" );
       lcd.print( rawBattVoltage );
       lcd.print("V");
-      lcd.print( " dump ");
+      lcd.setCursor(0,1);
+      lcd.print( "dump ");
       lcd.print( pwmDumpLoad );
-
+      /*
       lcd.setCursor(0,1);
       lcd.print( "turb " );
       lcd.print( rawTurbineVoltage );
@@ -49,7 +57,8 @@ void updateLCD()
       lcd.print( "cur ");
       lcd.print( rawCurrent );
       lcd.print( "A" );
-      
+      */
+      break;
   }
 }
 
