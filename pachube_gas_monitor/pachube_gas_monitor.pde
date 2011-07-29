@@ -44,6 +44,7 @@ boolean gasPulse = false;
 #define PACHUBEAPIURL "/api/28462.csv"
 #define PACHUBEAPIKEY "X-PachubeApiKey: ZxBqcZRDClLxco2ZUbeat1D6x7pfOL5Jhmo60Ies2TU"
 
+#define LED_PIN 6
 
 TimedAction ActionCheckXbeeData = TimedAction( 200, checkXbeeData);
 //#define PACHUBEAPIKEY "www.pachube.com\r\nX-PachubeApiKey: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
@@ -62,9 +63,10 @@ double irms, gas, temp, battv;
 void setup()
 {
   Serial.begin(57600);
-  Serial.println("EtherShield_simpleClient_Pachube");
+  Serial.println("gas and electric monitor via nanode to pachube");
   xbeeSetup();
-  pinMode( 6, OUTPUT );
+  pinMode( LED_PIN, OUTPUT );
+  digitalWrite( LED_PIN, HIGH );
   ethernet_setup(mac,ip,gateway,server,80,8); // Last two: PORT and SPI PIN: 8 for Nanode, 10 for nuelectronics
 }
 
@@ -82,11 +84,13 @@ void loop()
   //----------------------------------------
   if (ethernet_ready() && dataReady)
   {
+    digitalWrite( LED_PIN, LOW );
     Serial.print( "pushing: " );
     Serial.println( str );
     ethernet_send_post(PSTR(PACHUBEAPIURL),PSTR(PACHUBE_VHOST),PSTR(PACHUBEAPIKEY), PSTR("PUT "),str);
     Serial.println("sent"); 
     dataReady = false;
+    digitalWrite( LED_PIN, HIGH );
   }
 }
 
