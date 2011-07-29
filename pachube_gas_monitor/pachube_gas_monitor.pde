@@ -56,7 +56,7 @@ boolean trigger = false;
 char str[50];
 char fstr[10];
 boolean dataReady=false;
-int gasCount = 0; 
+
 
 double irms, gas, temp, battv;
 
@@ -108,7 +108,7 @@ void formatString()
     strcat(str,fstr);
     strcat(str,",");
     
-    dtostrf(gasCount,0,3,fstr);
+    dtostrf(gas,0,3,fstr);
     strcat(str,fstr);
     strcat(str,",");    
     
