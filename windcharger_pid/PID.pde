@@ -2,6 +2,7 @@
 /********************************************
  * Serial Communication functions / helpers
  ********************************************/
+#ifdef DEBUG
 
 void RXTXPID()
 {
@@ -88,7 +89,7 @@ void SerialSend()
   Serial.print("PID ");
   Serial.print(Setpoint);   
   Serial.print(" ");
-  Serial.print(rawBattVoltage);   
+  Serial.print(battVoltage);   
   Serial.print(" ");
   Serial.print(pwmDumpLoad);   
   Serial.print(" ");
@@ -105,3 +106,4 @@ void SerialSend()
   else Serial.println("Reverse");
 }
 
+#endif
