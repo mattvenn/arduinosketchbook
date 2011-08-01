@@ -26,11 +26,11 @@ void updateLCD()
       printErrors();
       break;
     case 1: //battery status
-      if( rawCurrent > CURRENT_CHARGING_VALUE )
-      {
-        lcd.print( "charging" );
-      }
-      else
+ //     if( rawCurrent > CURRENT_CHARGING_VALUE )
+   //   {
+    //    lcd.print( "charging" );
+    //  }
+   //   else
       {
         lcd.print( "discharging" );
       }
@@ -43,24 +43,33 @@ void updateLCD()
       break;
       
     case 2: //other vars
-      lcd.print( "bat:" );
-      lcd.print( rawBattVoltage );
+      lcd.print( "b:" );
+      dtostrf( battVoltage, 4, 1, buff );
+      lcd.print( buff );
       lcd.print("V");
+      
+      lcd.setCursor(8,0);
+      lcd.print("t:" );
+      dtostrf( turbineVoltage, 4, 1, buff );
+      lcd.print( buff );
+      lcd.print("V");
+
       lcd.setCursor(0,1);
-      lcd.print( "dump ");
-      lcd.print( pwmDumpLoad );
-      /*
-      lcd.setCursor(0,1);
-      lcd.print( "turb " );
-      lcd.print( rawTurbineVoltage );
-      lcd.print( "V" );
-      lcd.print( "cur ");
-      lcd.print( rawCurrent );
-      lcd.print( "A" );
-      */
+      lcd.print( "d ");
+      dtostrf( dumpPercent, 4, 0, buff );
+      lcd.print( buff );
+      lcd.print( "%" );
+      
+      lcd.setCursor(8,1);
+      lcd.print("I:");
+      dtostrf( current, 4, 1, buff );
+      lcd.print(buff);
+      lcd.print("A");
+     
       break;
   }
 }
+
 
 void addToHistory( )
 {
@@ -68,7 +77,7 @@ void addToHistory( )
   {
     history[ i ] = history[ i + 1 ];
   }
-  int histVal = map( rawBattVoltage, 500, 700, 0, 7 );
+  int histVal = map( battVoltage, 10, 15, 0, 7 );
   if( histVal > 7 )
     histVal = 7;
   if( histVal < 0 )
