@@ -26,10 +26,10 @@ int penPos, lastPenPos;
 #define STATUS_LED 4                                    
 #define OPTO_ROLLER A4
 #define OPTO_PEN A5
-#define PWM_RED 3 //todo
-#define PWM_GREEN 4 //todo
-#define XBEETX 5
-#define XBEERX 6
+#define PWM_RED 5 
+#define PWM_GREEN 6
+#define XBEETX 3
+#define XBEERX 4
 
 
 
@@ -80,6 +80,8 @@ void loop()
   #endif
   ActionCheckXbeeData.check();
   ActionStatusBlink.check();
+  ActionLEDColour.check();
+  
   //ActionDraw.check();
   if( millis() - lastTime > millisPerStep )
   {
@@ -91,8 +93,8 @@ void loop()
 
 void LEDColour()
 {
-  analogWrite( PWM_RED,   map( energy, 0, 1024, 0, 255 ) );
-  analogWrite( PWM_GREEN, map( energy, 1024, 0, 0, 255 ) ); 
+  analogWrite( PWM_RED,   map( energy, 0, MAX_ENERGY, 0, 255 ) );
+  analogWrite( PWM_GREEN, map( energy, MAX_ENERGY, 0, 0, 255 ) ); 
 }
 
 void draw()
