@@ -10,20 +10,42 @@
 #define FORWARD false
 #define BACKWARD true
 
+//globals
+boolean draw = false;
+
 void setup()
 {
   pinMode( stepDir, OUTPUT );
   pinMode( stepPulse, OUTPUT );
   pinMode( motorOn, OUTPUT );
-  digitalWrite( motorOn, LOW ); //low starts the platter motor
+  digitalWrite( motorOn, HIGH ); 
   Serial.begin(9600);
+  Serial.println( "floppy drawbot starting" );
 }
 
 void loop()
 {
-
-  doSteps(FORWARD, STEPS, random(MINSPEED,MAXSPEED));
-  doSteps(BACKWARD, STEPS, random(MINSPEED,MAXSPEED));
+  if( Serial.available() )
+  {
+    char command = Serial.read();
+    switch( command )
+    {
+      case 'g':
+        draw = true;
+        digitalWrite( motorOn, false ); //switch platter motor on
+        break;
+      case 's':
+        draw = false;
+        digitalWrite( motorOn, true ); //switch platter motor off
+        break;
+    }
+  }
+    
+  if( draw )
+  {
+    doSteps(FORWARD, STEPS, random(MINSPEED,MAXSPEED));
+    doSteps(BACKWARD, STEPS, random(MINSPEED,MAXSPEED));
+  }
 }
 
 void doSteps( boolean dir, int steps, int stepDelay )
