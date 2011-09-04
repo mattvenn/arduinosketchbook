@@ -1,3 +1,4 @@
+#ifdef XBEE
 void xbeeSetup()  
 {
   xbeeSerial.begin(9600);
@@ -46,4 +47,4 @@ void checkXbeeData()
   }
 }
   
-
+#endif

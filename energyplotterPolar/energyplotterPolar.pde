@@ -19,14 +19,14 @@ todo:
 
 // Approximate number of steps per cm, calculated from radius of spool
 // and the number of steps per radius
-float diameter = 1.2;
+float diameter = 1.24; //1.29
 float circumference = 3.1415 * diameter;
 
 int StepUnit = stepsPerRevolution / circumference;   
 
 // Approximate dimensions (in steps) of the total drawing area
-int w= 40*StepUnit;
-int h= 40*StepUnit;
+int w= 44.5*StepUnit;
+int h= 100*StepUnit;
 
 // Coordinates of current (starting) point
 int x1= w/2;
@@ -57,12 +57,14 @@ int drawCount = 0;
 
 #define DEBUG
 
+#ifdef XBEE
 NewSoftSerial xbeeSerial(XBEETX, XBEERX);
-
+TimedAction ActionCheckXbeeData = TimedAction( 1000, checkXbeeData);
+#endif
 #ifdef DEBUG
 TimedAction ActionCheckSerialData = TimedAction( 1000, checkSerialData);
 #endif
-TimedAction ActionCheckXbeeData = TimedAction( 1000, checkXbeeData);
+
 TimedAction ActionStatusBlink = TimedAction( 500, statusLED );
 //TimedAction ActionDraw = TimedAction( 1000, draw );
 TimedAction ActionLEDColour = TimedAction( 1000, LEDColour );
@@ -89,7 +91,9 @@ void setup() {
   // initialize the serial port:
   Serial.begin(9600);
   Serial.println( "energy plotter startup" );  
+  #ifdef XBEE
   xbeeSetup();
+  #endif
   Serial.println( x1 );
   Serial.println( y1 );
  // calibrate();
@@ -249,6 +253,10 @@ void checkSerialData()
         Serial.println( x1 );
         Serial.print( "y1: ");
         Serial.println( y1 );
+        Serial.print( "a1: " );
+        Serial.println( a1 / StepUnit );
+        Serial.print( "b1: " );
+        Serial.println( b1 / StepUnit );
         break;
       case 'd':
         draw = ! draw;
@@ -256,7 +264,9 @@ void checkSerialData()
       case 'm':
       {
         int x = serReadInt();
+        x *= StepUnit;
         int y = serReadInt();
+        y *= StepUnit;
         Serial.print( x );
         Serial.print( "," );
         Serial.println( y );
@@ -268,14 +278,27 @@ void checkSerialData()
         int x = serReadInt();
         int y = serReadInt();
         int r = serReadInt();
+        int n = serReadInt();
+        x *= StepUnit;
+        y *= StepUnit;
+        r *= StepUnit;
         Serial.print( x );
         Serial.print( "," );
         Serial.print( y );
         Serial.print( "," );
         Serial.println( r );
-        drawCircle(x,y,r);
+        drawCircles(n,x,y,r);
       break;
       }
+      case 's':
+       {
+         int s = serReadInt();
+         leftStepper.setSpeed( s );
+         rightStepper.setSpeed( s );
+         Serial.print( "step speed: " );
+         Serial.println( s );
+         break;
+       }
         
     }
   }
