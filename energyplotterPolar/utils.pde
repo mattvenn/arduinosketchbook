@@ -23,11 +23,4 @@ int serReadInt()
    return -1;                           // Return -1 if there is no input
 }
 
-//check this when using optos with correct resistors
-//I expected this to work with digitalRead but it doesn't seem to.
-boolean limit( int input )
-{
-  if( analogRead( input ) > 1000 )
-    return true;
-  return false;
-}
+

@@ -25,8 +25,10 @@ float circumference = 3.1415 * diameter;
 int StepUnit = stepsPerRevolution / circumference;   
 
 // Approximate dimensions (in steps) of the total drawing area
-int w= 44.5*StepUnit;
-int h= 100*StepUnit;
+int w= 68*StepUnit;
+int ceiling = 10*StepUnit;
+int h= 34 * StepUnit + ceiling;
+
 
 // Coordinates of current (starting) point
 int x1= w/2;
@@ -65,9 +67,9 @@ TimedAction ActionCheckXbeeData = TimedAction( 1000, checkXbeeData);
 TimedAction ActionCheckSerialData = TimedAction( 1000, checkSerialData);
 #endif
 
-TimedAction ActionStatusBlink = TimedAction( 500, statusLED );
+//TimedAction ActionStatusBlink = TimedAction( 500, statusLED );
 //TimedAction ActionDraw = TimedAction( 1000, draw );
-TimedAction ActionLEDColour = TimedAction( 1000, LEDColour );
+//TimedAction ActionLEDColour = TimedAction( 1000, LEDColour );
 // initialize the stepper library on pins 8 through 11:
 // 3 brown
 // 4 red
@@ -106,10 +108,7 @@ void loop()
   ActionCheckSerialData.check();
   #endif
 
-  if( draw )
-  {
-    drawNext();
-  }
+ 
 
 /*
   ActionCheckXbeeData.check();
@@ -125,95 +124,6 @@ void loop()
 */
 }
 
-void drawNext()
-{
-
-  if( drawCount < 100 )
-  {
-    leftStepper.step( -1 );
-  }
-  else if( drawCount < 200 )
-  {
-    rightStepper.step( 1 );
-  }
-  else if( drawCount < 300 )
-  {
-    leftStepper.step( 1 );
-  }
-  else if( drawCount < 400 )
-  {
-    rightStepper.step(-1);
-  }
-  else
-  {
-    drawCount = 0;
-    Serial.println( "reset" );
-  }
-  drawCount ++;
-}
-void LEDColour()
-{
-  analogWrite( PWM_RED,   map( energy, 0, MAX_ENERGY, 0, 255 ) );
-  analogWrite( PWM_GREEN, map( energy, MAX_ENERGY, 0, 0, 255 ) ); 
-}
-/*
-void draw()
-{
-  //advance roller and pen (at same time?)
-  rightStepper.step(1);
-  
-  penPos = map( energy, 0, MAX_ENERGY, 0, MAX_PEN_STEPS );
-  if( penPos > MAX_PEN_STEPS )
-    penPos = MAX_PEN_STEPS;
-  
-  leftStepper.step(penPos - lastPenPos);
-  lastPenPos = penPos;  
-}
-*/
-void statusLED()
-{
-  static boolean ledState = false;
-  digitalWrite( STATUS_LED, ledState );
-  if( ledState == false )
-    ledState = true;
-  else
-    ledState = false;
-}
-
-void calibrate()
-{
-  Serial.println("calibrating");
- //calibrate roller
-  Serial.println( "finding hole in paper..." );
-  while( ! limit( OPTO_ROLLER ) )
-    rightStepper.step(1);
-  Serial.println( "found hole, winding again...");
-  int count = 0;
-  //ignore opto until we've moved the paper on a bit
-  while( limit( OPTO_ROLLER ) )
-  {
-    rightStepper.step(1);
-    count ++;
-  }
-  while( ! limit( OPTO_ROLLER ) )
-  {
-    count ++;
-    rightStepper.step(1);
-  }
-  Serial.print( "loop is " ); Serial.print( count ); Serial.println( " steps long" );
-  millisPerStep = LOOP_PERIOD / count;
-  //LOOP_PERIOD is in secs, so:
-  millisPerStep *= 1000;
-  Serial.print( "millis per step: " );
-  Serial.println( millisPerStep );
-
- //calibrate energy axis 
- Serial.println( "moving pen to limit..." );
- while( ! limit( OPTO_PEN ) )
-   leftStepper.step(-1);
- Serial.println( "done" );
-
-}
 /*
  // if( digitalRead(OPTO_ROLLER) == HIGH )
   {
@@ -235,6 +145,9 @@ void checkSerialData()
     char command = Serial.read();
     switch( command )
     {
+      case 'g':
+        drawEnergy();
+        break;
       case 'e':
         energy = serReadInt();
         Serial.print( "set energy to: " );
@@ -250,9 +163,9 @@ void checkSerialData()
         Serial.print( "steps per cm: " );
         Serial.println( StepUnit );
         Serial.print( "x1: " );
-        Serial.println( x1 );
+        Serial.println( x1 / StepUnit);
         Serial.print( "y1: ");
-        Serial.println( y1 );
+        Serial.println( y1 / StepUnit);
         Serial.print( "a1: " );
         Serial.println( a1 / StepUnit );
         Serial.print( "b1: " );
