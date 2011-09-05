@@ -2,58 +2,59 @@
 <head>
 <META HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <META HTTP-EQUIV="Expires" CONTENT="-1">
-<meta http-equiv="Refresh" content="10"/>
 </head>
 <body>
 <h1>Matt's energy data</h1>
 <ul>
-	<li>Last 10 minutes: <a href="http://api.pachube.com/v2/feeds/28462/datastreams/1.csv?duration=10minute&interval=1s">of gas data</a></li>
+    <li>zoomable <a href="zoom_gas.html">gas</a></li>
+    <li>zoomable <a href="zoom_elec.html">electricity</a></li>
+	<li>Last 10 minutes: <a href="http://api.pachube.com/v2/feeds/28462/datastreams/1.csv?duration=10minute&interval=0s">of gas data</a> <a href="http://api.pachube.com/v2/feeds/28462/datastreams/4.csv?duration=10minute&interval=0s">of elec data</a></li>
 	<li>My pachube page: <a href="http://pachube.com/feeds/28462">http://pachube.com/feeds/28462</a> </li>
 	<li>My website: <a href="http://mattvenn.net">mattvenn.net</a></li>
 </ul>
 <table>
 <tr>
-<td>Gas</td><td>Electricity</td>
+<td><h2>Gas</h2></td><td><h2>Electricity</h2></td>
 </tr>
 <tr>
-	<td cellspan="2"> <h2>last 3 hours</h2></td>
-</tr>
-<tr>
-<td>
-<img src="http://api.pachube.com/v2/feeds/28462/datastreams/1.png?width=500&height=250&colour=%23f15a24&duration=3hours&show_axis_labels=true&detailed_grid=true&timezone=London">
-</td>
-<td>
-<img src="http://api.pachube.com/v2/feeds/28462/datastreams/3.png?width=500&height=250&colour=%23f15a24&duration=3hours&show_axis_labels=true&detailed_grid=true&timezone=London">
-</td>
-</tr>
-<tr>
-	<td cellspan="2"> <h2>last 24 hours</h2></td>
+	<td cellspan="2"> <h3>last 3 hours</h3></td>
 </tr>
 <tr>
 <td>
-<img src="http://api.pachube.com/v2/feeds/28462/datastreams/1.png?width=500&height=250&colour=%23f15a24&duration=1day&show_axis_labels=true&detailed_grid=true&timezone=London">
+<img src="http://api.pachube.com/v2/feeds/28462/datastreams/1.png?width=500&height=250&colour=%23f15a24&duration=3hours&show_axis_labels=true&detailed_grid=true&scale=manual&min=0&max=3&timezone=London">
 </td>
 <td>
-<img src="http://api.pachube.com/v2/feeds/28462/datastreams/3.png?width=500&height=250&colour=%23f15a24&duration=1day&show_axis_labels=true&detailed_grid=true&timezone=London">
-</td>
-</tr>
-<tr>
-	<td cellspan="2"> <h2>last 7 days</h2></td>
-</tr>
-<tr>
-<td>
-	<img src="http://api.pachube.com/v2/feeds/28462/datastreams/1.png?width=500&height=250&colour=%23f15a24&duration=1week&show_axis_labels=true&detailed_grid=true&scale=auto&timezone=London">
-</td>
-<td>
-	<img src="http://api.pachube.com/v2/feeds/28462/datastreams/3.png?width=500&height=250&colour=%23f15a24&duration=1week&show_axis_labels=true&detailed_grid=true&scale=auto&timezone=London">
+<img src="http://api.pachube.com/v2/feeds/28462/datastreams/4.png?width=500&height=250&colour=%23f15a24&duration=3hours&show_axis_labels=true&detailed_grid=true&scale=manual&min=0&max=4000&timezone=London">
 </td>
 </tr>
 <tr>
+	<td cellspan="2"> <h3>last 24 hours</h3></td>
+</tr>
+<tr>
 <td>
-<h2>last week of battery</h2>
+<img src="http://api.pachube.com/v2/feeds/28462/datastreams/1.png?width=500&height=250&colour=%23f15a24&duration=1day&show_axis_labels=true&detailed_grid=true&scale=manual&min=0&max=3&timezone=London">
 </td>
 <td>
-<h2>last week of temperature</h2>
+<img src="http://api.pachube.com/v2/feeds/28462/datastreams/4.png?width=500&height=250&colour=%23f15a24&duration=1day&show_axis_labels=true&detailed_grid=true&scale=manual&min=0&max=4000&timezone=London">
+</td>
+</tr>
+<tr>
+	<td cellspan="2"> <h3>last 7 days</h3></td>
+</tr>
+<tr>
+<td>
+	<img src="http://api.pachube.com/v2/feeds/28462/datastreams/1.png?width=500&height=250&colour=%23f15a24&duration=1week&show_axis_labels=true&detailed_grid=true&scale=manual&min=0&max=3&timezone=London">
+</td>
+<td>
+	<img src="http://api.pachube.com/v2/feeds/28462/datastreams/4.png?width=500&height=250&colour=%23f15a24&duration=1week&show_axis_labels=true&detailed_grid=true&scale=manual&min=0&max=4000&timezone=London">
+</td>
+</tr>
+<tr>
+<td>
+<h3>last week of battery</h3>
+</td>
+<td>
+<h3>last week of temperature</h3>
 </td>
 </tr>
 <tr>
@@ -61,7 +62,7 @@
 <img src="http://api.pachube.com/v2/feeds/28462/datastreams/0.png?width=500&height=250&colour=%23f15a24&duration=1week&show_axis_labels=true&detailed_grid=true&scale=auto&timezone=London">
 </td>
 <td>
-<img src="http://api.pachube.com/v2/feeds/28462/datastreams/2.png?width=500&height=250&colour=%23f15a24&duration=1week&show_axis_labels=true&detailed_grid=true&scale=auto&timezone=London">
+<img src="http://api.pachube.com/v2/feeds/28462/datastreams/2.png?width=500&height=250&colour=%23f15a24&duration=1week&show_axis_labels=true&detailed_grid=true&scale=manual&min=895&max=1024&timezone=London">
 </td>
 </tr>
 </table>
