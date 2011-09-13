@@ -15,7 +15,7 @@ todo:
 #define LOOP_PERIOD 400.0 //seconds
 #define MAX_PEN_STEPS 2000
 #define MAX_ENERGY 4000 //W
-#define stepSpeed 40
+#define stepSpeed 15
 
 // Approximate number of steps per cm, calculated from radius of spool
 // and the number of steps per radius
