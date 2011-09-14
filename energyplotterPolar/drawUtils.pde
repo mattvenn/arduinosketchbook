@@ -69,33 +69,33 @@ void drawCircleSegment(int centerx, int centery, int radius, int startSeg, int e
     // Estimate a circle using 20 arc Bezier curve segments
 //  println( centerx + "," + centery + ", " + radius + ", " + startSeg + ", " + endSeg );
   int segments =20;
-  int angle1 = 360/segments*startSeg;
+  int angle1 = (360/segments)*startSeg;
   int midpoint=0;
   
   //little bit of limit handling
   if( endSeg > 20 )
    endSeg = 20;
    
-  for (float angle2=360/segments*startSeg; angle2<=360/segments*endSeg; angle2+=360/segments) {
+  for (float angle2=(360/segments)*(startSeg+1); angle2<=360/segments*endSeg; angle2+=360/segments) {
 
-    midpoint = (int)(angle1+(angle2-angle1)/2);
+    midpoint = (angle1+(angle2-angle1)/2);
 
     float startx=centerx+radius*cos(rads(angle1));
     float starty=centery+radius*sin(rads(angle1));
-    float endx=centerx+radius*cos(rads((int)angle2));
-    float endy=centery+radius*sin(rads((int)angle2));
+    float endx=centerx+radius*cos(rads(angle2));
+    float endy=centery+radius*sin(rads(angle2));
     
-    int t1 = (int)rads(angle1)*1000 ;
-    int t2 = (int)rads((int)angle2)*1000;
+    int t1 = rads(angle1)*1000 ;
+    int t2 = rads(angle2)*1000;
     int t3 = angle1;
-    int t4 = (int)angle2;
+    int t4 = angle2;
 
     drawCurve(startx,starty,endx,endy,
-              centerx+2*(radius*cos(rads(midpoint))-.25*(radius*cos(rads(angle1)))-.25*(radius*cos(rads((int)angle2)))),
-              centery+2*(radius*sin(rads(midpoint))-.25*(radius*sin(rads(angle1)))-.25*(radius*sin(rads((int)angle2))))
+              centerx+2*(radius*cos(rads(midpoint))-.25*(radius*cos(rads(angle1)))-.25*(radius*cos(rads(angle2)))),
+              centery+2*(radius*sin(rads(midpoint))-.25*(radius*sin(rads(angle1)))-.25*(radius*sin(rads(angle2))))
     );
     
-    angle1=(int)angle2;
+    angle1=angle2;
   }  
 }
 
