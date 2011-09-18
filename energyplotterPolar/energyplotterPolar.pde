@@ -16,6 +16,8 @@ todo:
 #define MAX_PEN_STEPS 2000
 #define MAX_ENERGY 4000 //W
 #define stepSpeed 15
+#define leftStepDir -1
+#define rightStepDir -1
 
 // Approximate number of steps per cm, calculated from radius of spool
 // and the number of steps per radius
@@ -25,10 +27,11 @@ float circumference = 3.1415 * diameter;
 int StepUnit = stepsPerRevolution / circumference;   
 
 // Approximate dimensions (in steps) of the total drawing area
-int w= 68*StepUnit;
-int ceiling = 10*StepUnit;
-int h= 34 * StepUnit + ceiling;
-int margin = w / 4;
+int w= 92*2.5*StepUnit; //68*StepUnit;
+
+int h= 92*2.5*StepUnit; //34 * StepUnit + ceiling;
+int ceiling = h / 6; //5; // 10*StepUnit;
+int margin = w / 6; //4;
 
 // Coordinates of current (starting) point
 int x1= w/2;
@@ -76,8 +79,8 @@ TimedAction ActionCheckSerialData = TimedAction( 200, checkSerialData);
 // 4 red
 // 5 white
 // 6 green
-Stepper leftStepper(stepsPerRevolution, A0,A1,A2,A3);            
-Stepper rightStepper(stepsPerRevolution, 9,10,11,12);            
+Stepper rightStepper(stepsPerRevolution, A0,A1,A2,A3);            
+Stepper leftStepper(stepsPerRevolution, 9,10,11,12);            
 
 void setup() {
   pinMode( STATUS_LED, OUTPUT );
@@ -149,6 +152,7 @@ void checkSerialData()
         drawEnergy( energy, minute );
         xbeeSerial.println("OK");
         Serial.println( "OK" );
+        xbeeSerial.flush();
         break;
       }
       default:

@@ -40,11 +40,11 @@ void moveTo(int x2, int y2) {
   while ((a1!=a2) || (b1!=b2)) {
     if (a1!=a2) { 
       a1 += stepA;
-      leftStepper.step(stepA); 
+      leftStepper.step(leftStepDir *  stepA); 
     }
     if (b1!=b2) { 
       b1 += stepB;
-      rightStepper.step(stepB);
+      rightStepper.step(rightStepDir * stepB);
     }
   }
   x1 = x2;
