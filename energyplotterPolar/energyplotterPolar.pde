@@ -1,4 +1,3 @@
-
 /* 
 todo:
  - what kind of precision do we have on the pen? will we get slopes or squares?
@@ -26,9 +25,9 @@ int StepUnit = stepsPerRevolution / circumference;
 
 // Approximate dimensions (in steps) of the total drawing area
 int w= 68*StepUnit;
-int ceiling = 10*StepUnit;
-int h= 34 * StepUnit + ceiling;
-
+int ceiling = 21*StepUnit;
+int h= 62*StepUnit;
+int margin = w / 4;
 
 // Coordinates of current (starting) point
 int x1= w/2;
@@ -41,7 +40,7 @@ int b1= sqrt(pow((w-x1),2)+pow(y1,2));
 //globals
 float millisPerStep;
 unsigned long lastTime;
-int energy;
+
 int penPos, lastPenPos;
 boolean draw= false;
 int drawCount = 0;
@@ -51,20 +50,21 @@ int drawCount = 0;
 #define OPTO_PEN A5
 #define PWM_RED 5 
 #define PWM_GREEN 6
-#define XBEETX 3
-#define XBEERX 4
+#define XBEETX 2
+#define XBEERX 3
 
 
 
 
 #define DEBUG
 
-#ifdef XBEE
 NewSoftSerial xbeeSerial(XBEETX, XBEERX);
+#ifdef XBEE
+
 TimedAction ActionCheckXbeeData = TimedAction( 1000, checkXbeeData);
 #endif
 #ifdef DEBUG
-TimedAction ActionCheckSerialData = TimedAction( 1000, checkSerialData);
+TimedAction ActionCheckSerialData = TimedAction( 200, checkSerialData);
 #endif
 
 //TimedAction ActionStatusBlink = TimedAction( 500, statusLED );
@@ -75,6 +75,8 @@ TimedAction ActionCheckSerialData = TimedAction( 1000, checkSerialData);
 // 4 red
 // 5 white
 // 6 green
+#define leftStepDir -1
+#define rightStepDir -1
 Stepper leftStepper(stepsPerRevolution, A0,A1,A2,A3);            
 Stepper rightStepper(stepsPerRevolution, 9,10,11,12);            
 
@@ -93,9 +95,9 @@ void setup() {
   // initialize the serial port:
   Serial.begin(9600);
   Serial.println( "energy plotter startup" );  
-  #ifdef XBEE
+ // #ifdef XBEE
   xbeeSetup();
-  #endif
+ // #endif
   Serial.println( x1 );
   Serial.println( y1 );
  // calibrate();
@@ -107,7 +109,7 @@ void loop()
   #ifdef DEBUG
   ActionCheckSerialData.check();
   #endif
-
+  turnOffSteppers();
  
 
 /*
@@ -124,35 +126,67 @@ void loop()
 */
 }
 
-/*
- // if( digitalRead(OPTO_ROLLER) == HIGH )
-  {
-    
-    Serial.println( "high" );
-    digitalWrite( STATUS_LED, LOW );
-    xaxis.step(1);
-    yaxis.step(1);
-    digitalWrite( STATUS_LED, HIGH );
-  }
-}
-*/
 
 #ifdef DEBUG
 void checkSerialData()
 {
+  if( xbeeSerial.available() )
+  {
+    digitalWrite( STATUS_LED, HIGH );
+    char command = xbeeSerial.read();
+   switch( command )
+    {
+      case 'e':
+      {
+        Serial.println( "got energy command" );
+        delay(200);
+        int energy = xbeeserReadInt();
+        int minute = xbeeserReadInt();
+        if( minute < 0 || minute > 1440 )
+        {
+          Serial.print( "bad minute " );
+          Serial.println( minute );
+          break;
+        }
+        if( energy < 0 || energy > 10000 )
+        {
+          Serial.print( "bad energy " );
+          Serial.println( energy );
+          break;
+        }
+        Serial.print( "set energy to: " );
+        Serial.print( energy );
+        Serial.print( " at " );
+        Serial.println( minute );
+        drawEnergy( energy, minute );
+        xbeeSerial.println("OK");
+        Serial.println( "OK" );
+        break;
+      }
+      default:
+        Serial.print( "bad command: " );
+        Serial.println( command );
+        break;
+    }
+    digitalWrite( STATUS_LED, LOW );
+  } 
+  
   if( Serial.available() )
   {
     char command = Serial.read();
     switch( command )
     {
-      case 'g':
-        drawEnergy();
-        break;
       case 'e':
-        energy = serReadInt();
+      {
+        int energy = serReadInt();
+        int minute = serReadInt();
+        drawEnergy( energy, minute );
         Serial.print( "set energy to: " );
-        Serial.println( energy );
+        Serial.print( energy );
+        Serial.print( " at " );
+        Serial.println( minute );
         break;
+      }
       case 'l':
         leftStepper.step( serReadInt() );
         break;

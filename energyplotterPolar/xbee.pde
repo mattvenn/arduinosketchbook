@@ -1,10 +1,10 @@
-#ifdef XBEE
+
 void xbeeSetup()  
 {
   xbeeSerial.begin(9600);
 
 }
-
+#ifdef XBEE
 void checkXbeeData()
 {
   int string = 0;
