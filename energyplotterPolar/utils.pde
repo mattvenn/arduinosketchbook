@@ -1,3 +1,16 @@
+void turnOffSteppers()
+{
+
+   digitalWrite( A0, LOW );
+  digitalWrite( A1, LOW );
+  digitalWrite( A2, LOW );
+  digitalWrite( A3, LOW );  
+   digitalWrite( 9, LOW );
+   digitalWrite( 10, LOW );
+   digitalWrite( 11, LOW );
+   digitalWrite( 12, LOW );
+}
+
 int serReadInt()
 {
  int i, serAva;                           // i is a counter, serAva hold number of serial available

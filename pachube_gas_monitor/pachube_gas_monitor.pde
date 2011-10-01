@@ -1,5 +1,5 @@
 #include <TimedAction.h>
-
+#include <NewSoftSerial.h>
 //--------------------------------------------------------
 //   EtherShield example: simpleClient Pachube
 //
@@ -38,7 +38,7 @@ byte server[4] =  {173,203,98,29};
 
 
 int batteryLevel;
-int minutes;
+int minutes = -1;
 boolean gasPulse = false;
 
 #define PACHUBE_VHOST "www.pachube.com"
@@ -46,7 +46,10 @@ boolean gasPulse = false;
 #define PACHUBEAPIKEY "X-PachubeApiKey: ZxBqcZRDClLxco2ZUbeat1D6x7pfOL5Jhmo60Ies2TU"
 
 #define LED_PIN 6
-
+#define XBEE_RX 4
+#define XBEE_TX 5
+#define ROBOT_RX 2
+#define ROBOT_TX 3
 TimedAction ActionCheckXbeeData = TimedAction( 200, checkXbeeData);
 //#define PACHUBEAPIKEY "www.pachube.com\r\nX-PachubeApiKey: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
 //#define PACHUBEAPIURL "/api/0000.csv"
@@ -59,13 +62,14 @@ char fstr[10];
 boolean dataReady=false;
 
 
-double irms, gas, temp, battv;
+double irms, gas, temp, battv, power;
 
 void setup()
 {
-  Serial.begin(57600);
-  Serial.println("gas and electric monitor via nanode to pachube");
+  Serial.begin(9600);
+  //Serial.println("gas and electric monitor via nanode to pachube");
   xbeeSetup();
+  energyRobotSetup();
   pinMode( LED_PIN, OUTPUT );
   digitalWrite( LED_PIN, HIGH );
   ethernet_setup(mac,ip,gateway,server,80,8); // Last two: PORT and SPI PIN: 8 for Nanode, 10 for nuelectronics
@@ -86,13 +90,12 @@ void loop()
   if (ethernet_ready() && dataReady)
   {
     digitalWrite( LED_PIN, LOW );
-    Serial.print( "pushing: " );
-    Serial.println( str );
+    //Serial.print( "pushing: " );
+    //Serial.println( str );
     ethernet_send_post(PSTR(PACHUBEAPIURL),PSTR(PACHUBE_VHOST),PSTR(PACHUBEAPIKEY), PSTR("PUT "),str);
-    Serial.println("sent"); 
-    Serial.print( "sending to energy robot:" );
-    Serial.print( 
+    //Serial.println("sent"); 
     
+    sendRobotData();
     dataReady = false;
     digitalWrite( LED_PIN, HIGH );
   }
@@ -122,6 +125,12 @@ void formatString()
     
     dtostrf(irms,0,3,fstr);
     strcat(str,fstr);
+    strcat(str,",");
+    
+    dtostrf(power,0,3,fstr);
+    strcat(str,fstr);
+    
+    
 
 }
 

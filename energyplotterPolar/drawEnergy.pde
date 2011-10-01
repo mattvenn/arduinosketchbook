@@ -2,7 +2,7 @@ int minRadius = 20;
 int lastSegment = 0;
 boolean newCell = false;
 int radius = minRadius;
-int radiusIncrement = 40;
+int radiusIncrement = 10;
 int energyPerSegment = 500;
 int remainderEnergy;
 int lastNumber;

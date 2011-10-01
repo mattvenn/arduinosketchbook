@@ -27,7 +27,7 @@
 //   Licence: GPL GNU v3
 //--------------------------------------------------------
 
-#define DEBUG
+//#define DEBUG
 
 byte* mymac;
 static uint8_t myip[4] =      { 0,0,0,0 };
@@ -53,11 +53,13 @@ long lastDnsRequest = 0L;
 static int8_t dns_state=DNS_STATE_INIT;
 
 void printIP( uint8_t *buf ) {
+  #ifdef DEBUG
   for( int i = 0; i < 4; i++ ) {
     Serial.print( buf[i], DEC );
     if( i<3 )
       Serial.print( "." );
   }
+  #endif
 }
 
 //------------------------------------------------------------------------------------------------
@@ -362,7 +364,7 @@ void ethernet_send_post(char * urlbuf,char * hoststr,char * additionalheaderline
 
 void browserresult_callback(uint8_t statuscode,uint16_t datapos) 
 {
-  #ifdef DEBUG
+
   
   int bufsize = 60;
   int curpos = 0;
@@ -372,7 +374,9 @@ void browserresult_callback(uint8_t statuscode,uint16_t datapos)
     uint16_t pos = datapos;
     while (buf[pos])
     {
+      #ifdef DEBUG
       Serial.print(buf[pos]);
+      #endif
       if( curpos < bufsize )
         chbuff[curpos++] = (char)buf[pos];
       pos++;
@@ -384,7 +388,7 @@ void browserresult_callback(uint8_t statuscode,uint16_t datapos)
     found = strstr(chbuff, "Date: ");
     if( found != 0 )
     {
-      Serial.println( "found date in string" );
+      //Serial.println( "found date in string" );
       found +=23;
       char num[3];
       strncpy( num, found, 2 );
@@ -394,15 +398,15 @@ void browserresult_callback(uint8_t statuscode,uint16_t datapos)
       strncpy( num, found, 2 );
       num[2] = '\0';
       int mins = atoi( num );
-      Serial.println( hours );
-      Serial.println( mins );
+      //Serial.println( hours );
+      //Serial.println( mins );
 
       minutes = hours * 60 + mins;
     }
     else
     {
-      Serial.println( "didn't get date" );
+      //Serial.println( "didn't get date" );
     }
   }
-  #endif
+
 }

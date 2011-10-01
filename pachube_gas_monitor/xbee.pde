@@ -1,8 +1,8 @@
 
 //http://tropicarduino.blogspot.com/2010/11/xbee-and-newsoftserial.html
-#include <NewSoftSerial.h>
 
-NewSoftSerial xbeeSerial(4,5); //pin 5 is RX
+
+NewSoftSerial xbeeSerial(XBEE_RX,XBEE_TX); //pin 5 is RX
 int dataStart, adIn, numConv, idx;
 int dataArray[3][4];
 byte packet[35]; //Array size is 3*4*2+11
@@ -32,13 +32,14 @@ void checkXbeeData()
       char buff[10];
       inString.toCharArray( buff, 10 );
       double val = strtod(buff,NULL);
-      Serial.print( string, DEC );
-      Serial.print( ":got val:" );
-      Serial.println( val );
+      //Serial.print( string, DEC );
+      //Serial.print( ":got val:" );
+      //Serial.println( val );
       switch ( string )
       {
         case 0:
           irms = val;
+          power = irms * 240;
           break;
         case 1:
           gas = val;
