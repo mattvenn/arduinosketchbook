@@ -27,15 +27,15 @@ float circumference = 3.1415 * diameter;
 int StepUnit = stepsPerRevolution / circumference;   
 
 // Approximate dimensions (in steps) of the total drawing area
-int w= 92*2.5*StepUnit; //68*StepUnit;
+int w= 68*StepUnit;
 
-int h= 92*2.5*StepUnit; //34 * StepUnit + ceiling;
+int h= 68*StepUnit; //34 * StepUnit + ceiling;
 int ceiling = h / 6; //5; // 10*StepUnit;
 int margin = w / 6; //4;
 
 // Coordinates of current (starting) point
 int x1= w/2;
-int y1= h;
+int y1= h/2;
 
 // Approximate length of strings from marker to staple
 int a1= sqrt(pow(x1,2)+pow(y1,2));
@@ -79,8 +79,8 @@ TimedAction ActionCheckSerialData = TimedAction( 200, checkSerialData);
 // 4 red
 // 5 white
 // 6 green
-Stepper rightStepper(stepsPerRevolution, A0,A1,A2,A3);            
-Stepper leftStepper(stepsPerRevolution, 9,10,11,12);            
+Stepper leftStepper(stepsPerRevolution, A0,A1,A2,A3);            
+Stepper rightStepper(stepsPerRevolution, 9,10,11,12);            
 
 void setup() {
   pinMode( STATUS_LED, OUTPUT );
@@ -177,6 +177,7 @@ void checkSerialData()
         Serial.print( energy );
         Serial.print( " at " );
         Serial.println( minute );
+
         break;
       }
       case 'l':
