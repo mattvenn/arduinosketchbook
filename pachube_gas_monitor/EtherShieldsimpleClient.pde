@@ -363,13 +363,45 @@ void ethernet_send_post(char * urlbuf,char * hoststr,char * additionalheaderline
 void browserresult_callback(uint8_t statuscode,uint16_t datapos) 
 {
   #ifdef DEBUG
+  
+  int bufsize = 60;
+  int curpos = 0;
+  char chbuff[bufsize];
   if (datapos != 0)
   {
     uint16_t pos = datapos;
     while (buf[pos])
     {
       Serial.print(buf[pos]);
+      if( curpos < bufsize )
+        chbuff[curpos++] = (char)buf[pos];
       pos++;
+    }
+    //null terminate the string
+    chbuff[bufsize] = '\0';
+    char * found = 0;
+   // Serial.print( chbuff );
+    found = strstr(chbuff, "Date: ");
+    if( found != 0 )
+    {
+      Serial.println( "found date in string" );
+      found +=23;
+      char num[3];
+      strncpy( num, found, 2 );
+      num[2] = '\0';
+      int hours = atoi( num );
+      found +=3;
+      strncpy( num, found, 2 );
+      num[2] = '\0';
+      int mins = atoi( num );
+      Serial.println( hours );
+      Serial.println( mins );
+
+      minutes = hours * 60 + mins;
+    }
+    else
+    {
+      Serial.println( "didn't get date" );
     }
   }
   #endif

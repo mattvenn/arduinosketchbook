@@ -38,6 +38,7 @@ byte server[4] =  {173,203,98,29};
 
 
 int batteryLevel;
+int minutes;
 boolean gasPulse = false;
 
 #define PACHUBE_VHOST "www.pachube.com"
@@ -89,6 +90,9 @@ void loop()
     Serial.println( str );
     ethernet_send_post(PSTR(PACHUBEAPIURL),PSTR(PACHUBE_VHOST),PSTR(PACHUBEAPIKEY), PSTR("PUT "),str);
     Serial.println("sent"); 
+    Serial.print( "sending to energy robot:" );
+    Serial.print( 
+    
     dataReady = false;
     digitalWrite( LED_PIN, HIGH );
   }
