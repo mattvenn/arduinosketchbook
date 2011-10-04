@@ -1,14 +1,45 @@
+void step( int stepper, int steps )
+{
+  if( steppersOn != true )
+    turnOnSteppers();
+  stepping = true; 
+  if( stepper == LEFT )
+  {
+     leftStepper.step( steps );
+  }
+  else if( stepper == RIGHT )
+  {
+      rightStepper.step( steps );
+  }
+  stepping = false;
+}         
+        
 void turnOffSteppers()
 {
+  if( steppersOn != true )
+    return;
+    Serial.println( "turning pwm low" );
+    for( int i = PWM_HIGH ; i >= PWM_LOW; i -- )
+    {
+       analogWrite( STEP_PWM, i );
+       delay(1);
+    }
+   steppersOn = false;
+}
 
-   digitalWrite( A0, LOW );
-  digitalWrite( A1, LOW );
-  digitalWrite( A2, LOW );
-  digitalWrite( A3, LOW );  
-   digitalWrite( 9, LOW );
-   digitalWrite( 10, LOW );
-   digitalWrite( 11, LOW );
-   digitalWrite( 12, LOW );
+void turnOnSteppers()
+{
+  if( steppersOn == true )
+    return;
+    Serial.println( "turning pwm high" );
+    for( int i = PWM_LOW ; i <= PWM_HIGH; i ++ )
+  {
+  analogWrite( STEP_PWM, i );
+  delay(1);
+  }
+
+  steppersOn = true;
+  Serial.println( "done");
 }
 
 int serReadInt()
