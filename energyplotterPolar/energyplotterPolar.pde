@@ -17,12 +17,14 @@ todo:
 #define stepSpeed 20
 #define leftStepDir -1
 #define rightStepDir -1
+#define LEFT 0
+#define RIGHT 1
 
 // Approximate number of steps per cm, calculated from radius of spool
 // and the number of steps per radius
 float diameter = 1.24; //1.29
 float circumference = 3.1415 * diameter;
-
+boolean steppersOn = false;
 int StepUnit = stepsPerRevolution / circumference;   
 
 // Approximate dimensions (in steps) of the total drawing area
@@ -43,21 +45,25 @@ int b1= sqrt(pow((w-x1),2)+pow(y1,2));
 //globals
 float millisPerStep;
 unsigned long lastTime;
-
+int pwm = 255;
 int penPos, lastPenPos;
 boolean draw= false;
+boolean stepping = false;
 int drawCount = 0;
 
 #define STATUS_LED 4                                    
 #define OPTO_ROLLER A4
 #define OPTO_PEN A5
-#define PWM_RED 5 
-#define PWM_GREEN 6
+#define STEP_PWM 5 
+
 #define XBEETX 2
 #define XBEERX 3
 
 
 
+
+#define PWM_LOW 1
+#define PWM_HIGH 255
 
 #define DEBUG
 
@@ -70,7 +76,7 @@ TimedAction ActionCheckXbeeData = TimedAction( 1000, checkXbeeData);
 TimedAction ActionCheckSerialData = TimedAction( 200, checkSerialData);
 #endif
 
-//TimedAction ActionStatusBlink = TimedAction( 500, statusLED );
+TimedAction ActionTurnOffSteppers = TimedAction( 500, turnOffSteppers );
 //TimedAction ActionDraw = TimedAction( 1000, draw );
 //TimedAction ActionLEDColour = TimedAction( 1000, LEDColour );
 // initialize the stepper library on pins 8 through 11:
@@ -85,8 +91,7 @@ Stepper rightStepper(stepsPerRevolution, 9,10,11,12);
 
 void setup() {
   pinMode( STATUS_LED, OUTPUT );
-  pinMode( PWM_RED, OUTPUT );
-  pinMode( PWM_GREEN, OUTPUT );
+  pinMode( STEP_PWM, OUTPUT );
   pinMode(OPTO_ROLLER,INPUT);
   pinMode(OPTO_PEN,INPUT);
   //digitalWrite(OPTO_ROLLER,LOW);
@@ -112,7 +117,9 @@ void loop()
   #ifdef DEBUG
   ActionCheckSerialData.check();
   #endif
-  turnOffSteppers();
+  //if steppers not in use, then turn power off
+  if( stepping == false )
+    ActionTurnOffSteppers.check();
  
 
 /*
@@ -146,18 +153,7 @@ void checkSerialData()
         int energy = xbeeserReadInt();
         int minute = xbeeserReadInt();
 
-        if( minute < 0 || minute > 1440 )
-        {
-          Serial.print( "bad minute " );
-          Serial.println( minute );
-          break;
-        }
-        if( energy < 0 || energy > 10000 )
-        {
-          Serial.print( "bad energy " );
-          Serial.println( energy );
-          break;
-        }
+       
         Serial.print( "set energy to: " );
         Serial.print( energy );
         Serial.print( " at " );
@@ -193,11 +189,15 @@ void checkSerialData()
         Serial.println( minute );
         break;
       }
+      case 'w':
+        pwm = serReadInt();
+        analogWrite( STEP_PWM, pwm );
+        break;
       case 'l':
-        leftStepper.step( serReadInt() );
+        step( LEFT, serReadInt() );
         break;
       case 'r':
-         rightStepper.step( serReadInt() );
+         step( RIGHT, serReadInt() );
          break;
       case 'p':
         Serial.print( "steps per cm: " );
