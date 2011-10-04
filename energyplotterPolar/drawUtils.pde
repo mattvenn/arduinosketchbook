@@ -5,7 +5,7 @@ float rads(int n) {
 }
 
 void moveTo(int x2, int y2) {
-  
+
   // Turn the stepper motors to move the marker from the current point (x1,
   // y1) to (x2, y2)
   // Note: This only moves in a perfectly straight line if 
@@ -40,15 +40,17 @@ void moveTo(int x2, int y2) {
   while ((a1!=a2) || (b1!=b2)) {
     if (a1!=a2) { 
       a1 += stepA;
-      leftStepper.step(leftStepDir *  stepA); 
+
+      step(LEFT,leftStepDir *  stepA); 
     }
     if (b1!=b2) { 
       b1 += stepB;
-      rightStepper.step(rightStepDir * stepB);
+      step(RIGHT,rightStepDir * stepB);
     }
   }
   x1 = x2;
   y1=y2;
+
 }
 
 void drawCurve(float x, float y, float fx, float fy, float cx, float cy) {
