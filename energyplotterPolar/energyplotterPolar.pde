@@ -67,7 +67,7 @@ int drawCount = 0;
 
 #define DEBUG
 
-NewSoftSerial xbeeSerial(XBEETX, XBEERX);
+NewSoftSerial xbeeSerial(XBEERX, XBEETX);
 #ifdef XBEE
 
 TimedAction ActionCheckXbeeData = TimedAction( 1000, checkXbeeData);
@@ -140,6 +140,7 @@ void loop()
 #ifdef DEBUG
 void checkSerialData()
 {
+      Serial.println(freeMemory());
   if( xbeeSerial.available() )
   {
     digitalWrite( STATUS_LED, HIGH );
