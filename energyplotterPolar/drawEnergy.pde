@@ -9,7 +9,20 @@ int lastNumber;
 
 //takes an energy and a minute
 void drawEnergy( float energy, int number )
+
 {
+   if( number < 1 || number > 1440 ) //fix the 1, 
+        {
+          Serial.print( "bad minute " );
+          Serial.println( number );
+          return;
+        }
+        if( energy < 0 || energy > 10000 )
+        {
+          Serial.print( "bad energy " );
+          Serial.println( energy );
+          return;
+        }
   number = number / 10;
   if( number != lastNumber)
   {
