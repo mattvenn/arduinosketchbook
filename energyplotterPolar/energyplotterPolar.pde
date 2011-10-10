@@ -14,7 +14,7 @@ todo:
 #define LOOP_PERIOD 400.0 //seconds
 #define MAX_PEN_STEPS 2000
 #define MAX_ENERGY 4000 //W
-#define stepSpeed 2 //20
+#define stepSpeed 20 //20
 #define leftStepDir -1
 #define rightStepDir -1
 #define LEFT 0
@@ -62,9 +62,9 @@ int drawCount = 0;
 
 
 //pwm is causing arduino to reboot at low values - check with scope
-#define PWM_LOW 10 //50
+#define PWM_LOW 30 //50 works better if pc is plugged in...
 #define PWM_HIGH 255
-#define delayFactor 10 //when we change pwmFrequency, delays change in value so multiply by this
+#define delayFactor 8 //10 //when we change pwmFrequency, delays change in value so multiply by this
 #define PWM_CHANGE_DELAY 5 * delayFactor
 
 #define DEBUG
@@ -99,10 +99,10 @@ void setup() {
   //digitalWrite(OPTO_ROLLER,LOW);
  // digitalWrite(OPTO_PEN,LOW);
   // set the speed at 60 rpm:
-  leftStepper.setSpeed(stepSpeed);
-  rightStepper.setSpeed(stepSpeed);
+  leftStepper.setSpeed(stepSpeed / delayFactor);
+  rightStepper.setSpeed(stepSpeed / delayFactor);
   
-  setPwmFrequency( STEP_PWM, 8 ); //set to 64khz
+  setPwmFrequency( STEP_PWM, 8 ); //set to 64khz / 8
   
   analogWrite( STEP_PWM, PWM_HIGH );
   // initialize the serial port:
@@ -111,9 +111,11 @@ void setup() {
  // #ifdef XBEE
   xbeeSetup();
  // #endif
-  Serial.println( x1 );
-  Serial.println( y1 );
- // calibrate();
+
+      digitalWrite( STATUS_LED, HIGH );
+      delay(1000 * delayFactor);
+      digitalWrite( STATUS_LED, LOW );
+
 }
 
 
@@ -145,6 +147,13 @@ void checkSerialData()
         delay(200 * delayFactor);
         int energy = xbeeserReadInt();
         int minute = xbeeserReadInt();
+        int ckSum = xbeeserReadInt();
+        
+        if( ckSum != energy + minute )
+        {
+          Serial.print( "bad checksum" );
+          break;
+        }
 
        
         Serial.print( "set energy to: " );
