@@ -69,7 +69,7 @@ void setup()
   Serial.begin(9600);
   //Serial.println("gas and electric monitor via nanode to pachube");
   xbeeSetup();
-  energyRobotSetup();
+
   pinMode( LED_PIN, OUTPUT );
   digitalWrite( LED_PIN, HIGH );
   ethernet_setup(mac,ip,gateway,server,80,8); // Last two: PORT and SPI PIN: 8 for Nanode, 10 for nuelectronics

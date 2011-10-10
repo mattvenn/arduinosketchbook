@@ -8,6 +8,29 @@ int dataArray[3][4];
 byte packet[35]; //Array size is 3*4*2+11
 
 
+void sendRobotData()
+{
+  if( minutes >= 0 )
+  {
+    //Serial.println( "sending to energy robot" );
+    
+    int intPower = (int)power;
+    Serial.print( "e" );
+     Serial.print( intPower );
+  Serial.print( "," );
+  Serial.print( minutes );
+  Serial.print( "," );
+  Serial.println( minutes + intPower );
+  
+  //nss doesn't work
+  xbeeSerial.print( "e" );
+  xbeeSerial.print( intPower );
+  xbeeSerial.print( "," );
+  xbeeSerial.print( minutes );
+  xbeeSerial.print( "," );
+  xbeeSerial.println( minutes + intPower );
+  }
+}
 void xbeeSetup()  
 {
   xbeeSerial.begin(9600);
