@@ -14,7 +14,7 @@ todo:
 #define LOOP_PERIOD 400.0 //seconds
 #define MAX_PEN_STEPS 2000
 #define MAX_ENERGY 4000 //W
-#define stepSpeed 20
+#define stepSpeed 2 //20
 #define leftStepDir -1
 #define rightStepDir -1
 #define LEFT 0
@@ -43,7 +43,7 @@ int a1= sqrt(pow(x1,2)+pow(y1,2));
 int b1= sqrt(pow((w-x1),2)+pow(y1,2));
 
 //globals
-float millisPerStep;
+
 unsigned long lastTime;
 int pwm = 255;
 int penPos, lastPenPos;
@@ -61,9 +61,11 @@ int drawCount = 0;
 
 
 
-
-#define PWM_LOW 1
+//pwm is causing arduino to reboot at low values - check with scope
+#define PWM_LOW 10 //50
 #define PWM_HIGH 255
+#define delayFactor 10 //when we change pwmFrequency, delays change in value so multiply by this
+#define PWM_CHANGE_DELAY 5 * delayFactor
 
 #define DEBUG
 
@@ -100,6 +102,9 @@ void setup() {
   leftStepper.setSpeed(stepSpeed);
   rightStepper.setSpeed(stepSpeed);
   
+  setPwmFrequency( STEP_PWM, 8 ); //set to 64khz
+  
+  analogWrite( STEP_PWM, PWM_HIGH );
   // initialize the serial port:
   Serial.begin(9600);
   Serial.println( "energy plotter startup" );  
@@ -119,28 +124,15 @@ void loop()
   #endif
   //if steppers not in use, then turn power off
   if( stepping == false )
-    ActionTurnOffSteppers.check();
+    turnOffSteppers();
  
-
-/*
-  ActionCheckXbeeData.check();
-  ActionStatusBlink.check();
-  ActionLEDColour.check();
-  
-  //ActionDraw.check();
-  if( millis() - lastTime > millisPerStep )
-  {
-    lastTime = millis();
-    draw();
-  }
-*/
 }
 
 
 #ifdef DEBUG
 void checkSerialData()
 {
-      Serial.println(freeMemory());
+
   if( xbeeSerial.available() )
   {
     digitalWrite( STATUS_LED, HIGH );
@@ -150,7 +142,7 @@ void checkSerialData()
       case 'e':
       {
         Serial.println( "got energy command" );
-        delay(200);
+        delay(200 * delayFactor);
         int energy = xbeeserReadInt();
         int minute = xbeeserReadInt();
 

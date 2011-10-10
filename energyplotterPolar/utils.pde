@@ -1,26 +1,3 @@
-
-//#ifdef DEBUG
-extern unsigned int __data_start;
-extern unsigned int __data_end;
-extern unsigned int __bss_start;
-extern unsigned int __bss_end;
-extern unsigned int __heap_start;
-extern void *__brkval;
-
-int freeMemory() {
-int free_memory;
-  
-    if((int)__brkval == 0)
-        free_memory = ((int)&free_memory) - ((int)&__bss_end);
-    else
-        free_memory = ((int)&free_memory) - ((int)__brkval);
-    return free_memory;
-};
-//#endif
-
-
-
-
 void step( int stepper, int steps )
 {
   if( steppersOn != true )
@@ -39,31 +16,33 @@ void step( int stepper, int steps )
         
 void turnOffSteppers()
 {
+  //return;
   if( steppersOn != true )
     return;
     Serial.println( "turning pwm low" );
     for( int i = PWM_HIGH ; i >= PWM_LOW; i -- )
     {
        analogWrite( STEP_PWM, i );
-       delay(1);
+       delay(PWM_CHANGE_DELAY);
     }
-    Serial.println( "loopdone" );
+  //  Serial.println( "loopdone" );
    steppersOn = false;
 }
 
 void turnOnSteppers()
 {
+//  return;
   if( steppersOn == true )
     return;
     Serial.println( "turning pwm high" );
     for( int i = PWM_LOW ; i <= PWM_HIGH; i ++ )
   {
   analogWrite( STEP_PWM, i );
-  delay(1);
+  delay(PWM_CHANGE_DELAY);
   }
-    Serial.println( "loopdone" );
+  //  Serial.println( "loopdone" );
   steppersOn = true;
-  Serial.println( "done");
+  //Serial.println( "done");
 }
 
 int serReadInt()
@@ -74,7 +53,7 @@ int serReadInt()
      
  if (Serial.available()>0)            // Check to see if there are any serial input
  {
-   delay(5);                              // Delay for terminal to finish transmitted
+   delay(5*delayFactor);                              // Delay for terminal to finish transmitted
                                               // 5mS work great for 9600 baud (increase this number for slower baud)
    serAva = Serial.available();  // Read number of input bytes
    for (i=0; i<serAva; i++)   
@@ -99,7 +78,7 @@ int xbeeserReadInt()
      
  if (xbeeSerial.available()>0)            // Check to see if there are any serial input
  {
-   delay(5);                              // Delay for terminal to finish transmitted
+   delay(5*delayFactor);                              // Delay for terminal to finish transmitted
                                               // 5mS work great for 9600 baud (increase this number for slower baud)
    serAva = xbeeSerial.available();  // Read number of input bytes
    for (i=0; i<serAva; i++)   
@@ -115,5 +94,65 @@ int xbeeserReadInt()
  else
    return -1;                           // Return -1 if there is no input
 }
-
-
+/**
+ * Divides a given PWM pin frequency by a divisor.
+ * 
+ * The resulting frequency is equal to the base frequency divided by
+ * the given divisor:
+ *   - Base frequencies:
+ *      o The base frequency for pins 3, 9, 10, and 11 is 31250 Hz.
+ *      o The base frequency for pins 5 and 6 is 62500 Hz.
+ *   - Divisors:
+ *      o The divisors available on pins 5, 6, 9 and 10 are: 1, 8, 64,
+ *        256, and 1024.
+ *      o The divisors available on pins 3 and 11 are: 1, 8, 32, 64,
+ *        128, 256, and 1024.
+ * 
+ * PWM frequencies are tied together in pairs of pins. If one in a
+ * pair is changed, the other is also changed to match:
+ *   - Pins 5 and 6 are paired on timer0
+ *   - Pins 9 and 10 are paired on timer1
+ *   - Pins 3 and 11 are paired on timer2
+ * 
+ * Note that this function will have side effects on anything else
+ * that uses timers:
+ *   - Changes on pins 3, 5, 6, or 11 may cause the delay() and
+ *     millis() functions to stop working. Other timing-related
+ *     functions may also be affected.
+ *   - Changes on pins 9 or 10 will cause the Servo library to function
+ *     incorrectly.
+ * 
+ * Thanks to macegr of the Arduino forums for his documentation of the
+ * PWM frequency divisors. His post can be viewed at:
+ *   http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1235060559/0#4
+ */
+void setPwmFrequency(int pin, int divisor) {
+  byte mode;
+  if(pin == 5 || pin == 6 || pin == 9 || pin == 10) {
+    switch(divisor) {
+      case 1: mode = 0x01; break;
+      case 8: mode = 0x02; break;
+      case 64: mode = 0x03; break;
+      case 256: mode = 0x04; break;
+      case 1024: mode = 0x05; break;
+      default: return;
+    }
+    if(pin == 5 || pin == 6) {
+      TCCR0B = TCCR0B & 0b11111000 | mode;
+    } else {
+      TCCR1B = TCCR1B & 0b11111000 | mode;
+    }
+  } else if(pin == 3 || pin == 11) {
+    switch(divisor) {
+      case 1: mode = 0x01; break;
+      case 8: mode = 0x02; break;
+      case 32: mode = 0x03; break;
+      case 64: mode = 0x04; break;
+      case 128: mode = 0x05; break;
+      case 256: mode = 0x06; break;
+      case 1024: mode = 0x7; break;
+      default: return;
+    }
+    TCCR2B = TCCR2B & 0b11111000 | mode;
+  }
+}
