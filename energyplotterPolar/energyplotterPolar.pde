@@ -54,7 +54,7 @@ int drawCount = 0;
 #define STATUS_LED 4                                    
 #define OPTO_ROLLER A4
 #define OPTO_PEN A5
-#define STEP_PWM 5 
+#define STEP_PWM 9 
 
 #define XBEETX 2
 #define XBEERX 3
@@ -62,10 +62,10 @@ int drawCount = 0;
 
 
 //pwm is causing arduino to reboot at low values - check with scope
-#define PWM_LOW 30 //50 works better if pc is plugged in...
+#define PWM_LOW 3 
 #define PWM_HIGH 255
-#define delayFactor 8 //10 //when we change pwmFrequency, delays change in value so multiply by this
-#define PWM_CHANGE_DELAY 5 * delayFactor
+#define delayFactor 1 //10 //when we change pwmFrequency, delays change in value so multiply by this
+#define PWM_CHANGE_DELAY 1 * delayFactor
 
 #define DEBUG
 
@@ -89,7 +89,7 @@ TimedAction ActionTurnOffSteppers = TimedAction( 500, turnOffSteppers );
 #define leftStepDir -1
 #define rightStepDir -1
 Stepper leftStepper(stepsPerRevolution, A0,A1,A2,A3);            
-Stepper rightStepper(stepsPerRevolution, 9,10,11,12);            
+Stepper rightStepper(stepsPerRevolution, 13,10,11,12);            
 
 void setup() {
   pinMode( STATUS_LED, OUTPUT );
@@ -102,7 +102,7 @@ void setup() {
   leftStepper.setSpeed(stepSpeed / delayFactor);
   rightStepper.setSpeed(stepSpeed / delayFactor);
   
-  setPwmFrequency( STEP_PWM, 8 ); //set to 64khz / 8
+  setPwmFrequency( STEP_PWM, 1 ); //set to 32khz / 1
   
   analogWrite( STEP_PWM, PWM_HIGH );
   // initialize the serial port:
@@ -116,17 +116,21 @@ void setup() {
       delay(1000 * delayFactor);
       digitalWrite( STATUS_LED, LOW );
 
+
+
 }
 
 
 void loop()
 {
+
   #ifdef DEBUG
   ActionCheckSerialData.check();
   #endif
   //if steppers not in use, then turn power off
   if( stepping == false )
     turnOffSteppers();
+ 
  
 }
 
