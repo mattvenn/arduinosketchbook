@@ -14,7 +14,7 @@ todo:
 #define LOOP_PERIOD 400.0 //seconds
 #define MAX_PEN_STEPS 2000
 #define MAX_ENERGY 4000 //W
-#define stepSpeed 20 //20
+#define stepSpeed 40 //20
 #define leftStepDir -1
 #define rightStepDir -1
 #define LEFT 0
@@ -119,22 +119,33 @@ void setup() {
 
 
 }
-
+unsigned int counter = 0;
 
 void loop()
 {
-
-  #ifdef DEBUG
-  ActionCheckSerialData.check();
-  #endif
-  //if steppers not in use, then turn power off
-  if( stepping == false )
-    turnOffSteppers();
- 
- 
+ ActionCheckSerialData.check();
+ //if steppers not in use, then turn power off
+ if( stepping == false )
+   turnOffSteppers();
 }
 
-
+void burnTest(int number)
+{
+  Serial.println( "starting burn test" );
+  for( int i = 0; i < number ; i ++ )
+ { 
+  Serial.println( i );
+  Serial.println( "move to 34,34" );
+ 
+  moveTo( 34 * StepUnit, 30 * StepUnit);
+  turnOffSteppers();
+  delay(100);
+  Serial.println( "move to 32,32" );
+  moveTo( 34* StepUnit, 34 * StepUnit);
+  turnOffSteppers();
+  delay(100);
+ }
+}
 #ifdef DEBUG
 void checkSerialData()
 {
@@ -184,6 +195,9 @@ void checkSerialData()
     char command = Serial.read();
     switch( command )
     {
+      case 'b':
+        burnTest( serReadInt() );
+        break;
       case 'e':
       {
         int energy = serReadInt();
