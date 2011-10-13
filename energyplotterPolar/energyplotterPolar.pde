@@ -62,7 +62,7 @@ int drawCount = 0;
 
 
 //pwm is causing arduino to reboot at low values - check with scope
-#define PWM_LOW 3 
+int PWM_LOW = 1; 
 #define PWM_HIGH 255
 #define delayFactor 1 //10 //when we change pwmFrequency, delays change in value so multiply by this
 #define PWM_CHANGE_DELAY 1 * delayFactor
@@ -196,8 +196,10 @@ void checkSerialData()
         break;
       }
       case 'w':
-        pwm = serReadInt();
-        analogWrite( STEP_PWM, pwm );
+//        pwm = serReadInt();
+        PWM_LOW = serReadInt();
+        Serial.print( "set pwm_low: " );
+        Serial.println( PWM_LOW );
         break;
       case 'l':
         step( LEFT, serReadInt() );
