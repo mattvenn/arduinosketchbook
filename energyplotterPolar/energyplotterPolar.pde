@@ -14,9 +14,9 @@ todo:
 #define LOOP_PERIOD 400.0 //seconds
 #define MAX_PEN_STEPS 2000
 #define MAX_ENERGY 4000 //W
-#define stepSpeed 40 //20
-#define leftStepDir -1
-#define rightStepDir -1
+#define stepSpeed 20
+#define leftStepDir -1 //these should be set so that the commands l50 and r50 lower the gondola
+#define rightStepDir 1
 #define LEFT 0
 #define RIGHT 1
 
@@ -86,8 +86,7 @@ TimedAction ActionTurnOffSteppers = TimedAction( 500, turnOffSteppers );
 // 4 red
 // 5 white
 // 6 green
-#define leftStepDir -1
-#define rightStepDir -1
+
 Stepper leftStepper(stepsPerRevolution, A0,A1,A2,A3);            
 Stepper rightStepper(stepsPerRevolution, 13,10,11,12);            
 
