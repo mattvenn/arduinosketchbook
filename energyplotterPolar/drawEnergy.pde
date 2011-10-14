@@ -11,7 +11,7 @@ int lastNumber;
 void drawEnergy( float energy, int number )
 
 {
-   if( number < 1 || number > 1440 ) //fix the 1, 
+   if( number < 0 || number >= 1440 ) //fix the 1, 
         {
           Serial.print( "bad minute " );
           Serial.println( number );
