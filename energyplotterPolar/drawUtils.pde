@@ -41,11 +41,11 @@ void moveTo(int x2, int y2) {
     if (a1!=a2) { 
       a1 += stepA;
 
-      step(LEFT,leftStepDir *  stepA); 
+      step(LEFT, stepA); 
     }
     if (b1!=b2) { 
       b1 += stepB;
-      step(RIGHT,rightStepDir * stepB);
+      step(RIGHT, stepB);
     }
   }
   x1 = x2;

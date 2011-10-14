@@ -5,11 +5,11 @@ void step( int stepper, int steps )
   stepping = true; 
   if( stepper == LEFT )
   {
-     leftStepper.step( steps );
+     leftStepper.step( leftStepDir * steps );
   }
   else if( stepper == RIGHT )
   {
-      rightStepper.step( steps );
+      rightStepper.step( rightStepDir * steps );
   }
   stepping = false;
 }         
