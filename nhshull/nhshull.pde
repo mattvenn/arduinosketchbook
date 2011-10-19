@@ -7,7 +7,7 @@ Matt Venn 2011 for Jam Jar Collective
 To log output in Linux bash shell:
 
 stty -F /dev/ttyUSB0 9600 raw         #this sets up serial port /dev/ttyUSB0 (might need to be ttyUSB1)
-cat /dev/ttyUSB0 | tee ~/nhs.output   #read the input, pipe it to a file in your home directory and also to the screen
+cat /dev/ttyUSB0 | tee -a ~/nhs.output   #read the input, pipe it to a file in your home directory and also to the screen
 */
 
 //pin defs
