@@ -2,6 +2,7 @@
 
 /*
 nhs hull starter code
+Matt Venn 2011 for Jam Jar Collective
 */
 
 //pin defs
@@ -27,8 +28,12 @@ nhs hull starter code
 unsigned int light, temp;
 boolean LED_OK = false;
 
+boolean testCycle = false;
+
 TimedAction statusAction = TimedAction(500,blink);
 TimedAction updateElectricalAction = TimedAction(500,updateElectrical);
+TimedAction outputTestAction = TimedAction(2000,testAllOutputs);
+
 void setup() {                
   // initialize the digital pin as an output.
   // Pin 13 has an LED connected on most Arduino boards:
@@ -51,9 +56,9 @@ void setup() {
 
 void loop()
 {
-  //testAllOutputs();  //flashes all outs on and off
-  updateElectricalAction.check();
-  statusAction.check();
+  outputTestAction.check(); //turns all relay and LED channels on and off every 2 seconds
+  updateElectricalAction.check(); //updates the data from the sensors
+  statusAction.check(); //blinks the green light so we know everything is still running
 }
 
 void blink()
@@ -75,7 +80,7 @@ void updateElectrical()
   Serial.print( "temp: " );
   Serial.println( temp ); 
   
-  
+/*  
   int lightsOn = map( light, LDR_MIN, LDR_MAX, 0, 3 );
   Serial.print( "light mapped to LED: " );
   Serial.println( lightsOn );
@@ -95,52 +100,25 @@ void updateElectrical()
     digitalWrite(LEDS3, HIGH );
   if( lightsOn >= 3 )
     digitalWrite(LEDS4, HIGH );
-    
+  */  
  
 }
 void testAllOutputs() {
   
-
-  digitalWrite(LED_GREEN, HIGH);   // set the LED on
-  digitalWrite(LED_RED, HIGH);   // set the LED on
-
-  delay(500);
-  
-  digitalWrite(LED_GREEN, LOW);   // set the LED on
-  digitalWrite(LED_RED, LOW);   // set the LED on
-   
-  digitalWrite(LEDS1, HIGH);   // set the LED on
-  digitalWrite(RELAY1, HIGH);   // set the LED on
-  
-  delay( 500 );
-
-  digitalWrite(LEDS1, LOW);   // set the LED on
-  digitalWrite(RELAY1, LOW);   // set the LED on
-  
-  digitalWrite(LEDS2, HIGH);   // set the LED on
-  digitalWrite(RELAY2, HIGH);   // set the LED on
-
-  delay(500);
-  
-  digitalWrite(LEDS2, LOW);   // set the LED on
-  digitalWrite(RELAY2, LOW);   // set the LED on
-
-  digitalWrite(RELAY3, HIGH);   // set the LED on 
-  digitalWrite(LEDS3, HIGH);   // set the LED on
-  
-  delay(500);
-
-  digitalWrite(LEDS3, LOW);   // set the LED on
-  digitalWrite(RELAY3, LOW);   // set the LED on
-
-  digitalWrite(LEDS4, HIGH);   // set the LED on
-  digitalWrite(RELAY4, HIGH);   // set the LED on
-
-  delay(500);              // wait for a second
-  
-  digitalWrite(LEDS4, LOW);   // set the LED on
-  digitalWrite(RELAY4, LOW);   // set the LED on 
+  //invert state
+  testCycle = ! testCycle;
  
+  digitalWrite(LEDS1, testCycle);   
+  digitalWrite(RELAY1, testCycle);   
+  
+  digitalWrite(LEDS2, testCycle);  
+  digitalWrite(RELAY2, testCycle); 
+
+  digitalWrite(RELAY3, testCycle);  
+  digitalWrite(LEDS3, testCycle); 
+  
+  digitalWrite(LEDS4, testCycle);   
+  digitalWrite(RELAY4, testCycle); 
   
 }
 
