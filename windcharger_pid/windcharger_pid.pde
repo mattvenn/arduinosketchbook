@@ -16,7 +16,7 @@
 #define LOW_BATTERY_VOLTAGE 10.0
 //#define DEBUG //define this for PID debugging
 #define CURRENT_CHARGING_VALUE 50
-#define SERIAL_LOGGING
+#define SERIAL_LOG
 
 //ERRORS
 #define ERR_LOW_BATTERY 1
@@ -54,7 +54,7 @@ TimedAction actionSerialLog = TimedAction(200,serialLog);
 PID myPID(&battVoltage, &pwmDumpLoad, &Setpoint,25,40,5, DIRECT); //DIRECT
 //TODO lcd setup
 // rs (4), enable (6) , d4 (11), d5 (12), d6(13), d7(14)) 
-LiquidCrystal lcd(A3, A4, A5, 2,3,4);
+LiquidCrystal lcd(A3, A4, A5, 13,3,4);
 
 //control pin defs
 #define PIN_pwmDumpLoad 10
