@@ -4,10 +4,13 @@
 nhs hull starter code
 Matt Venn 2011 for Jam Jar Collective
 
-To log output in Linux bash shell:
 
-stty -F /dev/ttyUSB0 9600 raw         #this sets up serial port /dev/ttyUSB0 (might need to be ttyUSB1)
-cat /dev/ttyUSB0 | tee -a ~/nhs.output   #read the input, pipe it to a file in your home directory and also to the screen
+  Hull NHS Colour-facade control code
+
+  Developed by Adrian McEwen and Stuart Childs to monitor the
+  light levels and outside temperature, and when it's dark light
+  up different light colours based on the temperature
+
 */
 
 //pin defs
@@ -38,6 +41,51 @@ boolean testCycle = false;
 TimedAction statusAction = TimedAction(500,blink);
 TimedAction updateElectricalAction = TimedAction(500,updateElectrical);
 TimedAction outputTestAction = TimedAction(2000,testAllOutputs);
+TimedAction updateLightsAction = TimedAction(10000,updateLights);
+
+//defs from Adrian's code
+bool gLightsOn = false;
+const int kDuskThreshold = 250;
+// Theshold at which we think it's getting light again
+const int kDawnThreshold = 350;
+
+// Number of seconds to wait between colour changes in the initial "it's gone dark, cycle through all possibilities" sequence
+const unsigned long kInitialLightSequenceDelay = 5;
+
+// Minimum value (NOT temperature) that the temperature sensor will read 
+const int kMinTempValue = 600;
+// Maximum value from analogRead that the temperature sensor will provide
+const int kMaxTempValue = 700;
+
+
+// Bits for the setLights number to color pattern mapping
+const int kLightsOff = 0;
+const int kRedBit = 1 << 0;
+const int kGreenBit = 1 << 1;
+const int kBlueBit = 1 << 2;
+const int kYellowBit = 1 << 3;
+const int kLightsOn = kRedBit | kGreenBit | kBlueBit | kYellowBit;
+
+const int kTempIntervalCount = 15;
+const int kTempMap[kTempIntervalCount] = {
+ kRedBit,
+ kYellowBit,
+ kGreenBit,
+ kBlueBit,
+ kRedBit | kYellowBit,
+ kRedBit | kGreenBit,
+ kRedBit | kBlueBit,
+ kYellowBit | kGreenBit,
+ kYellowBit | kBlueBit,
+ kGreenBit | kBlueBit,
+ kRedBit | kYellowBit | kGreenBit,
+ kRedBit | kYellowBit | kBlueBit,
+ kRedBit | kGreenBit | kBlueBit,
+ kYellowBit | kGreenBit | kBlueBit,
+ kRedBit | kYellowBit | kGreenBit | kBlueBit
+};
+
+
 
 void setup() {                
   // initialize the digital pin as an output.
@@ -61,9 +109,46 @@ void setup() {
 
 void loop()
 {
-  outputTestAction.check(); //turns all relay and LED channels on and off every 2 seconds
+//  outputTestAction.check(); //turns all relay and LED channels on and off every 2 seconds
   updateElectricalAction.check(); //updates the data from the sensors
   statusAction.check(); //blinks the green light so we know everything is still running
+  updateLightsAction.check();
+}
+
+void updateLights()
+{
+
+ if ((light < kDuskThreshold) && (gLightsOn == false))
+ {
+   // It's gone dark
+   gLightsOn = true;
+
+   // When it first goes dark, we cycle through all the light combinations
+   for (int i = 0; i < 16; i++)
+   {
+     setLights(i);
+     delay(1000UL * kInitialLightSequenceDelay);
+   }
+ }
+ else if (light > kDawnThreshold)
+ {
+   // It's light again
+   gLightsOn = false;
+ }
+
+ if (gLightsOn)
+ {
+   
+   // Map this temperature value to  
+   int tempValue = constrain(temp, kMinTempValue, kMaxTempValue);
+   
+//   setLights(kTempMap[map(tempValue, kMinTempValue, kMaxTempValue, 0, kTempIntervalCount)]);
+  
+  //ADDED BY STU - ATTEMPT AT MAPPING REVERSAL
+  setLights(kTempMap[map(tempValue, kMaxTempValue, kMinTempValue, 0, kTempIntervalCount)]);
+
+ }
+
 }
 
 void blink()
@@ -71,6 +156,7 @@ void blink()
   digitalWrite(LED_GREEN, LED_OK );
   LED_OK = ! LED_OK;
 }
+
 void updateElectrical()
 {
   int lightRaw = analogRead( LDR );
@@ -85,28 +171,7 @@ void updateElectrical()
   Serial.print( "temp: " );
   Serial.println( temp ); 
   
-/*  
-  int lightsOn = map( light, LDR_MIN, LDR_MAX, 0, 3 );
-  Serial.print( "light mapped to LED: " );
-  Serial.println( lightsOn );
-  
-  //don't do this for real, only turn stuff off if we have to otherwise we'll get flicker.
-  digitalWrite( LEDS1, LOW );
-  digitalWrite( LEDS2, LOW );
-  digitalWrite( LEDS3, LOW );
-  digitalWrite( LEDS4, LOW );
 
-  //only turns on leds, not the relays
-  if (lightsOn >= 0 )
-    digitalWrite(LEDS1, HIGH );
-  if( lightsOn >= 1 )
-    digitalWrite(LEDS2, HIGH );
-  if( lightsOn >= 2 )
-    digitalWrite(LEDS3, HIGH );
-  if( lightsOn >= 3 )
-    digitalWrite(LEDS4, HIGH );
-  */  
- 
 }
 void testAllOutputs() {
   
@@ -128,3 +193,32 @@ void testAllOutputs() {
 }
 
 
+// setLights
+// Function to turn the lights on based on the provided aLightMask.
+// aLightMask should be a number between 0 (all off) and 15 (all on)
+// with each bit of that 4-bit number referring to a particular colour
+// (see the kXxxBit constants to find out which bit is which colour)
+void setLights(int aLightMask)
+{
+ //do this all the time
+ digitalWrite(LEDS1, aLightMask & kRedBit);
+ digitalWrite(LEDS2, aLightMask & kGreenBit);
+ digitalWrite(LEDS3, aLightMask & kBlueBit);
+ digitalWrite(LEDS4, aLightMask & kYellowBit);
+ 
+ //only control main lights if it's dark
+ if( gLightsOn )
+ {
+   digitalWrite(RELAY1, aLightMask & kRedBit);
+   digitalWrite(RELAY2, aLightMask & kGreenBit);
+   digitalWrite(RELAY3, aLightMask & kBlueBit);
+   digitalWrite(RELAY4, aLightMask & kYellowBit);
+ }
+ else
+ {
+   digitalWrite(RELAY1, LOW );
+   digitalWrite(RELAY2, LOW );
+   digitalWrite(RELAY3, LOW );
+   digitalWrite(RELAY4, LOW );
+ }   
+}
