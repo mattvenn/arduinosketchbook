@@ -92,9 +92,9 @@ int getAverage( int val, int array[], int arrayLength )
   for( int i = 1; i < arrayLength ; i ++ )
   {
     total += array[i];
-    array[i] = array[i-1];
+    array[i-1] = array[i];
   }
-  array[0] = val;
+  array[arrayLength-1] = val;
   total += val;
   return total /= arrayLength;
 }
