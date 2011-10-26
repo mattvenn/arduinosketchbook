@@ -1,5 +1,5 @@
 #include <TimedAction.h>
-
+#include <EEPROM.h>
 /*
 nhs hull starter code
 Matt Venn 2011 for Jam Jar Collective
@@ -12,6 +12,14 @@ Matt Venn 2011 for Jam Jar Collective
   up different light colours based on the temperature
 
 */
+
+//data storage
+#define TEMP_MIN_STORE 2
+#define TEMP_MAX_STORE 4
+#define LIGHT_MIN_STORE 6
+#define LIGHT_MAX_STORE 8
+
+unsigned int tempMin, tempMax, lightMin, lightMax;
 
 //pin defs
 #define RELAY1 2
@@ -121,16 +129,35 @@ void setup() {
   Serial.begin(9600);
   Serial.println("nhs hull starting...");
 
+  //only do this one time
+  /*
+  EEPROMWriteInt( TEMP_MIN_STORE, 1000 );
+  EEPROMWriteInt( TEMP_MAX_STORE, 0 );
+  EEPROMWriteInt( LIGHT_MIN_STORE, 1000 );
+  EEPROMWriteInt( LIGHT_MAX_STORE, 0 );
+*/
+  tempMin = EEPROMReadInt( TEMP_MIN_STORE );
+  tempMax = EEPROMReadInt( TEMP_MAX_STORE );
+  lightMin = EEPROMReadInt( LIGHT_MIN_STORE );
+  lightMax = EEPROMReadInt( LIGHT_MAX_STORE );
 
+  Serial.print( "temp min: " );
+  Serial.println( tempMin );
+  Serial.print( "temp max: " );
+  Serial.println( tempMax );
+  Serial.print( "light min: " );
+  Serial.println( lightMin );
+  Serial.print( "light max: " );
+  Serial.println( lightMax );
 }
 
 
 void loop()
 {
-  outputTestAction.check(); //turns all relay and LED channels on and off every 2 seconds
+//  outputTestAction.check(); //turns all relay and LED channels on and off every 2 seconds
   updateElectricalAction.check(); //updates the data from the sensors
   statusAction.check(); //blinks the green light so we know everything is still running
-//  updateLightsAction.check(); //do the pretty stuff
+  updateLightsAction.check(); //do the pretty stuff
 }
 
 void updateLights()
@@ -192,6 +219,27 @@ void updateElectrical()
   //average to get rid of noise
   light = getAverage( lightRaw, rawLightArray, averageArrayLength );
   temp = getAverage( tempRaw, rawTempArray, averageArrayLength );
+  
+  if( lightRaw > lightMax )
+  {
+      lightMax = lightRaw;
+      EEPROMWriteInt( LIGHT_MAX_STORE, lightMax );
+  }
+  if( lightRaw < lightMin )
+  {
+      lightMin = lightRaw;
+      EEPROMWriteInt( LIGHT_MIN_STORE, lightMin );
+  }
+  if( tempRaw > tempMax )
+  {
+    tempMax = tempRaw;
+    EEPROMWriteInt( TEMP_MAX_STORE, tempMax );
+  }
+  if( tempRaw < tempMin )
+  {
+    tempMin = tempRaw;
+    EEPROMWriteInt( TEMP_MIN_STORE, tempMin );
+  }
   Serial.print( "light: " );
   Serial.print( lightRaw );
   Serial.print( " -> " );
