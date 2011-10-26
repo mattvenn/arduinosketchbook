@@ -13,6 +13,16 @@ Matt Venn 2011 for Jam Jar Collective
 
 */
 
+//wipe eeprom?
+//#define WIPE_EEPROM
+
+//RGBY pwm values set brightness of model
+#define pwmValR 10
+#define pwmValG 10
+#define pwmValB 10
+#define pwmValY 10
+
+
 //data storage
 #define TEMP_MIN_STORE 2
 #define TEMP_MAX_STORE 4
@@ -30,10 +40,11 @@ unsigned int tempMin, tempMax, lightMin, lightMax;
 #define TEMP A0
 #define LDR A1
 
-#define LEDS1 A2 //  R
-#define LEDS2 A5 //  G
-#define LEDS3 A3 //  B
-#define LEDS4 A4 //  Y
+
+#define LEDSR 9 //A2 //  R
+#define LEDSG 6 //A5 //  G
+#define LEDSB 10 //A3 //  B
+#define LEDSY 11 //A4 //  Y
 
 #define LED_GREEN 13
 #define LED_RED 12
@@ -56,7 +67,7 @@ TimedAction outputTestAction = TimedAction(10000,testAllOutputs);
 TimedAction updateLightsAction = TimedAction(60000,updateLights); //once per minute 60000
 
 
-#define INIT_LIGHT_SEQUENCE 1
+//#define INIT_LIGHT_SEQUENCE 1
 
 //defs from Adrian's code
 bool gLightsOn = false;
@@ -114,11 +125,12 @@ void setup() {
   // Pin 13 has an LED connected on most Arduino boards:
   pinMode(LED_GREEN, OUTPUT);     
   pinMode(LED_RED, OUTPUT);     
-  pinMode(LED_GREEN, OUTPUT);   
-  pinMode(LEDS1, OUTPUT);
-  pinMode(LEDS2, OUTPUT);
-  pinMode(LEDS3, OUTPUT);
-  pinMode(LEDS4, OUTPUT);
+
+  pinMode(LEDSR, OUTPUT);
+  pinMode(LEDSG, OUTPUT);
+  pinMode(LEDSB, OUTPUT);
+  pinMode(LEDSY, OUTPUT);
+
   pinMode(RELAY1, OUTPUT);
   pinMode(RELAY2, OUTPUT);
   pinMode(RELAY3, OUTPUT);
@@ -130,12 +142,13 @@ void setup() {
   Serial.println("nhs hull starting...");
 
   //only do this one time
-  /*
+  #ifdef WIPE_EEPROM
   EEPROMWriteInt( TEMP_MIN_STORE, 1000 );
   EEPROMWriteInt( TEMP_MAX_STORE, 0 );
   EEPROMWriteInt( LIGHT_MIN_STORE, 1000 );
   EEPROMWriteInt( LIGHT_MAX_STORE, 0 );
-*/
+  #endif
+  
   tempMin = EEPROMReadInt( TEMP_MIN_STORE );
   tempMax = EEPROMReadInt( TEMP_MAX_STORE );
   lightMin = EEPROMReadInt( LIGHT_MIN_STORE );
@@ -154,7 +167,7 @@ void setup() {
 
 void loop()
 {
-//  outputTestAction.check(); //turns all relay and LED channels on and off every 2 seconds
+// outputTestAction.check(); //turns all relay and LED channels on and off every 2 seconds
   updateElectricalAction.check(); //updates the data from the sensors
   statusAction.check(); //blinks the green light so we know everything is still running
   updateLightsAction.check(); //do the pretty stuff
@@ -256,16 +269,17 @@ void testAllOutputs() {
   //invert state
   testCycle = ! testCycle;
  
-  digitalWrite(LEDS1, testCycle);   
+  analogWrite(LEDSR, testCycle ? pwmValR : 0 );   
   digitalWrite(RELAY1, testCycle);   
   
-  digitalWrite(LEDS2, testCycle);  
+  analogWrite(LEDSG, testCycle ? pwmValG : 0 );   
   digitalWrite(RELAY2, testCycle); 
 
+    analogWrite(LEDSB, testCycle ? pwmValB : 0 );   
   digitalWrite(RELAY3, testCycle);  
-  digitalWrite(LEDS3, testCycle); 
+
   
-  digitalWrite(LEDS4, testCycle);   
+  analogWrite(LEDSY, testCycle ? pwmValY : 0 );   
   digitalWrite(RELAY4, testCycle); 
   
   digitalWrite(LED_RED, testCycle );
@@ -281,10 +295,10 @@ void setLights(int aLightMask)
 {
  //do this all the time
 
- digitalWrite(LEDS1, aLightMask & kRedBit ); 
- digitalWrite(LEDS2, aLightMask & kGreenBit);
- digitalWrite(LEDS3, aLightMask & kBlueBit);
- digitalWrite(LEDS4, aLightMask & kYellowBit);
+ analogWrite(LEDSR, (aLightMask & kRedBit) ? pwmValR : 0 ); 
+ analogWrite(LEDSG, (aLightMask & kGreenBit) ? pwmValG : 0);
+ analogWrite(LEDSB, (aLightMask & kBlueBit) ? pwmValB : 0);
+ analogWrite(LEDSY, (aLightMask & kYellowBit) ? pwmValY : 0);
  
  //only control main lights if it's dark
  if( gLightsOn )
