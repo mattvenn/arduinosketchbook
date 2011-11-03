@@ -22,7 +22,7 @@ void sendRobotData()
   Serial.print( "," );
   Serial.println( minutes + intPower );
   
-  //nss doesn't work
+  //nss doesn't work - now appears to work.
   xbeeSerial.print( "e" );
   xbeeSerial.print( intPower );
   xbeeSerial.print( "," );

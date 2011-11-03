@@ -30,7 +30,7 @@
 //--------------------------------------------------------
 
 #include <EtherShield.h>
-
+#define DEBUG 1
 byte mac[6] =     { 0x54,0x55,0x38,0x12,0x01,0x23};
 byte ip[4] =      {192,168,0,100};
 byte gateway[4] = {192,168,0,1};
@@ -67,12 +67,17 @@ double irms, gas, temp, battv, power;
 void setup()
 {
   Serial.begin(9600);
-  //Serial.println("gas and electric monitor via nanode to pachube");
+  #ifdef DEBUG
+  Serial.println("gas and electric monitor via nanode to pachube");
+  #endif
   xbeeSetup();
 
   pinMode( LED_PIN, OUTPUT );
   digitalWrite( LED_PIN, HIGH );
   ethernet_setup(mac,ip,gateway,server,80,8); // Last two: PORT and SPI PIN: 8 for Nanode, 10 for nuelectronics
+  #ifdef DEBUG
+  Serial.println( "net setup" );
+  #endif
 }
 
 void loop()
@@ -90,8 +95,10 @@ void loop()
   if (ethernet_ready() && dataReady)
   {
     digitalWrite( LED_PIN, LOW );
-    //Serial.print( "pushing: " );
-    //Serial.println( str );
+    #ifdef DEBUG
+      Serial.print( "pushing: " );
+      Serial.println( str );
+    #endif
     ethernet_send_post(PSTR(PACHUBEAPIURL),PSTR(PACHUBE_VHOST),PSTR(PACHUBEAPIKEY), PSTR("PUT "),str);
     //Serial.println("sent"); 
     
