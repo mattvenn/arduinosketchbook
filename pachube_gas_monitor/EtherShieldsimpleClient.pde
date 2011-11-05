@@ -1,3 +1,11 @@
+void printIP( uint8_t *buf ) {
+  for( int i = 0; i < 4; i++ ) {
+    Serial.print( buf[i], DEC );
+    if( i<3 )
+      Serial.print( "." );
+  }
+}
+
 //--------------------------------------------------------
 //   EtherShield examples: simple client functions
 //
@@ -28,8 +36,8 @@
 //--------------------------------------------------------
 
 //#define DEBUG
-
-byte* mymac;
+/*
+//byte* mymac;
 static uint8_t myip[4] =      { 0,0,0,0 };
 static uint8_t mynetmask[4] = { 0,0,0,0 };
 byte* websrvip;
@@ -39,7 +47,7 @@ static uint8_t dhcpsvrip[4] = { 0,0,0,0 };
 
 char* webserver_vhost;
 
-EtherShield es=EtherShield();
+//EtherShield es=EtherShield();
 
 #define BUFFER_SIZE 500
 static uint8_t buf[BUFFER_SIZE+1];
@@ -352,11 +360,13 @@ void ethernet_send(char * apiurl,char * host,char * apikey,char * putget,char * 
   es.ES_client_http_post(PSTR(""),PSTR("www.dev.openenergymonitor.org"),NULL,PSTR("GET "),NULL, &browserresult_callback);
 }
 
+*/
+/*
 void ethernet_send_url(char * hoststr, char * urlbuf,char * urlbuf_varpart)
 {
   es.ES_client_browse_url(urlbuf,urlbuf_varpart,hoststr,&browserresult_callback);
 }
-
+*/
 void ethernet_send_post(char * urlbuf,char * hoststr,char * additionalheaderline,char * method,char * postval)
 {
   es.ES_client_http_post(urlbuf,hoststr,additionalheaderline,method,postval, &browserresult_callback);
@@ -364,7 +374,15 @@ void ethernet_send_post(char * urlbuf,char * hoststr,char * additionalheaderline
 
 void browserresult_callback(uint8_t statuscode,uint16_t datapos) 
 {
-
+  // statuscode=0 means a good webpage was received, with http code 200 OK
+        // statuscode=1 an http error was received
+        // statuscode=2 means the other side in not a web server and in this case datapos is also zero
+        
+ if (statuscode==0)
+   Serial.println( "pachube returned OK" );
+ if( statuscode==1)
+   Serial.println( "pachube error" );
+   /*
   
   int bufsize = 60;
   int curpos = 0;
@@ -408,5 +426,5 @@ void browserresult_callback(uint8_t statuscode,uint16_t datapos)
       //Serial.println( "didn't get date" );
     }
   }
-
+*/
 }

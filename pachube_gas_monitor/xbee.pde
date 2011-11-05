@@ -10,9 +10,10 @@ byte packet[35]; //Array size is 3*4*2+11
 
 void sendRobotData()
 {
+ 
   if( minutes >= 0 )
   {
-    //Serial.println( "sending to energy robot" );
+    Serial.print( "sending to energy robot: " );
     
     int intPower = (int)power;
     Serial.print( "e" );
@@ -21,6 +22,7 @@ void sendRobotData()
   Serial.print( minutes );
   Serial.print( "," );
   Serial.println( minutes + intPower );
+  
   
   //nss doesn't work - now appears to work.
   xbeeSerial.print( "e" );
@@ -73,6 +75,8 @@ void checkXbeeData()
         case 3:
           temp = val;
           dataReady = true;
+          Serial.println( "got data from remote monitor" );
+
           break;
           
       }
@@ -82,4 +86,7 @@ void checkXbeeData()
   }
 }
   
+  
+
+
 
