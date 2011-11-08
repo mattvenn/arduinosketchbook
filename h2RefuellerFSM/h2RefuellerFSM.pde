@@ -6,7 +6,7 @@
 #define ledPause 100
 //Pinouts
 #define  button  12
-#define  buttonLed 2
+#define  buttonLed 11
 #define  led1  4
 #define  led2  5
 #define  led3  6
@@ -14,15 +14,18 @@
 #define  led5  8
 #define  led6  10
 
-#define  fullSwitchPin 9
+#define  fullSwitchPin 2
 #define  syringePin 3 //pin 11 is blown cos I put 10v in
 #define  solenoidPin  13
 
+#define refillSafetyTime 5000 //seconds
 //initialize states
 State Ready = State(ledsOff);
 State Refuelling = State(refuel);
 State Waiting = State(waitUnclip);
 FSM refuellerStateMachine = FSM(Ready);     //initialize state machine, start in state: Ready
+
+volatile boolean filling = false;
 
 void setup()  {
 
@@ -49,6 +52,9 @@ void setup()  {
   Serial.print (secondsUnclip);
   Serial.println (" seconds");
   
+  //full switch interrupt
+   attachInterrupt(0, fullSwitchInt, LOW);
+
 }
 
 void loop() {
@@ -86,12 +92,18 @@ void ledsOff() {          // Ready state - turn off LEDs and wait for button pus
  
  }
 
+void fullSwitchInt()
+{
+  filling = false;
+}
 void refuel () {
   Serial.print("Refuelling ");
   digitalWrite(solenoidPin,HIGH);   // pin for electrolyser on
-
-  while( digitalRead( fullSwitchPin ) )
+  filling = true;
+  double startTime = millis();
+  while( filling && ( ( millis() - startTime  ) < refillSafetyTime) && digitalRead(syringePin))
   {
+    Serial.println( millis() - startTime );
   digitalWrite(led1,HIGH);    // turn on LED1
   delay (ledPause);  // delay before next LED comes on
   digitalWrite(led2,HIGH);
