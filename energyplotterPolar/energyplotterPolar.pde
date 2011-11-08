@@ -15,7 +15,7 @@ todo:
 #define MAX_PEN_STEPS 2000
 #define MAX_ENERGY 4000 //W
 #define stepSpeed 20
-#define leftStepDir -1 //these should be set so that the commands l50 and r50 lower the gondola
+#define leftStepDir 1 //these should be set so that the commands l50 and r50 lower the gondola
 #define rightStepDir 1
 #define LEFT 0
 #define RIGHT 1

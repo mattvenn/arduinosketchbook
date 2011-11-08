@@ -1,136 +1,88 @@
-#include <TimedAction.h>
-#include <NewSoftSerial.h>
-//--------------------------------------------------------
-//   EtherShield example: simpleClient Pachube
-//
-//   simple client code layer:
-//
-// - ethernet_setup(mac,ip,gateway,server,port)
-// - ethernet_ready() - check this before sending
-//
-// - ethernet_setup_dhcp(mac,serverip,port)
-// - ethernet_ready_dhcp() - check this before sending
-//
-// - ethernet_setup_dhcp_dns(mac,domainname,port)
-// - ethernet_ready_dhcp_dns() - check this before sending
-//
-//   Posting data within request body:
-// - ethernet_send_post(PSTR(PACHUBEAPIURL),PSTR(PACHUBE_VHOST),PSTR(PACHUBEAPIKEY), PSTR("PUT "),str);
-// 
-//   Sending data in the URL
-// - ethernet_send_url(PSTR(HOST),PSTR(API),str);
-//
-//   EtherShield library by: Andrew D Lindsay
-//   http://blog.thiseldo.co.uk
-//
-//   Example by Trystan Lea, building on Andrew D Lindsay's examples
-//
-//   Projects: Nanode.eu and OpenEnergyMonitor.org
-//   Licence: GPL GNU v3
-//--------------------------------------------------------
+/* 
+Matt Venn's home energy hub. 2011
 
+gets energy info from a wireless energy monitor via Xbee.
+sends data to pachube and to polargraph energy monitor
+http://www.mattvenn.net/2011/09/19/polargraph-energy-monitoring/
+
+Thanks to:
+
+EtherShield library by: Andrew D Lindsay http://blog.thiseldo.co.uk
+RTC stuff from <jcw@equi4.com> http://opensource.org/licenses/mit-license.php
+ntp stuff from thiseldo.co.uk : https://gist.github.com/1338239
+running on a nanode: Projects: Nanode.eu and OpenEnergyMonitor.org
+
+Licence: GPL GNU v3
+
+Notes:
+
+Had to edit ethershield/ip_config.h to #define NTP_client 1
+
+*/
+
+#include <Wire.h>
 #include <EtherShield.h>
+#include <TimedAction.h>
+#include <RTClib.h>
+#include <NewSoftSerial.h>
+#include <NanodeMAC.h>
 
-byte mac[6] =     { 0x54,0x55,0x38,0x12,0x01,0x23};
-byte ip[4] =      {192,168,0,100};
-byte gateway[4] = {192,168,0,1};
-byte server[4] =  {173,203,98,29};
+RTC_DS1307 RTC;
+EtherShield es=EtherShield();
 
-
-int batteryLevel;
+//globals
 int minutes = -1;
-boolean gasPulse = false;
-
-#define PACHUBE_VHOST "www.pachube.com"
-#define PACHUBEAPIURL "/api/28462.csv"
-#define PACHUBEAPIKEY "X-PachubeApiKey: ZxBqcZRDClLxco2ZUbeat1D6x7pfOL5Jhmo60Ies2TU"
-
-#define LED_PIN 6
-#define XBEE_RX 4
-#define XBEE_TX 5
-#define ROBOT_RX 2
-#define ROBOT_TX 3
-TimedAction ActionCheckXbeeData = TimedAction( 200, checkXbeeData);
-//#define PACHUBEAPIKEY "www.pachube.com\r\nX-PachubeApiKey: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
-//#define PACHUBEAPIURL "/api/0000.csv"
-
-unsigned long lastupdate;
-boolean trigger = false;
-
 char str[50];
 char fstr[10];
 boolean dataReady=false;
-
-
 double irms, gas, temp, battv, power;
+int batteryLevel;
+
+//pin defs
+#define LED_PIN 6
+#define XBEE_RX 4
+#define XBEE_TX 5
+
+//timed actions
+TimedAction ActionCheckXbeeData = TimedAction( 200, checkXbeeData);
+TimedAction ActionSendNTP = TimedAction( 60000, ntpRequest); //once a minute
+TimedAction ActionPrintRTC = TimedAction( 1000, printRTCTime);
 
 void setup()
 {
+  Wire.begin();
+  RTC.begin();
   Serial.begin(9600);
-  //Serial.println("gas and electric monitor via nanode to pachube");
+  Serial.println("gas and electric monitor via nanode to pachube");
+  printRTCTime();
   xbeeSetup();
 
+  //pin setups
   pinMode( LED_PIN, OUTPUT );
   digitalWrite( LED_PIN, HIGH );
-  ethernet_setup(mac,ip,gateway,server,80,8); // Last two: PORT and SPI PIN: 8 for Nanode, 10 for nuelectronics
+
+  //setup network
+  Serial.println( "setting up network" );
+  startNetwork();
+  setupDHCP();
 }
 
 void loop()
 {
+  //  while( es.ES_dhcp_state() == DHCP_STATE_OK ) { no point in this because it never changes state
+  checkNetwork(); //need to call this often. Why? I think because otherwise we'll lose buffered data
+  ActionSendNTP.check();
+  ActionPrintRTC.check(); //this also updates the global minutes variable
   ActionCheckXbeeData.check();
-  
-  if( dataReady )
-  {
-    formatString();
-  }
 
-  //----------------------------------------
-  // 2) Send the data
-  //----------------------------------------
-  if (ethernet_ready() && dataReady)
+  if( dataReady ) //this flag set if we got energy data via xbee
   {
-    digitalWrite( LED_PIN, LOW );
-    //Serial.print( "pushing: " );
-    //Serial.println( str );
-    ethernet_send_post(PSTR(PACHUBEAPIURL),PSTR(PACHUBE_VHOST),PSTR(PACHUBEAPIKEY), PSTR("PUT "),str);
-    //Serial.println("sent"); 
-    
-    sendRobotData();
     dataReady = false;
+    
+    digitalWrite( LED_PIN, LOW );
+    sendRobotData();
+    sendToPachube();
     digitalWrite( LED_PIN, HIGH );
   }
-}
-
-void formatString()
-{
-  
-   
-    // Convert int/double to string, add it to main string, add csv commas
-    // dtostrf - converts a double to a string!
-    // strcat  - adds a string to another string
-    // strcpy  - copies a string
-    strcpy(str,"");
-    
-    dtostrf(battv,0,3,fstr); 
-    strcat(str,fstr);
-    strcat(str,",");
-    
-    dtostrf(gas,0,3,fstr);
-    strcat(str,fstr);
-    strcat(str,",");    
-    
-    dtostrf(temp,0,3,fstr);
-    strcat(str,fstr);
-    strcat(str,",");    
-    
-    dtostrf(irms,0,3,fstr);
-    strcat(str,fstr);
-    strcat(str,",");
-    
-    dtostrf(power,0,3,fstr);
-    strcat(str,fstr);
-    
-    
-
 }
 
