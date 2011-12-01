@@ -29,11 +29,11 @@ void setup()
   getResponse();
 
   Serial.println( "screen res" );
-   
-  mySerial.print( "Y" ); //display func
-  mySerial.print( 0x0C, HEX ); //rsolution
-  mySerial.print( 0x01, HEX ); //640 x 480
-
+   /*
+  mySerial.print( "Y" );
+  sendHex( 0x0C ); //rsolution
+  sendHex( 0x01 ); //640 x 480
+*/
   getResponse();
     
     Serial.println( "baud" );
@@ -41,7 +41,9 @@ void setup()
   sendHex( 0x0D );
   delay(1000);
   getResponse();
-  
+ // Serial.println( "poly");
+ // drawRect( 10,10, 200,200);
+ //   getResponse();
   mySerial.begin(115200);
   
  // drawRect( 10,10, 50,50);
@@ -68,7 +70,30 @@ void sendDB( int i )
 }
     
   
-    
+void drawPoly( int x1, int y1, int x2, int y2 )
+
+{
+  sendHex(0x67);
+  
+  sendHex(0x04); //vertices
+  
+  sendDB(x1); //x1
+ sendDB(y1); //y1
+
+ sendDB(x2);
+ sendDB(y2);
+
+ sendDB(x2);
+ sendDB(y2+10);
+
+ sendDB(x1);
+ sendDB(y1+10);
+
+
+
+ sendDB(1000); //colour
+}
+  
 void drawLine( int x1, int y1, int x2, int y2 )
 {
   sendHex(0x4C);
@@ -78,6 +103,7 @@ void drawLine( int x1, int y1, int x2, int y2 )
  sendDB(y2); //y2
  sendDB(1000); //colour
 }
+
 void drawRect( int x1, int y1, int x2, int y2 )
 {
   sendHex(0x72);
@@ -111,6 +137,7 @@ void getResponse()
   Serial.println("");
 }
 int oldx , oldy;
+boolean stopSpray = false;
 void loop()                     // run over and over again
 {
 
@@ -127,20 +154,32 @@ void loop()                     // run over and over again
   
   if (result & BLOB1)
   {
-    Serial.print("BLOB1 detected. X:");
+/*
+  Serial.print("BLOB1 detected. X:");
     Serial.print(ircam.Blob1.X);
     Serial.print(" Y:");
     Serial.print(ircam.Blob1.Y);
     Serial.print(" Size:");
     Serial.println(ircam.Blob1.Size);
-    
-      int x = (int)map(ircam.Blob1.X,0,1024,0,640);
+  */  
+  int x = (int)map(ircam.Blob1.X,0,1024,0,640);
   int y = (int)map(ircam.Blob1.Y,0,1024,0,480);
  
   int rectSize = 5;
-  drawLine( oldx, oldy, x, y);
+//  drawLine( oldx, oldy, x, y);
+  if( stopSpray )
+  {
+    stopSpray = false;
+    oldx = x;
+    oldy = y;
+  }
+    drawPoly( oldx, oldy, x, y);
   oldx = x;
   oldy = y;
+  }
+  else
+  {
+    stopSpray = true;
   }
  // int rx = analogRead(A0 );
  // int ry = analogRead(A1 );
