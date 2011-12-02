@@ -41,8 +41,15 @@ void setup()
   sendHex( 0x0D );
   delay(1000);
   getResponse();
- // Serial.println( "poly");
- // drawRect( 10,10, 200,200);
+  Serial.println( "poly");
+  drawFatLine( 5, 20,20, 200,20);
+  getResponse();
+    Serial.println( "poly");
+    drawFatLine( 5, 20,60, 20,200);
+    getResponse();
+      Serial.println( "poly");
+      drawFatLine( 5, 40,40, 200,200);
+      getResponse();
  //   getResponse();
   mySerial.begin(115200);
   
@@ -70,29 +77,7 @@ void sendDB( int i )
 }
     
   
-void drawPoly( int x1, int y1, int x2, int y2 )
 
-{
-  sendHex(0x67);
-  
-  sendHex(0x04); //vertices
-  
-  sendDB(x1); //x1
- sendDB(y1); //y1
-
- sendDB(x2);
- sendDB(y2);
-
- sendDB(x2);
- sendDB(y2+10);
-
- sendDB(x1);
- sendDB(y1+10);
-
-
-
- sendDB(1000); //colour
-}
   
 void drawLine( int x1, int y1, int x2, int y2 )
 {
@@ -114,18 +99,57 @@ void drawRect( int x1, int y1, int x2, int y2 )
  sendDB(y2); //y2
  sendDB(1000); //colour
 }
-void drawCircle()
+void drawCircle(int x, int y, int r)
 {
   Serial.println( "circle 2 " );
   sendHex(0x43);
-  sendHex(0x00);
+  
+  sendDB(x);
+  sendDB(y);
+  sendDB(r);
+  sendDB(1000);
 
-  sendHex(0x00);
-  sendHex(0x3F);
-  sendHex(0x00);
-  sendHex(0x22);
-  sendHex(0x00);
-  sendHex(0x1F);
+  
+}
+
+void drawFatLine( float w, int x1, int y1, int x2, int y2 )
+{
+  w = 10.0;
+ // Serial.println( x2 - x1 );
+  ///Serial.println( y2 - y1 );
+  float alpha = atan2(  x2 - x1 ,  y2 - y1 );
+ // Serial.println( alpha );
+  int xp = (int) w * cos( alpha );
+  int yp = (int) w * sin( alpha );
+ // Serial.print( "xp:" );
+ // Serial.println( xp );
+ // Serial.print( "yp:" );
+ // Serial.println( yp );
+  drawPoly( x1 + xp, y1 - yp, x2 + xp, y2 - yp, x2 - xp, y2 + yp, x1 - xp, y1 + yp );
+  drawCircle( x1, y1, w )  ;
+}
+
+void drawPoly( int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4 )
+{
+
+                      
+  sendHex(0x67);
+  
+  sendHex(0x04); //vertices
+  
+  sendDB(x1); //x1
+  sendDB(y1); //y1
+
+ sendDB(x2);
+ sendDB(y2);
+
+ sendDB(x3);
+ sendDB(y3);
+
+ sendDB(x4);
+ sendDB(y4);
+
+ sendDB(1000); //colour
 }
 
 void getResponse()
@@ -173,7 +197,7 @@ void loop()                     // run over and over again
     oldx = x;
     oldy = y;
   }
-    drawPoly( oldx, oldy, x, y);
+    drawFatLine( 5, oldx, oldy, x, y);
   oldx = x;
   oldy = y;
   }
