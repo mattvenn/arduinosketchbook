@@ -5,7 +5,7 @@
 
 PVision ircam;
 byte result;
-
+int lineWidth = 5;
 
 
 NewSoftSerial mySerial(2, 3);
@@ -114,7 +114,7 @@ void drawCircle(int x, int y, int r)
 
 void drawFatLine( float w, int x1, int y1, int x2, int y2 )
 {
-  w = 10.0;
+
  // Serial.println( x2 - x1 );
   ///Serial.println( y2 - y1 );
   float alpha = atan2(  x2 - x1 ,  y2 - y1 );
@@ -126,7 +126,7 @@ void drawFatLine( float w, int x1, int y1, int x2, int y2 )
  // Serial.print( "yp:" );
  // Serial.println( yp );
   drawPoly( x1 + xp, y1 - yp, x2 + xp, y2 - yp, x2 - xp, y2 + yp, x1 - xp, y1 + yp );
-  drawCircle( x1, y1, w )  ;
+  drawCircle( x1, y1, w - 1 )  ;
 }
 
 void drawPoly( int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4 )
@@ -189,15 +189,13 @@ void loop()                     // run over and over again
   int x = (int)map(ircam.Blob1.X,0,1024,0,640);
   int y = (int)map(ircam.Blob1.Y,0,1024,0,480);
  
-  int rectSize = 5;
-//  drawLine( oldx, oldy, x, y);
   if( stopSpray )
   {
     stopSpray = false;
     oldx = x;
     oldy = y;
   }
-    drawFatLine( 5, oldx, oldy, x, y);
+    drawFatLine( lineWidth, oldx, oldy, x, y);
   oldx = x;
   oldy = y;
   }
