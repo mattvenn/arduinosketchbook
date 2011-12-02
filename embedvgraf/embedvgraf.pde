@@ -7,12 +7,13 @@
 //this initializes a TimedAction class that will change the state of an LED every second.
 TimedAction timedAction = TimedAction(5000,status);
 
-
-
+//boolean
 PVision ircam;
 byte result;
-int lineWidth = 3;
+int lineWidth = 8;
 int drawColour = 1000;
+int oldx , oldy;
+boolean stopSpray = false;
 
 NewSoftSerial mySerial(2, 3);
 
@@ -33,16 +34,13 @@ void setup()
   sendHex( 0 );
   getResponse();
 
- 
-   /*
+   
   Serial.println( "screen res" );
-  mySerial.print( "Y" );
+  sendHex( 0x59);
   sendHex( 0x0C ); //rsolution
   sendHex( 0x01 ); //640 x 480
+  delay(1000);
   getResponse();
-*/
-
-
 
   Serial.println( "baud" );
   mySerial.print( "Q" ); //baud
@@ -105,13 +103,14 @@ void getResponse()
 void clearBuffer()
 {
     mySerial.flush();  
-    //send a command
+    //request version info
     sendHex( 0x56 );
     sendHex( 0x00 );
      //but don't wait for ack
     while( mySerial.available() )
     {
       Serial.print( mySerial.read(), HEX );
+      Serial.print( "," );
     }
 }
 
@@ -212,8 +211,7 @@ void drawFatLine( float w, int x1, int y1, int x2, int y2 , int colour)
   drawCircle( x1, y1, w - 1, colour )  ;
 }
 
-int oldx , oldy;
-boolean stopSpray = false;
+
 
 void status()
 {
@@ -242,9 +240,10 @@ void loop()                     // run over and over again
     Serial.print(" Size:");
     Serial.println(ircam.Blob1.Size);
   */  
+   
   int x = (int)map(ircam.Blob1.X,0,1024,0,640);
-  int y = (int)map(ircam.Blob1.Y,0,1024,0,480);
- 
+  int y = (int)map(ircam.Blob1.Y,0,768,0,480);
+  
   if( checkControlBar( x, y ) )
   {
 //    Serial.println( "in control area");
@@ -259,6 +258,7 @@ void loop()                     // run over and over again
     oldx = x;
     oldy = y;
   }
+
     drawFatLine( lineWidth, oldx, oldy, x, y, drawColour);
 
 
