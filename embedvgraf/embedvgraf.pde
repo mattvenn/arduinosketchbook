@@ -6,7 +6,7 @@
 PVision ircam;
 byte result;
 int lineWidth = 5;
-
+int drawColour = 1000;
 
 NewSoftSerial mySerial(2, 3);
 
@@ -41,27 +41,11 @@ void setup()
   sendHex( 0x0D );
   delay(1000);
   getResponse();
-  Serial.println( "poly");
-  drawFatLine( 5, 20,20, 200,20);
-  getResponse();
-    Serial.println( "poly");
-    drawFatLine( 5, 20,60, 20,200);
-    getResponse();
-      Serial.println( "poly");
-      drawFatLine( 5, 40,40, 200,200);
-      getResponse();
- //   getResponse();
+
   mySerial.begin(115200);
   
- // drawRect( 10,10, 50,50);
-/*
-for( int i = 0; i < 600 ; i += 10 )
-{
-  drawRect( i );
 
-  //getResponse(); 
-}
-*/
+  drawControlBar();
 }
 
 void sendHex(byte val )
@@ -75,9 +59,21 @@ void sendDB( int i )
  mySerial.print( (byte) ((i >> 8) & 0xFF) );
  mySerial.print( (byte) (i & 0xFF) ); 
 }
-    
+void eraseScreen()
+{
+  sendHex( 0x45 );
+}
+void drawChar( int x, int y, char c, int colour )
+{
   
-
+  sendHex( 0x74);
+  sendHex(c);
+  sendDB(x);
+  sendDB(y);
+  sendDB(colour);
+  sendHex( 0x01 ); //width
+  sendHex( 0x01 ); //height
+}
   
 void drawLine( int x1, int y1, int x2, int y2 )
 {
@@ -89,7 +85,7 @@ void drawLine( int x1, int y1, int x2, int y2 )
  sendDB(1000); //colour
 }
 
-void drawRect( int x1, int y1, int x2, int y2 )
+void drawRect( int x1, int y1, int x2, int y2, int colour)
 {
   sendHex(0x72);
  
@@ -97,22 +93,22 @@ void drawRect( int x1, int y1, int x2, int y2 )
  sendDB(y1); //y1
  sendDB(x2); //x2
  sendDB(y2); //y2
- sendDB(1000); //colour
+ sendDB(colour); //colour
 }
-void drawCircle(int x, int y, int r)
+void drawCircle(int x, int y, int r, int colour)
 {
-  Serial.println( "circle 2 " );
+
   sendHex(0x43);
   
   sendDB(x);
   sendDB(y);
   sendDB(r);
-  sendDB(1000);
+  sendDB(colour);
 
   
 }
 
-void drawFatLine( float w, int x1, int y1, int x2, int y2 )
+void drawFatLine( float w, int x1, int y1, int x2, int y2 , int colour)
 {
 
  // Serial.println( x2 - x1 );
@@ -125,11 +121,11 @@ void drawFatLine( float w, int x1, int y1, int x2, int y2 )
  // Serial.println( xp );
  // Serial.print( "yp:" );
  // Serial.println( yp );
-  drawPoly( x1 + xp, y1 - yp, x2 + xp, y2 - yp, x2 - xp, y2 + yp, x1 - xp, y1 + yp );
-  drawCircle( x1, y1, w - 1 )  ;
+  drawPoly( x1 + xp, y1 - yp, x2 + xp, y2 - yp, x2 - xp, y2 + yp, x1 - xp, y1 + yp, colour );
+  drawCircle( x1, y1, w - 1, colour )  ;
 }
 
-void drawPoly( int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4 )
+void drawPoly( int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4, int colour )
 {
 
                       
@@ -149,7 +145,7 @@ void drawPoly( int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4 )
  sendDB(x4);
  sendDB(y4);
 
- sendDB(1000); //colour
+ sendDB(colour); //colour
 }
 
 void getResponse()
@@ -189,20 +185,31 @@ void loop()                     // run over and over again
   int x = (int)map(ircam.Blob1.X,0,1024,0,640);
   int y = (int)map(ircam.Blob1.Y,0,1024,0,480);
  
-  if( stopSpray )
+  if( checkControlBar( x, y ) )
+  {
+    Serial.println( "in control area");
+  }
+  else
+  {
+    Serial.println( "painting" );
+    //we're spraying
+    if( stopSpray )
   {
     stopSpray = false;
     oldx = x;
     oldy = y;
   }
-    drawFatLine( lineWidth, oldx, oldy, x, y);
+  //  drawFatLine( lineWidth, oldx, oldy, x, y);
+  drawCircle( x,y, lineWidth, drawColour);
   oldx = x;
   oldy = y;
+  }
   }
   else
   {
     stopSpray = true;
   }
+  
  // int rx = analogRead(A0 );
  // int ry = analogRead(A1 );
 
