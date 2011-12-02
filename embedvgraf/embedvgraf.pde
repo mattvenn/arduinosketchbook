@@ -27,14 +27,14 @@ void setup()
   Serial.println( "autobaud" );
   sendHex( 0x55 );
   getResponse();
- 
-  
+
+
   Serial.println( "pensize = solid" );
   sendHex( 0x70);
   sendHex( 0 );
   getResponse();
 
-   
+
   Serial.println( "screen res" );
   sendHex( 0x59);
   sendHex( 0x0C ); //rsolution
@@ -46,13 +46,13 @@ void setup()
   mySerial.print( "Q" ); //baud
   sendHex( 0x0C ); //115200 doesn't work for receive - too fast
 
-//  getResponse(); doesn't work after baud change
+  //  getResponse(); doesn't work after baud change
 
-    mySerial.begin(57600);  
+  mySerial.begin(57600);  
 
-    delay(500);
-    clearBuffer();
- Serial.println( "control bar" );
+  delay(500);
+  clearBuffer();
+  Serial.println( "control bar" );
   drawControlBar();
   Serial.println( "done" );
 }
@@ -61,15 +61,15 @@ void setup()
 void sendHex(byte val )
 {
   mySerial.print( val);
-//  Serial.print(val);
+  //  Serial.print(val);
 }
 
 void sendDB( int i )
 {
- mySerial.print( (byte) ((i >> 8) & 0xFF) );
- mySerial.print( (byte) (i & 0xFF) ); 
- //Serial.print( (byte) ((i >> 8) & 0xFF) );
- // Serial.print( (byte) (i & 0xFF) ); 
+  mySerial.print( (byte) ((i >> 8) & 0xFF) );
+  mySerial.print( (byte) (i & 0xFF) ); 
+  //Serial.print( (byte) ((i >> 8) & 0xFF) );
+  // Serial.print( (byte) (i & 0xFF) ); 
 }
 
 //blocks for an ack or nack
@@ -82,18 +82,18 @@ void getResponse()
     if(mySerial.available())
     {
       char ack = ((char)mySerial.read());
-    //  Serial.print( "c:" );
-    //  Serial.println( ack, HEX );
-      
-      
+      //  Serial.print( "c:" );
+      //  Serial.println( ack, HEX );
+
+
       if( ack == 0x06 )
       {
-     //   Serial.println( "got ack" );
+        //   Serial.println( "got ack" );
         return;
       }
       else if ( ack == 0x15 )
       {
-      //  Serial.println( "got nack" );
+        //  Serial.println( "got nack" );
         return;
       }
     }
@@ -102,16 +102,16 @@ void getResponse()
 }
 void clearBuffer()
 {
-    mySerial.flush();  
-    //request version info
-    sendHex( 0x56 );
-    sendHex( 0x00 );
-     //but don't wait for ack
-    while( mySerial.available() )
-    {
-      Serial.print( mySerial.read(), HEX );
-      Serial.print( "," );
-    }
+  mySerial.flush();  
+  //request version info
+  sendHex( 0x56 );
+  sendHex( 0x00 );
+  //but don't wait for ack
+  while( mySerial.available() )
+  {
+    Serial.print( mySerial.read(), HEX );
+    Serial.print( "," );
+  }
 }
 
 
@@ -121,12 +121,12 @@ void clearBuffer()
 void eraseScreen()
 {
   sendHex( 0x45 );
-   getResponse();
+  getResponse();
 }
 
 void drawChar( int x, int y, char c, int colour )
 {
-  
+
   sendHex( 0x74);
   sendHex(c);
   sendDB(x);
@@ -134,17 +134,17 @@ void drawChar( int x, int y, char c, int colour )
   sendDB(colour);
   sendHex( 0x01 ); //width
   sendHex( 0x01 ); //height
-   getResponse();
+  getResponse();
 }
-  
+
 void drawLine( int x1, int y1, int x2, int y2 )
 {
   sendHex(0x4C);
   sendDB(x1); //x1
- sendDB(y1); //y1
- sendDB(x2); //x2
- sendDB(y2); //y2
- sendDB(1000); //colour
+  sendDB(y1); //y1
+  sendDB(x2); //x2
+  sendDB(y2); //y2
+  sendDB(1000); //colour
   getResponse();
 }
 
@@ -152,12 +152,12 @@ void drawRect( int x1, int y1, int x2, int y2, int colour)
 {
 
   sendHex(0x72);
- 
- sendDB(x1); //x1
- sendDB(y1); //y1
- sendDB(x2); //x2
- sendDB(y2); //y2
- sendDB(colour); //colour
+
+  sendDB(x1); //x1
+  sendDB(y1); //y1
+  sendDB(x2); //x2
+  sendDB(y2); //y2
+  sendDB(colour); //colour
   getResponse();
 }
 void drawCircle(int x, int y, int r, int colour)
@@ -167,8 +167,8 @@ void drawCircle(int x, int y, int r, int colour)
   sendDB(y);
   sendDB(r);
   sendDB(colour);
- getResponse();
-  
+  getResponse();
+
 }
 
 
@@ -176,37 +176,37 @@ void drawPoly( int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4, i
 {                    
   sendHex(0x67);
   sendHex(0x04); //vertices
-  
+
   sendDB(x1); //x1
   sendDB(y1); //y1
 
- sendDB(x2);
- sendDB(y2);
+    sendDB(x2);
+  sendDB(y2);
 
- sendDB(x3);
- sendDB(y3);
+  sendDB(x3);
+  sendDB(y3);
 
- sendDB(x4);
- sendDB(y4);
+  sendDB(x4);
+  sendDB(y4);
 
- sendDB(colour); //colour
- getResponse();
+  sendDB(colour); //colour
+  getResponse();
 }
 
 // stuff that uses the graphics primitives ////////////////////
 void drawFatLine( float w, int x1, int y1, int x2, int y2 , int colour)
 {
 
- // debug( x2 - x1 );
+  // debug( x2 - x1 );
   ///debug( y2 - y1 );
   float alpha = atan2(  x2 - x1 ,  y2 - y1 );
- // Serial.println( alpha );
+  // Serial.println( alpha );
   int xp = (int) w * cos( alpha );
   int yp = (int) w * sin( alpha );
- // Serial.println( "xp:" );
- // Serial.println( xp );
- // Serial.println( "yp:" );
- // Serial.println( yp );
+  // Serial.println( "xp:" );
+  // Serial.println( xp );
+  // Serial.println( "yp:" );
+  // Serial.println( yp );
   drawPoly( x1 + xp, y1 - yp, x2 + xp, y2 - yp, x2 - xp, y2 + yp, x1 - xp, y1 + yp, colour );
   drawCircle( x1, y1, w - 1, colour )  ;
 }
@@ -218,57 +218,58 @@ void status()
   Serial.println( "ok" );
   clearBuffer();
 }
-  
+
 
 void loop()                     // run over and over again
 {
 
 
   timedAction.check();
-  
 
-//  Serial.println( "loop");  
+
+  //  Serial.println( "loop");  
   result = ircam.read();
-  
+
   if (result & BLOB1)
   {
-/*
+    /*
   Serial.print("BLOB1 detected. X:");
-    Serial.print(ircam.Blob1.X);
-    Serial.print(" Y:");
-    Serial.print(ircam.Blob1.Y);
-    Serial.print(" Size:");
-    Serial.println(ircam.Blob1.Size);
-  */  
-   
-  int x = (int)map(ircam.Blob1.X,0,1024,0,640);
-  int y = (int)map(ircam.Blob1.Y,0,768,0,480);
-  
-  if( checkControlBar( x, y ) )
-  {
-//    Serial.println( "in control area");
-  }
-  else
-  {
-  //  Serial.println( "painting" );
-    //we're spraying
-    if( stopSpray )
-  {
-    stopSpray = false;
-    oldx = x;
-    oldy = y;
-  }
+     Serial.print(ircam.Blob1.X);
+     Serial.print(" Y:");
+     Serial.print(ircam.Blob1.Y);
+     Serial.print(" Size:");
+     Serial.println(ircam.Blob1.Size);
+     */
 
-    drawFatLine( lineWidth, oldx, oldy, x, y, drawColour);
+    int x = (int)map(ircam.Blob1.X,0,1024,0,640);
+    int y = (int)map(ircam.Blob1.Y,0,768,0,480);
+
+    if( checkControlBar( x, y ) )
+    {
+      //    Serial.println( "in control area");
+    }
+    else
+    {
+      //  Serial.println( "painting" );
+      //we're spraying
+      if( stopSpray )
+      {
+        stopSpray = false;
+        oldx = x;
+        oldy = y;
+      }
+
+      drawFatLine( lineWidth, oldx, oldy, x, y, drawColour);
 
 
-  oldx = x;
-  oldy = y;
-  }
+      oldx = x;
+      oldy = y;
+    }
   }
   else
   {
     stopSpray = true;
   }
- 
+
 }
+
