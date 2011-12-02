@@ -1,13 +1,32 @@
+/*
+
+Friispray embedded! BETA software!
+JamJarCollective.com
+
+embedded virtual graffiti using 4d systems uvga-ii and a pixart ir blob tracking camera (from wiimote)
+Matthew Venn 2011: mattvenn.net
+
+this software is licensed under the GPL.
+
+TODO
+
++ add 4 point calibration
++ add something to make colours better
++ add some status lights
++ look at saving images on the uvga-ii's sdcard
++ how can we get pixart cameras without trashing wiimotes?
+
+*/
 
 #include <NewSoftSerial.h>
 #include <Wire.h>
 #include <PVision.h>
 #include <TimedAction.h>
 
-//this initializes a TimedAction class that will change the state of an LED every second.
+//timed action for a status message
 TimedAction timedAction = TimedAction(5000,status);
 
-//boolean
+//globals
 PVision ircam;
 byte result;
 int lineWidth = 8;
@@ -28,16 +47,14 @@ void setup()
   sendHex( 0x55 );
   getResponse();
 
-
   Serial.println( "pensize = solid" );
   sendHex( 0x70);
   sendHex( 0 );
   getResponse();
 
-
   Serial.println( "screen res" );
   sendHex( 0x59);
-  sendHex( 0x0C ); //rsolution
+  sendHex( 0x0C ); //resolution
   sendHex( 0x01 ); //640 x 480
   delay(1000);
   getResponse();
@@ -46,12 +63,10 @@ void setup()
   mySerial.print( "Q" ); //baud
   sendHex( 0x0C ); //115200 doesn't work for receive - too fast
 
-  //  getResponse(); doesn't work after baud change
-
   mySerial.begin(57600);  
-
   delay(500);
   clearBuffer();
+
   Serial.println( "control bar" );
   drawControlBar();
   Serial.println( "done" );
@@ -72,7 +87,7 @@ void sendDB( int i )
   // Serial.print( (byte) (i & 0xFF) ); 
 }
 
-//blocks for an ack or nack
+//waits for an ack or nack or timesout
 void getResponse()
 {
   int i = 0;
@@ -82,24 +97,22 @@ void getResponse()
     if(mySerial.available())
     {
       char ack = ((char)mySerial.read());
-      //  Serial.print( "c:" );
-      //  Serial.println( ack, HEX );
-
-
       if( ack == 0x06 )
       {
-        //   Serial.println( "got ack" );
+        //ack
         return;
       }
       else if ( ack == 0x15 )
       {
-        //  Serial.println( "got nack" );
+        //nack
         return;
       }
     }
   }
+  //if we get here then flow control is bust and we might crash the uvga
   Serial.println( "timed out" );
 }
+
 void clearBuffer()
 {
   mySerial.flush();  
@@ -126,7 +139,6 @@ void eraseScreen()
 
 void drawChar( int x, int y, char c, int colour )
 {
-
   sendHex( 0x74);
   sendHex(c);
   sendDB(x);
@@ -150,9 +162,7 @@ void drawLine( int x1, int y1, int x2, int y2 )
 
 void drawRect( int x1, int y1, int x2, int y2, int colour)
 {
-
   sendHex(0x72);
-
   sendDB(x1); //x1
   sendDB(y1); //y1
   sendDB(x2); //x2
@@ -160,6 +170,7 @@ void drawRect( int x1, int y1, int x2, int y2, int colour)
   sendDB(colour); //colour
   getResponse();
 }
+
 void drawCircle(int x, int y, int r, int colour)
 {
   sendHex(0x43);
@@ -168,9 +179,7 @@ void drawCircle(int x, int y, int r, int colour)
   sendDB(r);
   sendDB(colour);
   getResponse();
-
 }
-
 
 void drawPoly( int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4, int colour )
 {                    
@@ -180,7 +189,7 @@ void drawPoly( int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4, i
   sendDB(x1); //x1
   sendDB(y1); //y1
 
-    sendDB(x2);
+  sendDB(x2);
   sendDB(y2);
 
   sendDB(x3);
@@ -196,22 +205,12 @@ void drawPoly( int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4, i
 // stuff that uses the graphics primitives ////////////////////
 void drawFatLine( float w, int x1, int y1, int x2, int y2 , int colour)
 {
-
-  // debug( x2 - x1 );
-  ///debug( y2 - y1 );
   float alpha = atan2(  x2 - x1 ,  y2 - y1 );
-  // Serial.println( alpha );
   int xp = (int) w * cos( alpha );
   int yp = (int) w * sin( alpha );
-  // Serial.println( "xp:" );
-  // Serial.println( xp );
-  // Serial.println( "yp:" );
-  // Serial.println( yp );
   drawPoly( x1 + xp, y1 - yp, x2 + xp, y2 - yp, x2 - xp, y2 + yp, x1 - xp, y1 + yp, colour );
   drawCircle( x1, y1, w - 1, colour )  ;
 }
-
-
 
 void status()
 {
@@ -219,15 +218,9 @@ void status()
   clearBuffer();
 }
 
-
-void loop()                     // run over and over again
+void loop()    
 {
-
-
   timedAction.check();
-
-
-  //  Serial.println( "loop");  
   result = ircam.read();
 
   if (result & BLOB1)
@@ -261,7 +254,6 @@ void loop()                     // run over and over again
 
       drawFatLine( lineWidth, oldx, oldy, x, y, drawColour);
 
-
       oldx = x;
       oldy = y;
     }
@@ -270,6 +262,5 @@ void loop()                     // run over and over again
   {
     stopSpray = true;
   }
-
 }
 
