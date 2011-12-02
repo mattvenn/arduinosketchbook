@@ -228,14 +228,7 @@ void loop()                     // run over and over again
 
   timedAction.check();
   
-  /*
-  if (mySerial.available()) {
-      Serial.print((char)mySerial.read(), HEX);
-  }
-  if (Serial.available()) {
-      mySerial.print((char)Serial.read());
-  }
-  */
+
 //  Serial.println( "loop");  
   result = ircam.read();
   
