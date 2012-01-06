@@ -52,6 +52,12 @@ void moveTo(int x2, int y2) {
   y1=y2;
 
 }
+void drawLine(float x, float y, float fx, float fy )
+{
+  float cx = x + ( (fx - x) / 2 );
+  float cy = y + ( (fy - y )/2 );
+  drawCurve( x, y, fx, fy, cx, cy );
+}
 
 void drawCurve(float x, float y, float fx, float fy, float cx, float cy) {
   // Draw a Quadratic Bezier curve from (x, y) to (fx, fy) using control pt
