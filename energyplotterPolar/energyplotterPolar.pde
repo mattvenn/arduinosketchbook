@@ -220,6 +220,15 @@ void checkSerialData()
       case 'r':
          step( RIGHT, serReadInt() );
          break;
+      case 'v': //draw a straight line
+      {
+        int x = serReadInt();
+        x *= StepUnit;
+        int y = serReadInt();
+        y *= StepUnit;
+        drawLine( x1, y1,  x, y );        
+        break;
+      }
       case 'p':
         Serial.print( "steps per cm: " );
         Serial.println( StepUnit );
