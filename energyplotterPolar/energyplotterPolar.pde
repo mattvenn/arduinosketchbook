@@ -3,6 +3,13 @@ todo:
  - what kind of precision do we have on the pen? will we get slopes or squares?
  - calibration
  - calculation of step sizes for roller and pen
+ 
+ -solve reseting problem
+ -find a way to find where the pen is at startup
+ 
+ RESET problem.
+ reducing pwm_high seems to help. 
+ changing to a different plug socket made things different.
  */
 
 #include <Stepper.h>
@@ -45,7 +52,6 @@ int b1= sqrt(pow((w-x1),2)+pow(y1,2));
 //globals
 
 unsigned long lastTime;
-int pwm = 255;
 int penPos, lastPenPos;
 boolean draw= false;
 boolean stepping = false;
@@ -63,7 +69,7 @@ int drawCount = 0;
 
 //pwm is causing arduino to reboot at low values - check with scope
 int PWM_LOW = 1; 
-#define PWM_HIGH 255
+int PWM_HIGH = 55;
 #define delayFactor 1 //10 //when we change pwmFrequency, delays change in value so multiply by this
 #define PWM_CHANGE_DELAY 1 * delayFactor
 
@@ -213,6 +219,11 @@ void checkSerialData()
         PWM_LOW = serReadInt();
         Serial.print( "set pwm_low: " );
         Serial.println( PWM_LOW );
+        break;
+      case 'h':
+        PWM_HIGH = serReadInt();
+        Serial.print("set pwn high: ");
+        Serial.println( PWM_HIGH );
         break;
       case 'l':
         step( LEFT, serReadInt() );
