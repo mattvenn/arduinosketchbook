@@ -1,3 +1,9 @@
+/* 
+todo:
++ servo hole fine tuning
+- timings
+- serial comms
+*/
 #include <MsTimer2.h>
 #include <Servo.h> 
 #include <Time.h>  
@@ -7,19 +13,19 @@
 Servo servo;  // create servo object to control a servo 
 
 #define LED 13
-#define HEATER 4
+#define HEATER 3
 
 #define START 2
-#define FAN 3
+#define FAN 4
 
 
-#define SERVO_OPEN 180
 #define SERVO_CLOSED 0
-
+ 
 int heatVal = 50; //this is inverted
-int heatA = 10000;
-int gateA = 2000;
-int gateD = 4000;
+int heatTime = 5;
+int ventOpenDelay = 2;
+int ventOpenTime = 4;
+int holeSize = 20;
 boolean fanState = true;
 int rawTemp;
 
@@ -29,7 +35,7 @@ void setup()
   pinMode(LED, OUTPUT);
   digitalWrite(LED, HIGH );
   pinMode(FAN, OUTPUT );
-  digitalWrite( FAN, LOW );
+  digitalWrite( FAN, HIGH ); //inverted
   
   pinMode(START, INPUT );
   digitalWrite( START, HIGH);
@@ -45,45 +51,122 @@ void setup()
   else
      Serial.println("RTC has set the system time");      
   
-  releaseScent();
+ // releaseScent();
 
 }
 
+void flashLED()
+{
+      digitalWrite( LED, LOW );
+    delay(100);
+    digitalWrite( LED, HIGH );
+}
+void readParams()
+{
+   char command = Serial.read();
+  if( command == 'A' )
+  {
+    delay(100);
 
+    char fan = Serial.read();
+    fanState = fan == 0 ? false : true;
+    holeSize = Serial.read();
+    heatVal = Serial.read();
+    heatTime = Serial.read();    
+    ventOpenDelay = Serial.read();
+    ventOpenTime = Serial.read();
+    
+    flashLED();    
+
+  }
+  else if( command == 'B' )
+  {
+    Serial.println( fanState ? '1': '0' );
+    Serial.println( holeSize );
+    Serial.println( heatVal );
+    Serial.println( heatTime );
+    Serial.println( ventOpenDelay );
+    Serial.println( ventOpenTime );
+    flashLED();
+
+  }
+  else if( command == 'C' )
+  {
+    flashLED();
+    releaseScent();
+
+  }
+  else
+  {
+    //flush serial port
+    while( Serial.available() )
+    {
+      Serial.read();
+    }
+  }
+}
 void loop()
 {
+  if( Serial.available() )
+  {
+    readParams();
+  }
   if( digitalRead( START ) == LOW )
   {
     releaseScent();
   }
 
-  delay( 200 );
-     digitalClockDisplay();  
+
 }
 
+//broken wrt timings
 void releaseScent()
 {
   Serial.println( "releasing scent" );
-  Serial.println( "turning on heater" );
-  analogWrite( HEATER, heatVal );
-
-  delay( gateA );
-
-  Serial.println( "opening gate" );
-  servo.write( SERVO_OPEN );
-  digitalWrite( FAN, fanState );
-  //hack, ensure heatA > gateA
-  delay( heatA - gateA );
-  
-  Serial.println( "turning off heater" );
-  analogWrite( HEATER, 255 );
-  
-  delay( gateD );
-  
-  Serial.println( "closing gate" );
-  digitalWrite( FAN, LOW );
-  servo.write( SERVO_CLOSED );
-  
+  Serial.print( "turning on heater: " );
+  Serial.println( heatVal );
+  analogWrite( HEATER, 255 - heatVal );
+  int time = 0;
+  boolean heatOn = true;
+  boolean ventOpen = false;
+  while( heatOn || ventOpen )
+  {
+    if( time == heatTime )
+    {
+      Serial.println( "turning off heater" );
+      analogWrite( HEATER, 255 );
+      heatOn = false;
+    }
+    if( time == ventOpenDelay )
+    {
+      Serial.print( "opening vent to pos: " );
+      Serial.println( holeSize, DEC );
+      servo.write( holeSize );
+      if( fanState )
+      {
+        Serial.println( "turning on fan" );
+        digitalWrite( FAN, LOW );
+      }
+      ventOpen = true;
+    }
+    if( time == ventOpenDelay + ventOpenTime )
+    {    
+      if( fanState )
+      {
+        Serial.println( "turning off fan" );
+        digitalWrite( FAN, HIGH );
+      }
+     
+      Serial.println( "closing vent" );
+      servo.write( SERVO_CLOSED );      
+      ventOpen = false;
+    }
+    delay(1000);
+    time ++;
+    Serial.print( time, DEC );
+    Serial.println( "s" );
+  }
+  Serial.println( "finished" );
 }
 /*  
   int heatKnob = analogRead( HEAT_KNOB );
