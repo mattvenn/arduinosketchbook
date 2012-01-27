@@ -16,8 +16,8 @@ Servo servo;  // create servo object to control a servo
 #define HEATER 3
 
 #define START 2
-#define FAN 4
-
+#define FAN 11
+#define OLDFAN 4
 
 #define SERVO_CLOSED 0
  
@@ -26,20 +26,21 @@ int heatTime = 5;
 int ventOpenDelay = 2;
 int ventOpenTime = 4;
 int holeSize = 20;
-boolean fanState = true;
+int fanVal;
 int rawTemp;
+
 
 
 void setup()
 {
   pinMode(LED, OUTPUT);
-  digitalWrite(LED, HIGH );
-  pinMode(FAN, OUTPUT );
-  digitalWrite( FAN, HIGH ); //inverted
+  flashLED(); flashLED();
+  pinMode(OLDFAN, INPUT );
+ // digitalWrite( FAN, HIGH ); //high impedance mode
   
-  pinMode(START, INPUT );
-  digitalWrite( START, HIGH);
-  analogWrite( HEATER, 255 );  
+ 
+  analogWrite( HEATER, 255 );   //inverted
+  analogWrite( FAN, 255 ); //inverted
   servo.attach(9);  // attaches the servo on pin 9 to the servo object 
   servo.write(SERVO_CLOSED);
   Serial.begin(9600);
@@ -68,8 +69,7 @@ void readParams()
   {
     delay(100);
 
-    char fan = Serial.read();
-    fanState = fan == 0 ? false : true;
+    fanVal = Serial.read();
     holeSize = Serial.read();
     heatVal = Serial.read();
     heatTime = Serial.read();    
@@ -81,7 +81,7 @@ void readParams()
   }
   else if( command == 'B' )
   {
-    Serial.println( fanState ? '1': '0' );
+    Serial.println( fanVal );
     Serial.println( holeSize );
     Serial.println( heatVal );
     Serial.println( heatTime );
@@ -111,12 +111,6 @@ void loop()
   {
     readParams();
   }
-  if( digitalRead( START ) == LOW )
-  {
-    releaseScent();
-  }
-
-
 }
 
 //broken wrt timings
@@ -141,32 +135,47 @@ void releaseScent()
     {
       Serial.print( "opening vent to pos: " );
       Serial.println( holeSize, DEC );
-      servo.write( holeSize );
-      if( fanState )
-      {
-        Serial.println( "turning on fan" );
-        digitalWrite( FAN, LOW );
-      }
+      servo.write( convertHoleSize(holeSize) );
+      analogWrite( FAN, convertFanVal(fanVal) );
+      Serial.print( "turning on fan: " );
+      Serial.println( fanVal );
+
       ventOpen = true;
     }
     if( time == ventOpenDelay + ventOpenTime )
     {    
-      if( fanState )
-      {
-        Serial.println( "turning off fan" );
-        digitalWrite( FAN, HIGH );
-      }
-     
+      Serial.println( "turning off fan" );
+      analogWrite( FAN, 255 );
       Serial.println( "closing vent" );
       servo.write( SERVO_CLOSED );      
       ventOpen = false;
     }
     delay(1000);
+    Serial.print( "t=" );
     time ++;
-    Serial.print( time, DEC );
-    Serial.println( "s" );
+    Serial.println( time, DEC );
+
   }
   Serial.println( "finished" );
+}
+
+int convertFanVal( int fan )
+{
+  if( fan == 0 )
+    return 255;
+  return 255 - (fanVal + 155);
+  
+}
+int convertHoleSize( int holeNum )
+{
+  if( holeNum == 1 )
+    return 25;
+    if(holeNum == 2 )
+    return 50;
+    if(holeNum == 3)
+    return 90;
+    if(holeNum ==4 )
+    return 132;
 }
 /*  
   int heatKnob = analogRead( HEAT_KNOB );
