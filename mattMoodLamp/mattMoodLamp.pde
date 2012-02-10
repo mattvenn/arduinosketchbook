@@ -1,5 +1,5 @@
-int ledPinR = 3;    // LED connected to digital pin 9
-int ledPinG = 5;    // LED connected to digital pin 9
+int ledPinR = 3;    // LED connected to digital pin 3
+int ledPinG = 5;    // LED connected to digital pin 5
 int ledPinB = 9;    // LED connected to digital pin 9
 int statusLED = 7;  // LED for status flashing
 
