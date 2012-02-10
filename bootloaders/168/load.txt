@@ -1,12 +1,13 @@
+#!/bin/bash
 #set fuses from here:
-http://www.engbedded.com/fusecalc/
+#http://www.engbedded.com/fusecalc/
 
-reset vector and boot size important for bootloader to work
+#reset vector and boot size important for bootloader to work
 
 avrdude -p atmega168 -P /dev/ttyACM1  -c STK500 -v -B 266 -U lfuse:w:0xdf:m -U hfuse:w:0xdc:m -U efuse:w:0xf8:m
 
-this boot loader works with above settings
+#this boot loader works with above settings
 avrdude -p atmega168 -P /dev/ttyACM1  -c STK500 -v -B 5 -U flash:w:./ATmegaBOOT_168_diecimila.hex 
 
-lock not important? don't know this yet
+#lock not important? don't know this yet
 avrdude -p atmega168 -P /dev/ttyACM1  -c STK500 -v -B 5 -U lock:w:0x0f:m
