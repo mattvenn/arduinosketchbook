@@ -57,9 +57,17 @@ void checkXbeeData()
       switch ( string )
       {
       case 0:
+      {
         irms = val;
         power = irms * 240;
+        if( lastPowerReading > 0 )
+        {
+          double interval = millis() - lastPowerReading; //in ms
+          elecWS = power * (interval / 1000);  
+        }
+        lastPowerReading = millis();
         break;
+      }
       case 1:
         gas = val;
         break;

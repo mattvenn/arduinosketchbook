@@ -1,6 +1,6 @@
-byte pachubeServer[4] =  { 173,203,98,29}; //DNS doesn't work yet
-#define PACHUBE_VHOST "www.pachube.com"
-#define PACHUBEAPIURL "/api/28462.csv"
+byte pachubeServer[4] = { 173,203,98,29}; //DNS doesn't work yet
+#define PACHUBE_VHOST "api.pachube.com"
+#define PACHUBEAPIURL "/v2/feeds/28462.csv"
 #define PACHUBEAPIKEY "X-PachubeApiKey: ZxBqcZRDClLxco2ZUbeat1D6x7pfOL5Jhmo60Ies2TU"
 
 static uint8_t mymac[6] = { 0,0,0,0,0,0 };
@@ -33,11 +33,37 @@ byte timeServer[][4] = {
 
 uint16_t ntpPort = 123;
 
+int lastHour = 0;
+void sendTotals()
+{
+  DateTime now = RTC.now();
+  //only do this when the hour changes
+  if( now.minute() == 0 && now.hour() != lastHour )
+  {
+    lastHour = now.hour();
+ 
+    formatTotalString();
+    Serial.print( "pushing totals to pachube: " );
+    Serial.println( str );
 
+    es.ES_client_http_post(PSTR(PACHUBEAPIURL),PSTR(PACHUBE_VHOST),PSTR(PACHUBEAPIKEY), PSTR("PUT "),str,&browserresult_callback);
+    totalElecWS = 0;
+    totalGasKWH = 0;   
+  }
+}
+  
 //send data to pachube
 void sendToPachube()
 {
   formatString();
+  
+  //totals
+  totalElecWS += elecWS;
+  totalGasKWH += convertPulsesToKWH(gas);
+  Serial.print( "total elec ws: " );
+  Serial.println( totalElecWS );
+  Serial.print( "total gas kwh: " );
+  Serial.println( totalGasKWH );
   Serial.print( "pushing to pachube: " );
   Serial.println( str );
 
