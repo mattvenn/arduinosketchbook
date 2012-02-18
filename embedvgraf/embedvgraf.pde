@@ -39,7 +39,27 @@ NewSoftSerial mySerial(2, 3);
 void setup()  
 {
   Serial.begin(9600);
-  ircam.init();
+  char p0,p1,p2,p3;
+  /*
+  p0: MAXSIZE: Maximum blob size. Wii uses values from 0×62 to 0xc8
+p1: GAIN: Sensor Gain. Smaller values = higher gain
+p2: GAINLIMIT: Sensor Gain Limit. Must be less than GAIN for camera to function. No other effect?
+p3: MINSIZE: Minimum blob size. Wii uses values from 3 to 5
+*/
+  p0 = 0xAA; //2 inches
+  p1 = 0x20;
+  p2 = 0x1F;
+  p3 = 0x03;
+  
+  p0 = 0x62;
+  p1 = 0x41;
+  p2 = 0x40;
+  p3 = 0x03;
+
+ // p1 = 0×64;
+ // p2 = 0×63;
+  //p3 = 0×03;
+  ircam.init(p0,p1,p2,p3);
   // set the data rate for the NewSoftSerial port
   mySerial.begin(9600);
 
@@ -232,7 +252,7 @@ void loop()
      Serial.print(ircam.Blob1.Y);
      Serial.print(" Size:");
      Serial.println(ircam.Blob1.Size);
-     */
+    */
 
     int x = (int)map(ircam.Blob1.X,0,1024,0,640);
     int y = (int)map(ircam.Blob1.Y,0,768,0,480);

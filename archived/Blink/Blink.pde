@@ -26,6 +26,9 @@ int ledPin =  13;    // LED connected to digital pin 13
 void setup()   {                
   // initialize the digital pin as an output:
   pinMode(ledPin, OUTPUT);     
+Serial.begin(9600);
+delay(500);
+Serial.println( "tester starting");
 }
 
 // the loop() method runs over and over again,
@@ -35,7 +38,8 @@ void loop()
 {
   int i;
   digitalWrite(ledPin, HIGH);   // set the LED on
-delay(1000);
+delay(100);
   digitalWrite(ledPin, LOW);    // set the LED off
-delay(1000);
+delay(100);
+Serial.println("hello");
 }
