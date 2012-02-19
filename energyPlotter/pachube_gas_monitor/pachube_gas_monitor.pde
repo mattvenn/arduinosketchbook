@@ -36,10 +36,10 @@ EtherShield es=EtherShield();
 
 //globals
 int minutes = -1;
-char str[50];
+char str[80];
 char fstr[10];
 boolean dataReady=false;
-double irms, gas, temp, battv, power, totalGasKWH = 0, totalElecWS = 0, lastPowerReading = 0, elecWS;
+double irms, gas, temp, battv, power, totalGasKWH = 0, totalElecKWH = 0, totalGasKWHSum, totalElecWS = 0, lastPowerReading = 0, elecWS;
 int batteryLevel;
 
 //pin defs
