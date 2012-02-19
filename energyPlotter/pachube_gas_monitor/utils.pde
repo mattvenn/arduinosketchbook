@@ -31,14 +31,7 @@ void printRTCTime()
 
 void formatTotalString()
 {
-    strcpy(str,"5,");
-    
-    dtostrf(totalElecWS/1000/3600,0,3,fstr); 
-    strcat(str,fstr);
-    strcat(str,"\n6,");
-    
-    dtostrf(totalGasKWH,0,3,fstr);
-    strcat(str,fstr);    
+
 }
 //format the energy numbers into a string to send to pachube
 void formatString()
@@ -68,5 +61,12 @@ void formatString()
     
     dtostrf(power,0,3,fstr);
     strcat(str,fstr);
+    strcat(str,"\n5,");
     
+    dtostrf(totalElecKWH,0,3,fstr); 
+    strcat(str,fstr);
+    strcat(str,"\n6,");
+    
+    dtostrf(totalGasKWH,0,3,fstr);
+    strcat(str,fstr);       
 }
