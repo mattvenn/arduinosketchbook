@@ -42,13 +42,11 @@ void sendTotals()
   {
     lastHour = now.hour();
  
-    formatTotalString();
-    Serial.print( "pushing totals to pachube: " );
-    Serial.println( str );
-
-    es.ES_client_http_post(PSTR(PACHUBEAPIURL),PSTR(PACHUBE_VHOST),PSTR(PACHUBEAPIKEY), PSTR("PUT "),str,&browserresult_callback);
+    totalElecKWH = totalElecWS/1000/3600; 
+    totalGasKWH = totalGasKWHSum;
+    
     totalElecWS = 0;
-    totalGasKWH = 0;   
+    totalGasKWHSum = 0;   
   }
 }
   
@@ -59,11 +57,11 @@ void sendToPachube()
   
   //totals
   totalElecWS += elecWS;
-  totalGasKWH += convertPulsesToKWH(gas);
+  totalGasKWHSum += convertPulsesToKWH(gas);
   Serial.print( "total elec ws: " );
   Serial.println( totalElecWS );
   Serial.print( "total gas kwh: " );
-  Serial.println( totalGasKWH );
+  Serial.println( totalGasKWHSum );
   Serial.print( "pushing to pachube: " );
   Serial.println( str );
 
