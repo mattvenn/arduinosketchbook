@@ -13,21 +13,22 @@ void sendRobotData()
   {
     Serial.print( "sending to energy robot: " );
 
-    int intPower = (int)power;
+
     Serial.print( "e" );
-    Serial.print( intPower );
+    Serial.print( energyKWS );
     Serial.print( "," );
     Serial.print( minutes );
     Serial.print( "," );
-    Serial.println( minutes + intPower );
+    Serial.println( minutes + energyKWS );
 
     //had problems with NSS, started working and don't know why :(
     xbeeSerial.print( "e" );
-    xbeeSerial.print( intPower );
+    xbeeSerial.print( energyKWS );
     xbeeSerial.print( "," );
     xbeeSerial.print( minutes );
     xbeeSerial.print( "," );
-    xbeeSerial.println( minutes + intPower );
+    xbeeSerial.println( minutes + energyKWS );
+    
   }
 }
 
@@ -58,18 +59,11 @@ void checkXbeeData()
       {
       case 0:
       {
-        irms = val;
-        power = irms * 240;
-        if( lastPowerReading > 0 )
-        {
-          double interval = millis() - lastPowerReading; //in ms
-          elecWS = power * (interval / 1000);  
-        }
-        lastPowerReading = millis();
+        irms = val;    
         break;
       }
       case 1:
-        gas = val;
+        gasPulses = val;
         break;
       case 2:
         battv = val;
@@ -77,6 +71,7 @@ void checkXbeeData()
       case 3:
         temp = val;
         dataReady = true;
+
         Serial.println( "got data from remote monitor" );
         break;
       }

@@ -33,35 +33,12 @@ byte timeServer[][4] = {
 
 uint16_t ntpPort = 123;
 
-int lastHour = 0;
-void sendTotals()
-{
-  DateTime now = RTC.now();
-  //only do this when the hour changes
-  if( now.minute() == 0 && now.hour() != lastHour )
-  {
-    lastHour = now.hour();
- 
-    totalElecKWH = totalElecWS/1000/3600; 
-    totalGasKWH = totalGasKWHSum;
-    
-    totalElecWS = 0;
-    totalGasKWHSum = 0;   
-  }
-}
   
 //send data to pachube
 void sendToPachube()
 {
   formatString();
   
-  //totals
-  totalElecWS += elecWS;
-  totalGasKWHSum += convertPulsesToKWH(gas);
-  Serial.print( "total elec ws: " );
-  Serial.println( totalElecWS );
-  Serial.print( "total gas kwh: " );
-  Serial.println( totalGasKWHSum );
   Serial.print( "pushing to pachube: " );
   Serial.println( str );
 

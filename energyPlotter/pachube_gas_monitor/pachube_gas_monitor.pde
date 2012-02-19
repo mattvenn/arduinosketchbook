@@ -2,8 +2,7 @@
 Matt Venn's home energy hub. 2011
 
 TODO:
-add a daily or hourly total for gas and electricity
-add gas to kw/h
+-send gas and elec to robot
 
 gets energy info from a wireless energy monitor via Xbee.
 sends data to pachube and to polargraph energy monitor
@@ -39,8 +38,15 @@ int minutes = -1;
 char str[80];
 char fstr[10];
 boolean dataReady=false;
-double irms, gas, temp, battv, power, totalGasKWH = 0, totalElecKWH = 0, totalGasKWHSum, totalElecWS = 0, lastPowerReading = 0, elecWS;
-int batteryLevel;
+double irms, gasPulses, temp, battv;
+double sumGasWS = 0, sumElecWS = 0; //counters for energy, will become the totals
+float gasKWH, elecKWH; //totals for the last hour
+
+float elecW, elecWS, gasWS; //instantaneous energy values for gas and electricity
+int energyKWS; //for the robot
+double lastReading = 0; //milliseconds of last reading
+
+//int batteryLevel;
 
 //pin defs
 #define LED_PIN 6
@@ -51,7 +57,7 @@ int batteryLevel;
 TimedAction ActionCheckXbeeData = TimedAction( 200, checkXbeeData);
 TimedAction ActionSendNTP = TimedAction( 60000, ntpRequest); //once a minute
 TimedAction ActionPrintRTC = TimedAction( 1000, printRTCTime);
-TimedAction ActionSendTotals = TimedAction( 1000, sendTotals );
+TimedAction ActionUpdateTotals = TimedAction( 1000, updateTotals );
 
 void setup()
 {
@@ -79,11 +85,13 @@ void loop()
   ActionSendNTP.check();
   ActionPrintRTC.check(); //this also updates the global minutes variable
   ActionCheckXbeeData.check();
-  ActionSendTotals.check();
+  ActionUpdateTotals.check();
   
   if( dataReady ) //this flag set if we got energy data via xbee
   {
     dataReady = false;
+    
+    doPowerCalculations();
     
     digitalWrite( LED_PIN, LOW );
     sendRobotData();
