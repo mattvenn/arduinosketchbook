@@ -40,9 +40,9 @@ char fstr[10];
 boolean dataReady=false;
 double irms, gasPulses, temp, battv;
 double sumGasWS = 0, sumElecWS = 0; //counters for energy, will become the totals
-float gasKWH, elecKWH; //totals for the last hour
+float gasKWH = 0, elecKWH = 0; //totals for the last hour
 
-float elecW, elecWS, gasWS; //instantaneous energy values for gas and electricity
+float elecW = 0, elecWS = 0, gasWS = 0; //instantaneous energy values for gas and electricity
 int energyKWS; //for the robot
 double lastReading = 0; //milliseconds of last reading
 
