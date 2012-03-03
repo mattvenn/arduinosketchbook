@@ -1,7 +1,8 @@
 /* 
 todo:
  - what kind of precision do we have on the pen? will we get slopes or squares?
- - calibration
+ + calibration,
+ - check calibration!
  - calculation of step sizes for roller and pen
  
  -solve reseting problem
@@ -11,6 +12,10 @@ todo:
  reducing pwm_high seems to help. 
  changing to a different plug socket made things different.
  */
+
+//pattern type
+#define DRAW_ENERGY_CIRCLES
+//#define DRAW_DAY_SPIRAL
 
 #include <Stepper.h>
 #include <NewSoftSerial.h>
