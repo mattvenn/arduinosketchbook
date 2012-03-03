@@ -234,9 +234,9 @@ void checkSerialData()
       case 'v': //draw a straight line
       {
         int x = serReadInt();
-        x *= StepUnit;
+        //x *= StepUnit;
         int y = serReadInt();
-        y *= StepUnit;
+        //y *= StepUnit;
         drawLine( x1, y1,  x, y );        
         break;
       }

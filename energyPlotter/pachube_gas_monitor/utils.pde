@@ -22,7 +22,7 @@ void printRTCTime()
 
 }
 
-int lastHour = 0;
+int lastHour = 0, lastDay = 0;
 
 void updateTotals()
 {
@@ -32,12 +32,20 @@ void updateTotals()
   {
     lastHour = now.hour();
 
-    elecKWH = sumElecWS/1000/3600; 
-    gasKWH = sumGasWS/1000/3600;
+    elecKWHH = sumElecWS/1000/3600; 
+    gasKWHH = sumGasWS/1000/3600;
 
     sumElecWS = 0;
     sumGasWS = 0;   
+   
+    //only do this when the day changes
+    if( now.day() != lastDay )
+    {
+   //    elecKWHD += 
+    }
+   
   }
+  
 }
 
 //convert gas pulses to kw/h
@@ -58,7 +66,11 @@ void doPowerCalculations()
   if( lastReading > 0 )
   {
     double interval = millis() - lastReading; //in ms
-    elecWS = elecW * (interval / 1000);      
+    //need this check to avoid massive power spikes when we lose updates for some time.
+    if( interval > 10000 )
+      elecWS = 0;
+    else
+      elecWS = elecW * (interval / 1000);      
   }
   lastReading = millis();
 
@@ -92,33 +104,43 @@ void formatString()
   // strcat  - adds a string to another string
   // strcpy  - copies a string
   strcpy(str,"0,");
-
   dtostrf(battv,0,3,fstr); 
   strcat(str,fstr);
+  
   strcat(str,"\n1,");
-
   dtostrf(gasPulses,0,3,fstr);
   strcat(str,fstr);
+  
   strcat(str,"\n2,");    
-
   dtostrf(temp,0,3,fstr);
   strcat(str,fstr);
+  
   strcat(str,"\n3,");    
-
   dtostrf(irms,0,3,fstr);
   strcat(str,fstr);
+  
   strcat(str,"\n4,");
-
   dtostrf(elecW,0,3,fstr);
   strcat(str,fstr);
+  
   strcat(str,"\n5,");
-
-  dtostrf(elecKWH,0,3,fstr); 
+  dtostrf(elecKWHH,0,3,fstr); 
   strcat(str,fstr);
+  
   strcat(str,"\n6,");
-
-  dtostrf(gasKWH,0,3,fstr);
-  strcat(str,fstr);       
+  dtostrf(gasKWHH,0,3,fstr);
+  strcat(str,fstr);  
+/*  
+  strcat(str,"\n7,");  
+  dtostrf(elecKWHD,0,3,fstr); 
+  strcat(str,fstr);
+  
+  strcat(str,"\n8,");
+  dtostrf(gasKWHD,0,3,fstr);
+  strcat(str,fstr);
+  */
+  Serial.print("str is chars: ");
+  Serial.println(strlen(str));
 }
 
 

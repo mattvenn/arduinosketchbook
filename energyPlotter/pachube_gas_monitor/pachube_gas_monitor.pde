@@ -2,7 +2,9 @@
 Matt Venn's home energy hub. 2011
 
 TODO:
--send gas and elec to robot
++send gas and elec to robot
+-daily kwh
+-start accounting for lost data
 
 gets energy info from a wireless energy monitor via Xbee.
 sends data to pachube and to polargraph energy monitor
@@ -40,7 +42,8 @@ char fstr[10];
 boolean dataReady=false;
 double irms, gasPulses, temp, battv;
 double sumGasWS = 0, sumElecWS = 0; //counters for energy, will become the totals
-float gasKWH = 0, elecKWH = 0; //totals for the last hour
+float gasKWHH = 0, elecKWHH = 0; //totals for the last hour
+float gasKWHD = 0, elecKWHD = 0; //totals for last day
 
 float elecW = 0, elecWS = 0, gasWS = 0; //instantaneous energy values for gas and electricity
 int energyKWS; //for the robot

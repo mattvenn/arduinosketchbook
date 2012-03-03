@@ -12,6 +12,18 @@ void moveTo(int x2, int y2) {
   // the distance is the same in both dimensions; this should be fixed, but it
   // works well
   
+  /*
+  if( x2 == x1 && y2 == y1 )
+  {
+    return;
+  }
+  else
+  {
+    Serial.println( "moving" );
+    Serial.println( x2 ); 
+    Serial.println( y2 );
+  }
+  */
   // a2 and b2 are the final lengths of the left and right strings
   int a2 = sqrt(pow(x2,2)+pow(y2,2));
   int b2 = sqrt(pow((w-x2),2)+pow(y2,2));
@@ -64,11 +76,13 @@ void drawCurve(float x, float y, float fx, float fy, float cx, float cy) {
   // (cx, cy)
   float xt=0;
   float yt=0;
-
+int skipDistance = 5;
   for (float t=0; t<=1; t+=.0025) {
     xt = pow((1-t),2) *x + 2*t*(1-t)*cx+ pow(t,2)*fx;
     yt = pow((1-t),2) *y + 2*t*(1-t)*cy+ pow(t,2)*fy;
-    moveTo(xt, yt);
+
+           if( abs(xt - x1) > skipDistance || abs( yt - y1 ) > skipDistance )
+      moveTo(xt, yt);
   }  
 }
                                                      

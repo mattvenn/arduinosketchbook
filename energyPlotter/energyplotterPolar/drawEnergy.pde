@@ -1,3 +1,4 @@
+/*
 int minRadius = 20;
 int lastSegment = 0;
 boolean newCell = false;
@@ -112,4 +113,4 @@ void drawSegments(int x,int y, int numSegments)
 //  println( "segments drawn: " + segmentsDrawn );
   
 }
-
+*/
