@@ -4,6 +4,7 @@ todo:
 - timings
 - serial comms
 */
+#include <EEPROM.h>
 #include <MsTimer2.h>
 #include <Servo.h> 
 #include <Time.h>  
@@ -45,13 +46,16 @@ void setup()
   servo.write(SERVO_CLOSED);
   Serial.begin(9600);
   Serial.println( "scent clock" );
-  
+
+  Serial.println( "loading vals from eeprom...");
+  readFromEeprom();
+ /* unnecessary RTC stuff
    setSyncProvider(RTC.get);   // the function to get the time from the RTC
   if(timeStatus()!= timeSet) 
      Serial.println("Unable to sync with the RTC");
   else
      Serial.println("RTC has set the system time");      
-  
+  */
  // releaseScent();
 
 }
@@ -69,6 +73,7 @@ void readParams()
   {
     delay(100);
 
+    //all these are byte values from 0 to 255
     fanVal = Serial.read();
     holeSize = Serial.read();
     heatVal = Serial.read();
@@ -76,17 +81,15 @@ void readParams()
     ventOpenDelay = Serial.read();
     ventOpenTime = Serial.read();
     
+    //write them all to eeprom
+    writeToEeprom();
+    
     flashLED();    
 
   }
   else if( command == 'B' )
   {
-    Serial.println( fanVal );
-    Serial.println( holeSize );
-    Serial.println( heatVal );
-    Serial.println( heatTime );
-    Serial.println( ventOpenDelay );
-    Serial.println( ventOpenTime );
+    printVals();
     flashLED();
 
   }
