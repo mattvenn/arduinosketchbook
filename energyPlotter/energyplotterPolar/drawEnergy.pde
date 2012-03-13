@@ -1,45 +1,50 @@
-int minRadius = 20;
+#ifdef DRAW_ENERGY_CIRCLES
+int minRadius = 20; //steps not mm
 int lastSegment = 0;
 boolean newCell = false;
 int radius = minRadius;
-int radiusIncrement = 10;
-int energyPerSegment = 500;
+int radiusIncrement = 10; //steps not mm
+int energyPerSegment = 50; //how much energy (KWS) before we draw a segment. There are 20 segments to a circle
+/*
+with 50kws per segment that makes each circle worth 1000kws, or 0.3kwh, 
+as the max our house seems to use is about 16kwh per hour, 1 set of circles (which is 10 minutes) would be 2.6kwh per 10 minutes
+so this would result in about 9 circles for high energy times
+*/
 int remainderEnergy;
-int lastNumber;
+int lastMinute;
 
 //takes an energy and a minute
-void drawEnergy( float energy, int number )
-
+void drawEnergy( float energy, int minute )
 {
-   if( number < 0 || number >= 1440 ) //fix the 1, 
+   //sanity check
+   if( minute < 0 || minute >= 1440 ) 
         {
           Serial.print( "bad minute " );
-          Serial.println( number );
+          Serial.println( minute );
           return;
         }
-        if( energy < 0 || energy > 10000 )
+        if( energy < 0 || energy > 1000 )
         {
           Serial.print( "bad energy " );
           Serial.println( energy );
           return;
         }
-  number = number / 10;
-  if( number != lastNumber)
+  minute = minute / 10;
+  if( minute != lastMinute)
   {
     newCell = true;
     radius = minRadius;
     lastSegment = 0;
-    lastNumber = number;
+    lastMinute = minute;
 
   }
   else
   {
     newCell = false;
   }
-  //number /= 10;
  
-  int y = number / 12;
-  int x = number % 12;
+  int y = minute / 12;
+  int x = minute % 12;
   int cellWidth = ( w - 2 * margin ) / 13;
   x *= cellWidth;
   x += cellWidth;
@@ -49,26 +54,28 @@ void drawEnergy( float energy, int number )
   y += cellWidth;
   y += ceiling;
   int r = cellWidth / 2;
-
-  if( newCell )
-  {
-    moveTo( x, y );
-    Serial.println( "---> moved to" );
-  }
-  //println( "x: " + x * cellWidth + " y: " + y * cellWidth );
-  //int radius = (int)map( energy, 0, maxEnergy, 0, cellWidth / 2 );
-
+  
   energy += remainderEnergy;
   int numSegments = (int)(energy / energyPerSegment);
   remainderEnergy = energy - (energyPerSegment * numSegments);
   Serial.print( "segments: " );
   Serial.print( numSegments );
-  Serial.print( "remainder: " );
-  Serial.println( remainderEnergy );
-
-  Serial.print( "radius: " );
+  Serial.print( ", remainder: " );
+  Serial.print( remainderEnergy );
+  Serial.print( ", radius: " );
   Serial.println( radius );
+  
+  //only move and draw if we need to, to reduce noise in the night time
+  if(numSegments > 0 )
+  {
+  if( newCell )
+  {
+    moveTo( x, y );
+    Serial.println( "---> moved to" );
+  }
+  
   drawSegments( x, y, numSegments );
+  }
 }
 
 //draws a number of increasingly sized circles, segment by segment.
@@ -112,4 +119,4 @@ void drawSegments(int x,int y, int numSegments)
 //  println( "segments drawn: " + segmentsDrawn );
   
 }
-
+#endif

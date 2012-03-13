@@ -1,6 +1,6 @@
-byte pachubeServer[4] =  { 173,203,98,29}; //DNS doesn't work yet
-#define PACHUBE_VHOST "www.pachube.com"
-#define PACHUBEAPIURL "/api/28462.csv"
+byte pachubeServer[4] = { 173,203,98,29}; //DNS doesn't work yet
+#define PACHUBE_VHOST "api.pachube.com"
+#define PACHUBEAPIURL "/v2/feeds/28462.csv"
 #define PACHUBEAPIKEY "X-PachubeApiKey: ZxBqcZRDClLxco2ZUbeat1D6x7pfOL5Jhmo60Ies2TU"
 
 static uint8_t mymac[6] = { 0,0,0,0,0,0 };
@@ -33,11 +33,12 @@ byte timeServer[][4] = {
 
 uint16_t ntpPort = 123;
 
-
+  
 //send data to pachube
 void sendToPachube()
 {
   formatString();
+  
   Serial.print( "pushing to pachube: " );
   Serial.println( str );
 
