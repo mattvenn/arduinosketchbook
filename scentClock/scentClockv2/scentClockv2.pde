@@ -1,9 +1,7 @@
 
 /* 
  todo:
- + servo hole fine tuning
- - timings
- - serial comms
+
  */
 #include <EEPROM.h>
 #include <MsTimer2.h>
@@ -20,16 +18,15 @@
 #define FAN 9
 #define SWITCH 2
 
+#define MAXHEATVAL 30
+#define MAXHEATTIME 600
 
-int heatVal = 50; //this is inverted
-int heatTime = 5;
-int ventOpenDelay = 2;
-int ventOpenTime = 4;
-int holeSize = 20;
+int heatVal;
+int heatTime;
+int ventOpenDelay;
+int ventOpenTime;
 int fanVal;
-int rawTemp;
-
-
+int switchInterval;
 
 void setup()
 {
@@ -68,14 +65,21 @@ void readParams()
   {
     delay(100);
 
-    //all these are byte values from 0 to 255
-    fanVal = Serial.read();
-    holeSize = Serial.read();
-    heatVal = Serial.read();
-    heatTime = Serial.read();    
-    ventOpenDelay = Serial.read();
-    ventOpenTime = Serial.read();
-
+    //all these are ints
+    heatVal = serReadInt();
+    //some safety
+    if( heatVal > MAXHEATVAL )
+      heatVal = MAXHEATVAL;
+      
+    heatTime = serReadInt();
+    //some safety
+    if( heatTime > MAXHEATTIME )
+      heatTime = MAXHEATTIME;
+      
+    ventOpenDelay = serReadInt();
+    ventOpenTime = serReadInt();
+    fanVal = serReadInt();
+    switchInterval = serReadInt();
     //write them all to eeprom
     writeToEeprom();
 
@@ -90,8 +94,10 @@ void readParams()
   }
   else if( command == 'C' )
   {
+    delay(100);
+    int releaseNum = serReadInt();
     flashLED();
-    releaseScent();
+    releaseScent(releaseNum);
 
   }
   else
@@ -108,7 +114,11 @@ void loop()
   if( digitalRead( SWITCH ) == LOW )
   {
     Serial.println( "switch pressed" );
-    releaseScent();
+    for( int i = 1; i <= 3; i ++ )
+    {
+      releaseScent(i);
+      delay( switchInterval * 1000 );
+    }
   }
   if( Serial.available() )
   {
@@ -116,13 +126,21 @@ void loop()
   }
 }
 
-//broken wrt timings
-void releaseScent()
+void releaseScent(int scent)
 {
-  Serial.println( "releasing scent" );
+  Serial.print( "releasing scent: " );
+  Serial.println( scent, DEC );
   Serial.print( "turning on heater: " );
   Serial.println( heatVal );
-  analogWrite( HEATER1, heatVal );
+  int HEATER;
+  if( scent == 1 )
+    HEATER = HEATER1;
+  if( scent == 2 )
+    HEATER = HEATER2;
+  if( scent == 3 )
+    HEATER = HEATER3;
+
+  analogWrite( HEATER, heatVal );
   int time = 0;
   boolean heatOn = true;
   boolean ventOpen = false;
@@ -131,7 +149,7 @@ void releaseScent()
     if( time == heatTime )
     {
       Serial.println( "turning off heater" );
-      analogWrite( HEATER1, 0 );
+      analogWrite( HEATER, 0 );
       heatOn = false;
     }
     if( time == ventOpenDelay )

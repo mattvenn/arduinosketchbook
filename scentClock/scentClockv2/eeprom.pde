@@ -1,47 +1,49 @@
+
 void writeToEeprom()
 {
   int addr = 0;
-  EEPROM.write(addr++, fanVal);
-  EEPROM.write(addr++, holeSize);
-  EEPROM.write(addr++, heatVal);
-  EEPROM.write(addr++, heatTime);
-  EEPROM.write(addr++, ventOpenDelay);
-  EEPROM.write(addr++, ventOpenTime);
+  EEPROMWriteInt(addr+=2, fanVal);
+  EEPROMWriteInt(addr+=2, heatVal);
+  EEPROMWriteInt(addr+=2, heatTime);
+  EEPROMWriteInt(addr+=2, ventOpenDelay);
+  EEPROMWriteInt(addr+=2, ventOpenTime);
+  EEPROMWriteInt(addr+=2, switchInterval);
   Serial.println( "written vals to eeprom OK" );
+  
 }                  
 
 void readFromEeprom()
 {
   int addr = 0;
-  fanVal = EEPROM.read(addr++);
-  holeSize = EEPROM.read(addr++);
-  heatVal = EEPROM.read(addr++);
-  heatTime = EEPROM.read(addr++);
-  ventOpenDelay = EEPROM.read(addr++);
-  ventOpenTime = EEPROM.read(addr++);
+  fanVal = EEPROMReadInt(addr+=2);
+  heatVal = EEPROMReadInt(addr+=2);
+  heatTime = EEPROMReadInt(addr+=2);
+  ventOpenDelay = EEPROMReadInt(addr+=2);
+  ventOpenTime = EEPROMReadInt(addr+=2);
+  switchInterval = EEPROMReadInt(addr+=2);
 
   printVals();
   Serial.println( "loaded OK" );
 }
 
-void printVals()
+//thanks to allsystemsgo
+//This function will write a 2 byte integer to the eeprom at the specified address and address + 1
+void EEPROMWriteInt(int p_address, int p_value)
 {
-  Serial.print( "fan val: " );
-  Serial.println( fanVal );
+  byte lowByte = ((p_value >> 0) & 0xFF);
+  byte highByte = ((p_value >> 8) & 0xFF);
 
-  Serial.print( "hole size: " );
-  Serial.println( holeSize );
-
-  Serial.print( "heat val: " );
-  Serial.println( heatVal );
-  
-  Serial.print( "heat time: " );
-  Serial.println( heatTime );
-  
-  Serial.print( "vent open delay: " );
-  Serial.println( ventOpenDelay );
-  
-  Serial.print( "vent open time: " );
-  Serial.println( ventOpenTime );
+  EEPROM.write(p_address, lowByte);
+  EEPROM.write(p_address + 1, highByte);
 }
+
+//This function will read a 2 byte integer from the eeprom at the specified address and address + 1
+unsigned int EEPROMReadInt(int p_address)
+{
+  byte lowByte = EEPROM.read(p_address);
+  byte highByte = EEPROM.read(p_address + 1);
+
+  return ((lowByte << 0) & 0xFF) + ((highByte << 8) & 0xFF00);
+}
+
 
