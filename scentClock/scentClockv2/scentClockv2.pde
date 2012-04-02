@@ -19,7 +19,7 @@
 #define SWITCH 2
 
 #define MAXHEATVAL 30
-#define MAXHEATTIME 600
+#define MAXHEATTIME 7200
 
 int heatVal;
 int heatTime;
