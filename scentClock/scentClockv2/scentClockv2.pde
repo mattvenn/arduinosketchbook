@@ -27,6 +27,8 @@ int ventOpenDelay;
 int ventOpenTime;
 int fanVal;
 int switchInterval;
+int fanOn;
+int fanOff;
 
 void setup()
 {
@@ -80,6 +82,8 @@ void readParams()
     ventOpenTime = serReadInt();
     fanVal = serReadInt();
     switchInterval = serReadInt();
+    fanOn = serReadInt();
+    fanOff = serReadInt();
     //write them all to eeprom
     writeToEeprom();
 

@@ -8,6 +8,8 @@ void writeToEeprom()
   EEPROMWriteInt(addr+=2, ventOpenDelay);
   EEPROMWriteInt(addr+=2, ventOpenTime);
   EEPROMWriteInt(addr+=2, switchInterval);
+  EEPROMWriteInt(addr+=2, fanOn);
+  EEPROMWriteInt(addr+=2, fanOff);
   Serial.println( "written vals to eeprom OK" );
   
 }                  
@@ -21,7 +23,8 @@ void readFromEeprom()
   ventOpenDelay = EEPROMReadInt(addr+=2);
   ventOpenTime = EEPROMReadInt(addr+=2);
   switchInterval = EEPROMReadInt(addr+=2);
-
+  fanOn = EEPROMReadInt(addr+=2);
+  fanOff = EEPROMReadInt(addr+=2);  
   printVals();
   Serial.println( "loaded OK" );
 }
