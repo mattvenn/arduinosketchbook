@@ -22,10 +22,16 @@ void printVals()
   Serial.print( "vent open time: " );
   Serial.println( ventOpenTime, DEC );
   
-   Serial.print( "fan val: " );
+  Serial.print( "fan val: " );
   Serial.println( fanVal, DEC );
   
-    Serial.print( "switch interval: " );
+  Serial.print( "switch interval: " );
   Serial.println( switchInterval, DEC );
+  
+  Serial.print( "fan on: " );
+  Serial.println( fanOn, DEC );
+
+  Serial.print( "fan off: " );
+  Serial.println( fanOff, DEC );
 }
 

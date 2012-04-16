@@ -24,6 +24,8 @@ int ventOpenDelay;
 int ventOpenTime;
 int fanVal;
 int switchInterval;
+int fanOn;
+int fanOff;
 
 void setup()
 {
@@ -77,6 +79,8 @@ void readParams()
     ventOpenTime = serReadInt();
     fanVal = serReadInt();
     switchInterval = serReadInt();
+    fanOn = serReadInt();
+    fanOff = serReadInt();
     //write them all to eeprom
     writeToEeprom();
 
@@ -139,6 +143,7 @@ void releaseScent(int scent)
 
   analogWrite( HEATER, heatVal );
   int time = 0;
+  int fanTime = 0;
   boolean heatOn = true;
   boolean ventOpen = false;
   while( heatOn || ventOpen)
@@ -153,17 +158,40 @@ void releaseScent(int scent)
     {
       if( fanVal != 0 )
       {
-        Serial.print( "turning on fan: " );
+        Serial.print( "start of fan time, using val of: " );
         Serial.println( fanVal );
-        analogWrite( FAN, convertFanVal(fanVal) );
         ventOpen = true;
       }
     }
     if( time == ventOpenDelay + ventOpenTime )
     {    
-      Serial.println( "turning off fan" );
+      Serial.println( "end of fan time" );
       analogWrite( FAN, 0 ); 
       ventOpen = false;
+    }
+    if( ventOpen == true )
+    {
+      if( fanTime == 0 )
+      {
+        Serial.println( "turning fan on" ); 
+        analogWrite( FAN, convertFanVal(fanVal) );
+      }
+      if( fanTime == fanOn )
+      {
+        Serial.println( "turning fan off" );
+        analogWrite( FAN, 0 );
+      }  
+      //reset the fan timer
+      if( fanTime == fanOn + fanOff -1 )
+      {
+        Serial.println( "reset fan timer" );
+        fanTime = 0;
+      }
+      else
+      {
+        fanTime ++;
+      }
+
     }
     delay(1000);
     Serial.print( "t=" );
