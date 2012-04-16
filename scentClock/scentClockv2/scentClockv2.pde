@@ -1,14 +1,11 @@
 
 /* 
  todo:
-
  */
 #include <EEPROM.h>
-#include <MsTimer2.h>
-#include <Servo.h> 
-#include <Time.h>  
-#include <Wire.h>  
-#include <DS1307RTC.h>  // a basic DS1307 library that returns time as a time_t
+//#include <Time.h>  
+//#include <Wire.h>  
+//#include <DS1307RTC.h>  // a basic DS1307 library that returns time as a time_t
 
 
 #define HEATER1 3
