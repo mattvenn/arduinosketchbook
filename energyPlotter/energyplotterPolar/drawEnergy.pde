@@ -23,7 +23,7 @@ void drawEnergy( float energy, int minute )
           Serial.println( minute );
           return;
         }
-        if( energy < 0 || energy > 1000 )
+        if( energy < 0 || energy > MAX_ENERGY )
         {
           Serial.print( "bad energy " );
           Serial.println( energy );
