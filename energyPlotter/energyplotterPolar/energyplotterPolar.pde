@@ -1,4 +1,4 @@
-/* 
+  /* 
 todo:
  - what kind of precision do we have on the pen? will we get slopes or squares?
  + calibration,
@@ -14,8 +14,9 @@ todo:
  */
 
 //pattern type
-#define DRAW_ENERGY_CIRCLES
+//#define DRAW_ENERGY_CIRCLES
 //#define DRAW_DAY_SPIRAL
+#define ARCOLA_WEEK_CIRCLES
 
 #include <Stepper.h>
 #include <NewSoftSerial.h>
@@ -25,26 +26,26 @@ todo:
 #define stepsPerRevolution 200  // change this to fit the number of steps per revolution
 #define LOOP_PERIOD 400.0 //seconds
 #define MAX_PEN_STEPS 2000
-#define MAX_ENERGY 4000 //W
-#define stepSpeed 20
-#define leftStepDir 1 //these should be set so that the commands l50 and r50 lower the gondola
-#define rightStepDir 1
+#define MAX_ENERGY 25000 //W
+#define stepSpeed 30
+#define leftStepDir -1 //these should be set so that the commands l50 and r50 lower the gondola
+#define rightStepDir -1
 #define LEFT 0
 #define RIGHT 1
 
 // Approximate number of steps per cm, calculated from radius of spool
 // and the number of steps per radius
-float diameter = 1.24; //1.29
+float diameter = 2.15; //1.29
 float circumference = 3.1415 * diameter;
 boolean steppersOn = false;
 int StepUnit = stepsPerRevolution / circumference;   
 
 // Approximate dimensions (in steps) of the total drawing area
-int w= 68*StepUnit;
+int w= 150*StepUnit;
 
-int h= 68*StepUnit; //34 * StepUnit + ceiling;
+int h= 150*StepUnit; //34 * StepUnit + ceiling;
 int ceiling = h / 4; //5; // 10*StepUnit;
-int margin = w / 4; //4;
+int margin = w / 5; //4;
 
 // Coordinates of current (starting) point
 int x1= w/2;
@@ -73,8 +74,8 @@ int drawCount = 0;
 
 
 //pwm is causing arduino to reboot at low values - check with scope
-int PWM_LOW = 1; 
-int PWM_HIGH = 55;
+int PWM_LOW = 10; 
+int PWM_HIGH = 155;
 #define delayFactor 1 //10 //when we change pwmFrequency, delays change in value so multiply by this
 #define PWM_CHANGE_DELAY 1 * delayFactor
 
@@ -90,16 +91,10 @@ TimedAction ActionCheckSerialData = TimedAction( 200, checkSerialData);
 #endif
 
 TimedAction ActionTurnOffSteppers = TimedAction( 500, turnOffSteppers );
-//TimedAction ActionDraw = TimedAction( 1000, draw );
-//TimedAction ActionLEDColour = TimedAction( 1000, LEDColour );
-// initialize the stepper library on pins 8 through 11:
-// 3 brown
-// 4 red
-// 5 white
-// 6 green
+
 
 Stepper leftStepper(stepsPerRevolution, A0,A1,A2,A3);            
-Stepper rightStepper(stepsPerRevolution, 13,10,11,12);            
+Stepper rightStepper(stepsPerRevolution, 10,11,12,13);            
 
 void setup() {
   pinMode( STATUS_LED, OUTPUT );
@@ -185,7 +180,7 @@ void checkSerialData()
         Serial.print( energy );
         Serial.print( " at " );
         Serial.println( minute );
-        drawEnergy( energy, minute );
+     //   drawEnergy( energy, minute );
         xbeeSerial.println("OK");
         Serial.println( "OK" );
         xbeeSerial.flush();
@@ -211,12 +206,15 @@ void checkSerialData()
       case 'e':
       {
         int energy = serReadInt();
-        int minute = serReadInt();
-        drawEnergy( energy, minute );
+        int day = serReadInt();
+        int hour = serReadInt();
+        drawEnergy( energy, day, hour );
         Serial.print( "set energy to: " );
         Serial.print( energy );
         Serial.print( " at " );
-        Serial.println( minute );
+        Serial.print( day );
+      Serial.print( ",");
+        Serial.println( hour );
         break;
       }
       case 'w':
@@ -256,9 +254,6 @@ void checkSerialData()
         Serial.println( a1 / StepUnit );
         Serial.print( "b1: " );
         Serial.println( b1 / StepUnit );
-        break;
-      case 'd':
-        draw = ! draw;
         break;
       case 'm':
       {
