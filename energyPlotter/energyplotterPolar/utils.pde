@@ -94,10 +94,10 @@ void calibrate()
   Serial.println( "string length");
   Serial.println( stringLength);
 
-   w= stringLength;
-   h = w;
-   ceiling = h / 4; //5; // 10*StepUnit;
-   margin = w / 4; //4;
+   //w= stringLength; can't do this with a const
+   //h = w;
+   //ceiling = h / 4; //5; // 10*StepUnit;
+   //margin = w / 4; //4;
 
   // Coordinates of current (starting) point
   x1= w;
