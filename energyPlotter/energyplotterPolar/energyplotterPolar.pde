@@ -13,9 +13,9 @@ todo:
 #include "robotdefs.h"
 
 //pattern type
-//#define DRAW_ENERGY_CIRCLES
+#define DRAW_ENERGY_CIRCLES
 //#define DRAW_DAY_SPIRAL
-#define ARCOLA_WEEK_CIRCLES
+//#define ARCOLA_WEEK_CIRCLES
 
 #include <Stepper.h>
 #include <NewSoftSerial.h>
@@ -186,15 +186,23 @@ void checkSerialData()
       case 'e':
       {
         int energy = serReadInt();
+        int minute = serReadInt();
+        drawEnergy( energy, minute );
+/*
+        int energy = serReadInt();
         int day = serReadInt();
         int hour = serReadInt();
         drawEnergy( energy, day, hour );
+*/
         Serial.print( "set energy to: " );
         Serial.print( energy );
         Serial.print( " at " );
+        Serial.println( minute );
+/*
         Serial.print( day );
-      Serial.print( ",");
+        Serial.print( ",");
         Serial.println( hour );
+*/
         break;
       }
       case 'l':
