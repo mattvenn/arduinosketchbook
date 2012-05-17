@@ -1,3 +1,116 @@
+boolean calibrated = false;
+#define TENSL digitalRead(TENS_L)
+#define TENSR digitalRead(TENS_R)
+void calibrate()
+{
+  Serial.println("calibration" );
+  int ending = 0;
+
+  //get both tight
+  while( ! TENSL && ! TENSR )
+  {
+    if( ! TENSL )
+      step( LEFT, -1 );
+    if( ! TENSR )
+      step( RIGHT, -1 );
+  }
+
+  while( ! calibrated )
+  {
+    int countl = 0, countr = 0;
+    while( TENSL )
+    {
+      step( RIGHT, 1 );
+      countr ++;
+      if( countr > 10 && ending > 10 )
+      {
+
+        calibrated = true;
+        Serial.println( "finished left side" );
+        break;
+      }
+
+    }
+    //wind in left till tens
+    while( ! TENSL )
+    {
+      step( LEFT, -1 );
+      countl ++;
+    }
+
+    //detect when we're in the jiggling phase!
+    if( countl < 10 && countr < 10 )
+    {
+      ending ++;
+      Serial.print( "ending=" );
+      Serial.println( ending );
+    }
+
+  }
+  
+  int stringLength = 0;
+  calibrated = false;
+  ending = 0;
+
+  //get right tight
+  while( ! TENSR )
+  {
+    step( RIGHT, -1 );
+  }
+
+  while( ! calibrated )
+  {
+    int countl = 0, countr = 0;
+    while( TENSR )
+    {
+      step( LEFT, 1 );
+      countl ++;
+      if( countl > 10 && ending > 10 )
+      {
+
+        calibrated = true;
+        Serial.println( "finished right side" );
+        break;
+      }
+
+    }
+    //wind in left till tens
+    while( ! TENSR )
+    {
+      step( RIGHT, -1 );
+      stringLength ++;
+      countr ++;
+    }
+
+    //detect when we're in the jiggling phase!
+    if( countl < 10 && countr < 10 )
+    {
+      ending ++;
+      Serial.print( "ending=" );
+      Serial.println( ending );
+    }
+
+  }
+  Serial.println( "string length");
+  Serial.println( stringLength);
+
+   w= stringLength;
+   h = w;
+   ceiling = h / 4; //5; // 10*StepUnit;
+   margin = w / 4; //4;
+
+  // Coordinates of current (starting) point
+  x1= w;
+  y1= 0;
+
+  // Approximate length of strings from marker to staple
+  a1= 0;
+  b1= stringLength;
+
+//  moveTo( w/2, h/2 );
+
+
+}
 void step( int stepper, int steps )
 {
   if( steppersOn != true )
@@ -5,40 +118,42 @@ void step( int stepper, int steps )
   stepping = true; 
   if( stepper == LEFT )
   {
-     leftStepper.step( leftStepDir * steps );
+
+    leftStepper.step( leftStepDir * steps );
+
   }
   else if( stepper == RIGHT )
   {
-      rightStepper.step( rightStepDir * steps );
+    rightStepper.step( rightStepDir * steps );
   }
   stepping = false;
 }         
-        
+
 void turnOffSteppers()
 {
   //return;
   if( steppersOn != true )
     return;
-    Serial.println( "turning pwm low" );
-    for( int i = PWM_HIGH ; i >= PWM_LOW; i -- )
-    {
-       analogWrite( STEP_PWM, i );
-       delay(PWM_CHANGE_DELAY);
-    }
+  Serial.println( "turning pwm low" );
+  for( int i = PWM_HIGH ; i >= PWM_LOW; i -- )
+  {
+    analogWrite( STEP_PWM, i );
+    delay(PWM_CHANGE_DELAY);
+  }
   //  Serial.println( "loopdone" );
-   steppersOn = false;
+  steppersOn = false;
 }
 
 void turnOnSteppers()
 {
-//  return;
+  //  return;
   if( steppersOn == true )
     return;
-    Serial.println( "turning pwm high" );
-    for( int i = PWM_LOW ; i <= PWM_HIGH; i ++ )
+  Serial.println( "turning pwm high" );
+  for( int i = PWM_LOW ; i <= PWM_HIGH; i ++ )
   {
-  analogWrite( STEP_PWM, i );
-  delay(PWM_CHANGE_DELAY);
+    analogWrite( STEP_PWM, i );
+    delay(PWM_CHANGE_DELAY);
   }
   //  Serial.println( "loopdone" );
   steppersOn = true;
@@ -47,52 +162,52 @@ void turnOnSteppers()
 
 int serReadInt()
 {
- int i, serAva;                           // i is a counter, serAva hold number of serial available
- char inputBytes [7];                 // Array hold input bytes
- char * inputBytesPtr = &inputBytes[0];  // Pointer to the first element of the array
-     
- if (Serial.available()>0)            // Check to see if there are any serial input
- {
-   delay(5*delayFactor);                              // Delay for terminal to finish transmitted
-                                              // 5mS work great for 9600 baud (increase this number for slower baud)
-   serAva = Serial.available();  // Read number of input bytes
-   for (i=0; i<serAva; i++)   
-   {
-    char readChar = (char)Serial.read();   // Load input bytes into array
-    if( readChar == ',' )
-      break;
-     inputBytes[i] = readChar;
-   }
-   inputBytes[i] =  '\0';             // Put NULL character at the end
-   return atoi(inputBytesPtr);    // Call atoi function and return result
- }
- else
-   return -1;                           // Return -1 if there is no input
+  int i, serAva;                           // i is a counter, serAva hold number of serial available
+  char inputBytes [7];                 // Array hold input bytes
+  char * inputBytesPtr = &inputBytes[0];  // Pointer to the first element of the array
+
+  if (Serial.available()>0)            // Check to see if there are any serial input
+  {
+    delay(5);                              // Delay for terminal to finish transmitted
+    // 5mS work great for 9600 baud (increase this number for slower baud)
+    serAva = Serial.available();  // Read number of input bytes
+    for (i=0; i<serAva; i++)   
+    {
+      char readChar = (char)Serial.read();   // Load input bytes into array
+      if( readChar == ',' )
+        break;
+      inputBytes[i] = readChar;
+    }
+    inputBytes[i] =  '\0';             // Put NULL character at the end
+    return atoi(inputBytesPtr);    // Call atoi function and return result
+  }
+  else
+    return -1;                           // Return -1 if there is no input
 }
 
 int xbeeserReadInt()
 {
- int i, serAva;                           // i is a counter, serAva hold number of serial available
- char inputBytes [7];                 // Array hold input bytes
- char * inputBytesPtr = &inputBytes[0];  // Pointer to the first element of the array
-     
- if (xbeeSerial.available()>0)            // Check to see if there are any serial input
- {
-   delay(5*delayFactor);                              // Delay for terminal to finish transmitted
-                                              // 5mS work great for 9600 baud (increase this number for slower baud)
-   serAva = xbeeSerial.available();  // Read number of input bytes
-   for (i=0; i<serAva; i++)   
-   {
-    char readChar = (char)xbeeSerial.read();   // Load input bytes into array
-    if( readChar == ',' )
-      break;
-     inputBytes[i] = readChar;
-   }
-   inputBytes[i] =  '\0';             // Put NULL character at the end
-   return atoi(inputBytesPtr);    // Call atoi function and return result
- }
- else
-   return -1;                           // Return -1 if there is no input
+  int i, serAva;                           // i is a counter, serAva hold number of serial available
+  char inputBytes [7];                 // Array hold input bytes
+  char * inputBytesPtr = &inputBytes[0];  // Pointer to the first element of the array
+
+  if (xbeeSerial.available()>0)            // Check to see if there are any serial input
+  {
+    delay(5);                              // Delay for terminal to finish transmitted
+    // 5mS work great for 9600 baud (increase this number for slower baud)
+    serAva = xbeeSerial.available();  // Read number of input bytes
+    for (i=0; i<serAva; i++)   
+    {
+      char readChar = (char)xbeeSerial.read();   // Load input bytes into array
+      if( readChar == ',' )
+        break;
+      inputBytes[i] = readChar;
+    }
+    inputBytes[i] =  '\0';             // Put NULL character at the end
+    return atoi(inputBytesPtr);    // Call atoi function and return result
+  }
+  else
+    return -1;                           // Return -1 if there is no input
 }
 /**
  * Divides a given PWM pin frequency by a divisor.
@@ -130,29 +245,58 @@ void setPwmFrequency(int pin, int divisor) {
   byte mode;
   if(pin == 5 || pin == 6 || pin == 9 || pin == 10) {
     switch(divisor) {
-      case 1: mode = 0x01; break;
-      case 8: mode = 0x02; break;
-      case 64: mode = 0x03; break;
-      case 256: mode = 0x04; break;
-      case 1024: mode = 0x05; break;
-      default: return;
+    case 1: 
+      mode = 0x01; 
+      break;
+    case 8: 
+      mode = 0x02; 
+      break;
+    case 64: 
+      mode = 0x03; 
+      break;
+    case 256: 
+      mode = 0x04; 
+      break;
+    case 1024: 
+      mode = 0x05; 
+      break;
+    default: 
+      return;
     }
     if(pin == 5 || pin == 6) {
       TCCR0B = TCCR0B & 0b11111000 | mode;
-    } else {
+    } 
+    else {
       TCCR1B = TCCR1B & 0b11111000 | mode;
     }
-  } else if(pin == 3 || pin == 11) {
+  } 
+  else if(pin == 3 || pin == 11) {
     switch(divisor) {
-      case 1: mode = 0x01; break;
-      case 8: mode = 0x02; break;
-      case 32: mode = 0x03; break;
-      case 64: mode = 0x04; break;
-      case 128: mode = 0x05; break;
-      case 256: mode = 0x06; break;
-      case 1024: mode = 0x7; break;
-      default: return;
+    case 1: 
+      mode = 0x01; 
+      break;
+    case 8: 
+      mode = 0x02; 
+      break;
+    case 32: 
+      mode = 0x03; 
+      break;
+    case 64: 
+      mode = 0x04; 
+      break;
+    case 128: 
+      mode = 0x05; 
+      break;
+    case 256: 
+      mode = 0x06; 
+      break;
+    case 1024: 
+      mode = 0x7; 
+      break;
+    default: 
+      return;
     }
     TCCR2B = TCCR2B & 0b11111000 | mode;
   }
 }
+
