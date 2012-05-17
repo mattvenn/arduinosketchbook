@@ -4,14 +4,13 @@ todo:
  + calibration,
  - check calibration!
  - calculation of step sizes for roller and pen
+  -find a way to find where the pen is at startup
+    - low torque one motor, high the other. Pull till switch triggers. Magnet on gondola and strings.
  
- -solve reseting problem
- -find a way to find where the pen is at startup
- 
- RESET problem.
- reducing pwm_high seems to help. 
- changing to a different plug socket made things different.
  */
+
+//where we define all the paramaters of the robot
+#include "robotdefs.h"
 
 //pattern type
 //#define DRAW_ENERGY_CIRCLES
@@ -22,34 +21,24 @@ todo:
 #include <NewSoftSerial.h>
 #include <TimedAction.h>
 
-//system defs
-#define stepsPerRevolution 200  // change this to fit the number of steps per revolution
-#define LOOP_PERIOD 400.0 //seconds
-#define MAX_PEN_STEPS 2000
-#define MAX_ENERGY 25000 //W
-#define stepSpeed 30
-#define leftStepDir -1 //these should be set so that the commands l50 and r50 lower the gondola
-#define rightStepDir -1
 #define LEFT 0
 #define RIGHT 1
 
-// Approximate number of steps per cm, calculated from radius of spool
-// and the number of steps per radius
-float diameter = 2.15; //1.29
-float circumference = 3.1415 * diameter;
-boolean steppersOn = false;
-int StepUnit = stepsPerRevolution / circumference;   
+const float circumference = 3.1415 * DIAMETER;
+const int StepUnit = stepsPerRevolution / circumference;   
 
 // Approximate dimensions (in steps) of the total drawing area
-int w= 150*StepUnit;
+const int w= MOTOR_DIST_CM*StepUnit;
+const int h= MOTOR_DIST_CM*StepUnit; 
 
-int h= 150*StepUnit; //34 * StepUnit + ceiling;
-int ceiling = h / 4; //5; // 10*StepUnit;
-int margin = w / 5; //4;
+const int ceiling = h / 4; //5; // 10*StepUnit;
+const int margin = w / 5; //4;
 
 // Coordinates of current (starting) point
 int x1= w/2;
 int y1= h/2;
+
+boolean steppersOn = false;
 
 // Approximate length of strings from marker to staple
 int a1= sqrt(pow(x1,2)+pow(y1,2));
@@ -59,25 +48,8 @@ int b1= sqrt(pow((w-x1),2)+pow(y1,2));
 
 unsigned long lastTime;
 int penPos, lastPenPos;
-boolean draw= false;
 boolean stepping = false;
 int drawCount = 0;
-
-#define STATUS_LED 4                                    
-#define OPTO_ROLLER A4
-#define OPTO_PEN A5
-#define STEP_PWM 9 
-
-#define XBEETX 2
-#define XBEERX 3
-
-
-
-//pwm is causing arduino to reboot at low values - check with scope
-int PWM_LOW = 10; 
-int PWM_HIGH = 155;
-#define delayFactor 1 //10 //when we change pwmFrequency, delays change in value so multiply by this
-#define PWM_CHANGE_DELAY 1 * delayFactor
 
 #define DEBUG
 
@@ -92,20 +64,25 @@ TimedAction ActionCheckSerialData = TimedAction( 200, checkSerialData);
 
 TimedAction ActionTurnOffSteppers = TimedAction( 500, turnOffSteppers );
 
-
-Stepper leftStepper(stepsPerRevolution, A0,A1,A2,A3);            
-Stepper rightStepper(stepsPerRevolution, 10,11,12,13);            
+Stepper leftStepper(stepsPerRevolution, STEPLPIN1, STEPLPIN2, STEPLPIN3, STEPLPIN4 );
+Stepper rightStepper(stepsPerRevolution, STEPRPIN1, STEPRPIN2, STEPRPIN3, STEPRPIN4 );
 
 void setup() {
   pinMode( STATUS_LED, OUTPUT );
   pinMode( STEP_PWM, OUTPUT );
   pinMode(OPTO_ROLLER,INPUT);
   pinMode(OPTO_PEN,INPUT);
+  
+  pinMode( TENS_L, INPUT );
+  digitalWrite( TENS_L, HIGH );
+  pinMode( TENS_R, INPUT );
+  digitalWrite( TENS_R, HIGH );
+  
   //digitalWrite(OPTO_ROLLER,LOW);
  // digitalWrite(OPTO_PEN,LOW);
   // set the speed at 60 rpm:
-  leftStepper.setSpeed(stepSpeed / delayFactor);
-  rightStepper.setSpeed(stepSpeed / delayFactor);
+  leftStepper.setSpeed(stepSpeed );
+  rightStepper.setSpeed(stepSpeed );
   
   setPwmFrequency( STEP_PWM, 1 ); //set to 32khz / 1
   
@@ -113,15 +90,15 @@ void setup() {
   // initialize the serial port:
   Serial.begin(9600);
   Serial.println( "energy plotter startup" );  
- // #ifdef XBEE
+  #ifdef XBEE
   xbeeSetup();
- // #endif
+  #endif
 
       digitalWrite( STATUS_LED, HIGH );
-      delay(1000 * delayFactor);
+      delay(1000);
       digitalWrite( STATUS_LED, LOW );
-
-
+  
+//  calibrate();
 
 }
 unsigned int counter = 0;
@@ -154,7 +131,7 @@ void burnTest(int number)
 #ifdef DEBUG
 void checkSerialData()
 {
-
+  #ifdef XBEE
   if( xbeeSerial.available() )
   {
     digitalWrite( STATUS_LED, HIGH );
@@ -193,13 +170,16 @@ void checkSerialData()
     }
     digitalWrite( STATUS_LED, LOW );
   } 
-  
+  #endif
   if( Serial.available() )
   {
         digitalWrite( STATUS_LED, HIGH );
     char command = Serial.read();
     switch( command )
     {
+      case 'c':
+        calibrate();
+        break;
       case 'b':
         burnTest( serReadInt() );
         break;
@@ -217,17 +197,6 @@ void checkSerialData()
         Serial.println( hour );
         break;
       }
-      case 'w':
-//        pwm = serReadInt();
-        PWM_LOW = serReadInt();
-        Serial.print( "set pwm_low: " );
-        Serial.println( PWM_LOW );
-        break;
-      case 'h':
-        PWM_HIGH = serReadInt();
-        Serial.print("set pwn high: ");
-        Serial.println( PWM_HIGH );
-        break;
       case 'l':
         step( LEFT, serReadInt() );
         break;
@@ -267,7 +236,7 @@ void checkSerialData()
         moveTo( x, y );
         break;
       }
-      case 'c':
+      case 'z':
       {
         int x = serReadInt();
         int y = serReadInt();
