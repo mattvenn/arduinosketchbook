@@ -13,7 +13,9 @@ todo:
 #include "robotdefs.h"
 
 //pattern type
-#define DRAW_ENERGY_CIRCLES
+#define DRAW_RANDOMDIRECTION
+//#define DRAW_ENERGY_CIRCLES_FUTR
+//#define DRAW_ENERGY_CIRCLES
 //#define DRAW_DAY_SPIRAL
 //#define ARCOLA_WEEK_CIRCLES
 
@@ -24,6 +26,11 @@ todo:
 #define LEFT 0
 #define RIGHT 1
 
+struct Point {
+  float x;
+  float y;
+} ;
+
 const float circumference = 3.1415 * DIAMETER;
 const int StepUnit = stepsPerRevolution / circumference;   
 
@@ -31,8 +38,13 @@ const int StepUnit = stepsPerRevolution / circumference;
 const int w= MOTOR_DIST_CM*StepUnit;
 const int h= MOTOR_DIST_CM*StepUnit; 
 
-const int ceiling = h / 4; //5; // 10*StepUnit;
-const int margin = w / 5; //4;
+const int ceiling = 24 * StepUnit; 
+const int margin = ( w - 18 * StepUnit ) / 2;
+
+const int minX = margin;
+const int maxX = w - margin;
+const int minY = ceiling;
+const int maxY = ceiling + w; //square
 
 // Coordinates of current (starting) point
 int x1= w/2;
@@ -46,21 +58,16 @@ int b1= sqrt(pow((w-x1),2)+pow(y1,2));
 
 //globals
 
-unsigned long lastTime;
-int penPos, lastPenPos;
 boolean stepping = false;
-int drawCount = 0;
 
-#define DEBUG
+//#define DEBUG
 
 NewSoftSerial xbeeSerial(XBEERX, XBEETX);
 #ifdef XBEE
 
 TimedAction ActionCheckXbeeData = TimedAction( 1000, checkXbeeData);
 #endif
-#ifdef DEBUG
 TimedAction ActionCheckSerialData = TimedAction( 200, checkSerialData);
-#endif
 
 TimedAction ActionTurnOffSteppers = TimedAction( 500, turnOffSteppers );
 
@@ -99,7 +106,7 @@ void setup() {
       digitalWrite( STATUS_LED, LOW );
   
 //  calibrate();
-
+    initDraw();
 }
 unsigned int counter = 0;
 
@@ -128,7 +135,6 @@ void burnTest(int number)
   delay(100);
  }
 }
-#ifdef DEBUG
 void checkSerialData()
 {
   #ifdef XBEE
@@ -205,10 +211,10 @@ void checkSerialData()
 */
         break;
       }
-      case 'l':
+      case 'l': //step left
         step( LEFT, serReadInt() );
         break;
-      case 'r':
+      case 'r': //step right
          step( RIGHT, serReadInt() );
          break;
       case 'v': //draw a straight line
@@ -220,19 +226,28 @@ void checkSerialData()
         drawLine( x1, y1,  x, y );        
         break;
       }
-      case 'p':
+      case 'p': //print debug info
         Serial.print( "steps per cm: " );
         Serial.println( StepUnit );
         Serial.print( "x1: " );
         Serial.println( x1 / StepUnit);
         Serial.print( "y1: ");
         Serial.println( y1 / StepUnit);
-        Serial.print( "a1: " );
+/*        Serial.print( "a1: " );
         Serial.println( a1 / StepUnit );
         Serial.print( "b1: " );
         Serial.println( b1 / StepUnit );
+        */
+        Serial.print( "w: " );
+        Serial.println( w);
+        Serial.print( "h: " );
+        Serial.println( h);
+        Serial.print( "ceil: " );
+        Serial.println( ceiling);
+        Serial.print( "marg: " );
+        Serial.println( margin);
         break;
-      case 'm':
+      case 'm': //moveto
       {
         int x = serReadInt();
         x *= StepUnit;
@@ -244,24 +259,7 @@ void checkSerialData()
         moveTo( x, y );
         break;
       }
-      case 'z':
-      {
-        int x = serReadInt();
-        int y = serReadInt();
-        int r = serReadInt();
-        int n = serReadInt();
-        x *= StepUnit;
-        y *= StepUnit;
-        r *= StepUnit;
-        Serial.print( x );
-        Serial.print( "," );
-        Serial.print( y );
-        Serial.print( "," );
-        Serial.println( r );
-        drawCircles(n,x,y,r);
-      break;
-      }
-      case 's':
+      case 's': //change stepper speed
        {
          int s = serReadInt();
          leftStepper.setSpeed( s );
@@ -275,4 +273,3 @@ void checkSerialData()
         digitalWrite( STATUS_LED, LOW );
   }
 }
-#endif
