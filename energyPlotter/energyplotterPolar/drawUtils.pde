@@ -128,16 +128,4 @@ void drawCircle(int centerx, int centery, int radius) {
 
 
               
-void drawCircles(int number, int centerx, int centery, int r) {
-   // Draw a certain number of concentric circles at the given center with
-   // radius r
-   int dr=0;
-   if (number > 0) {
-     dr = r/number;
-     for (int k=0; k<number; k++) {
-       drawCircle(centerx, centery, r);
-       r=r-dr;
-     }
-   }
-}
 
