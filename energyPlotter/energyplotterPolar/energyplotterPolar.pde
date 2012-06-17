@@ -27,10 +27,15 @@ todo:
 #define RIGHT 1
 
 struct Point {
-  float x;
-  float y;
+  int x;
+  int y;
 } ;
 
+struct Ref {
+  Point origin;
+  float angle;
+  int remainder;
+  } reflected;
 const float circumference = 3.1415 * DIAMETER;
 const int StepUnit = stepsPerRevolution / circumference;   
 
@@ -39,16 +44,18 @@ const int w= MOTOR_DIST_CM*StepUnit;
 const int h= MOTOR_DIST_CM*StepUnit; 
 
 const int ceiling = 24 * StepUnit; 
-const int margin = ( w - 18 * StepUnit ) / 2;
-
-const int minX = margin;
-const int maxX = w - margin;
-const int minY = ceiling;
-const int maxY = ceiling + w; //square
+//const int margin = ( w - 18 * StepUnit ) / 2;
+const int margin = 30 * StepUnit;
 
 // Coordinates of current (starting) point
 int x1= w/2;
 int y1= h/2;
+const int halfSquareWidth = 7;
+const int minX = x1 - halfSquareWidth * StepUnit;
+const int maxX = x1 + halfSquareWidth * StepUnit;
+const int minY = y1 - halfSquareWidth * StepUnit;
+const int maxY = y1 + halfSquareWidth * StepUnit; 
+
 
 boolean steppersOn = false;
 
@@ -60,15 +67,15 @@ int b1= sqrt(pow((w-x1),2)+pow(y1,2));
 
 boolean stepping = false;
 
-//#define DEBUG
+#define XBEE
 
 NewSoftSerial xbeeSerial(XBEERX, XBEETX);
+
 #ifdef XBEE
-
-TimedAction ActionCheckXbeeData = TimedAction( 1000, checkXbeeData);
+//TimedAction ActionCheckXbeeData = TimedAction( 1000, checkXbeeData);
 #endif
-TimedAction ActionCheckSerialData = TimedAction( 200, checkSerialData);
 
+TimedAction ActionCheckSerialData = TimedAction( 200, checkSerialData);
 TimedAction ActionTurnOffSteppers = TimedAction( 500, turnOffSteppers );
 
 Stepper leftStepper(stepsPerRevolution, STEPLPIN1, STEPLPIN2, STEPLPIN3, STEPLPIN4 );
@@ -147,7 +154,7 @@ void checkSerialData()
       case 'e':
       {
         Serial.println( "got energy command" );
-        delay(200 * delayFactor);
+        delay(200);
         int energy = xbeeserReadInt();
         int minute = xbeeserReadInt();
         int ckSum = xbeeserReadInt();
@@ -163,7 +170,7 @@ void checkSerialData()
         Serial.print( energy );
         Serial.print( " at " );
         Serial.println( minute );
-     //   drawEnergy( energy, minute );
+        drawEnergy( energy, minute );
         xbeeSerial.println("OK");
         Serial.println( "OK" );
         xbeeSerial.flush();
@@ -184,7 +191,7 @@ void checkSerialData()
     switch( command )
     {
       case 'c':
-        calibrate();
+        //calibrate();
         break;
       case 'b':
         burnTest( serReadInt() );
