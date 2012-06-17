@@ -1,6 +1,6 @@
 #ifdef DRAW_RANDOMDIRECTION
-#define MAXENERGY 5000
-#define MAXLINE 5000
+#define MAXENERGY 30 // think because this is so low, we need to store up all energy used in    10 mins and then draw.
+#define MAXLINE halfSquareWidth * StepUnit
 #define INFINITY 30000
 Point oldPoint, newPoint;
 
@@ -8,23 +8,25 @@ void initDraw()
 {
     oldPoint.x = x1;
     oldPoint.y = y1;
+    reflected.origin = oldPoint;
+    randomSeed(analogRead(A5));
 }
 //takes an energy and a minute
 void drawEnergy( float energy, int minute )
 {
 
      float lineLength = map( energy, 0, MAXENERGY, 0, MAXLINE );
-     float angle  = 0; // 5 * PI / 4 ; //random( 2 * PI );
+     float angle  =  random( 2 * PI * 100);
+     angle /= 100;
      Serial.print( "line length: " ); Serial.println( lineLength );
      Serial.print( "angle: " ); Serial.println( angle );
-     Serial.print( "old point x: " ); Serial.print( oldPoint.x ); Serial.print(  " y: " ); Serial.println( oldPoint.y );
-     reflected.origin = oldPoint;
+     Serial.print( "old point x: " ); Serial.print( reflected.origin.x ); Serial.print(  " y: " ); Serial.println( reflected.origin.y );
      reflected.angle = angle;
      reflected.remainder = lineLength;
      while( drawReflectLine( reflected.origin.x, reflected.origin.y, reflected.remainder, reflected.angle ) > 0 )
      {
      }
-    //println( "new point x: " + newPoint.x + " y: " + newPoint.y );
+//    println( "new point x: " + newPoint.x + " y: " + newPoint.y );
     //oldPoint.x = newPoint.x;
     //oldPoint.y = newPoint.y;
 }
@@ -59,15 +61,15 @@ int drawReflectLine( int x, int y, int lineLength, float angle ) //, int recurse
   Serial.print( "max X: " ); Serial.print( maxXDist ); Serial.print( ", max Y: " ); Serial.println( maxYDist );
   
   //now work out the actual length of the line we could draw for both X and Y directions
-  //divide by 0 doesn't work in C like it does in java, so we have to detech when a divide
-  if( angle == PI / 2 || angle == 3 * PI / 2 )
-    maxXLineLength = INFINITY;
-  else
-      maxXLineLength = (int)abs( maxXDist / cos(angle) );
-  if( angle == 0 || angle == PI )
-    maxYLineLength = INFINITY; //infinity
-  else
-    maxYLineLength = (int)abs( maxYDist /sin(angle) );
+  //divide by 0 doesn't work in C like it does in java, so we have to detect when it happens and assign a high number
+  maxXLineLength =  maxXDist / cos(angle);
+  maxXLineLength = abs(maxXLineLength);
+    if( maxXLineLength == 0 )
+        maxXLineLength = INFINITY;
+  maxYLineLength = maxYDist / sin(angle);
+  maxYLineLength = abs(maxYLineLength);
+    if( maxYLineLength == 0 )
+        maxYLineLength = INFINITY;
 
   Serial.print( "max Xdd: " ); Serial.print( maxXLineLength ); Serial.print( ", max Ydd: " ); Serial.println( maxYLineLength );    
   
@@ -106,15 +108,12 @@ int drawReflectLine( int x, int y, int lineLength, float angle ) //, int recurse
   
 
   //recurse if necessary to draw the rest of the line
-  if( remainder > 0)
-  {
    reflected.origin = retPoint;
    reflected.angle = bounceAngle;
    reflected.remainder = remainder;
     Serial.print( "remainder = " ); Serial.println( remainder );
 //    Serial.print( "recurse level: " ); Serial.println( recurse );
 //    retPoint = drawReflectLine(retPoint.x,retPoint.y,remainder, bounceAngle ); //, ++recurse); //for y
-  }
   
   //otherwise return the final coords
   //println( "returing new point: " + recurse + ":" + retPoint.x + "," + retPoint.y );
