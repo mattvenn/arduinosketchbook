@@ -1,9 +1,12 @@
 #define stepSpeed 20
-#define leftStepDir -1 //these should be set so that the commands l50 and r50 lower the gondola
-#define rightStepDir -1
+#define leftStepDir 1 //these should be set so that the commands l50 and r50 lower the gondola
+#define rightStepDir 1
 #define DIAMETER 1.24
 #define stepsPerRevolution 200
 #define MOTOR_DIST_CM 68
+//const int ceiling = h / 4; 
+//const int margin = h / 5;
+
 
 #define MAX_ENERGY 4000 //W
 
