@@ -1,6 +1,7 @@
 boolean calibrated = false;
 #define TENSL digitalRead(TENS_L)
 #define TENSR digitalRead(TENS_R)
+#ifdef CALIB
 void calibrate()
 {
   Serial.println("calibration" );
@@ -109,8 +110,8 @@ void calibrate()
 
 //  moveTo( w/2, h/2 );
 
-
 }
+#endif
 void step( int stepper, int steps )
 {
   if( steppersOn != true )
