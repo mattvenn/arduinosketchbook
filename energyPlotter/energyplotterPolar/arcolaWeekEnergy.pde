@@ -1,26 +1,26 @@
-#ifdef DRAW_ENERGY_CIRCLES
+#ifdef ARCOLA_WEEK_CIRCLES
 int minRadius = 20; //steps not mm
 int lastSegment = 0;
 boolean newCell = false;
 int radius = minRadius;
-int radiusIncrement = 10; //steps not mm
-int energyPerSegment = 50; //how much energy (KWS) before we draw a segment. There are 20 segments to a circle
+int radiusIncrement = 20; //steps not mm
+int energyPerSegment = 100; //how much energy (KWS) before we draw a segment. There are 20 segments to a circle
 /*
 with 50kws per segment that makes each circle worth 1000kws, or 0.3kwh, 
 as the max our house seems to use is about 16kwh per hour, 1 set of circles (which is 10 minutes) would be 2.6kwh per 10 minutes
 so this would result in about 9 circles for high energy times
 */
 int remainderEnergy;
-int lastMinute;
+int lastHour = -1;
 
 //takes an energy and a minute
-void drawEnergy( float energy, int minute )
+void drawEnergy( float energy, int day, int hour )
 {
    //sanity check
-   if( minute < 0 || minute >= 1440 ) 
+   if( day < 0 || day > 6 ) 
         {
-          Serial.print( "bad minute " );
-          Serial.println( minute );
+          Serial.print( "bad day " );
+          Serial.println( day );
           return;
         }
         if( energy < 0 || energy > MAX_ENERGY )
@@ -29,13 +29,19 @@ void drawEnergy( float energy, int minute )
           Serial.println( energy );
           return;
         }
-  minute = minute / 10;
-  if( minute != lastMinute)
+        if( hour < 0 || hour > 23 )
+        {
+          Serial.print( "bad hour " );
+          Serial.println( hour );
+          return;
+        }
+  
+  if( hour != lastHour)
   {
     newCell = true;
     radius = minRadius;
     lastSegment = 0;
-    lastMinute = minute;
+    lastHour = hour;
 
   }
   else
@@ -43,15 +49,16 @@ void drawEnergy( float energy, int minute )
     newCell = false;
   }
  
-  int y = minute / 12;
-  int x = minute % 12;
-  int cellWidth = ( w - 2 * margin ) / 13;
+  int y = day;
+  int x = hour;
+  int cellWidth = ( w - 2 * margin ) / 24;
   x *= cellWidth;
   x += cellWidth;
   x += margin;
 
-  y *= cellWidth;
-  y += cellWidth;
+  int cellHeight = ( h - 2 * margin ) / 7;
+  y *= cellHeight;
+  y += cellHeight;
   y += ceiling;
   int r = cellWidth / 2;
   
@@ -76,6 +83,7 @@ void drawEnergy( float energy, int minute )
   
   drawSegments( x, y, numSegments );
   }
+  
 }
 
 //draws a number of increasingly sized circles, segment by segment.

@@ -1,10 +1,11 @@
-/* 
+  /* 
 todo:
  - what kind of precision do we have on the pen? will we get slopes or squares?
  + calibration,
  - check calibration!
  - calculation of step sizes for roller and pen
   -find a way to find where the pen is at startup
+    - low torque one motor, high the other. Pull till switch triggers. Magnet on gondola and strings.
  
  */
 
@@ -12,27 +13,49 @@ todo:
 #include "robotdefs.h"
 
 //pattern type
-#define DRAW_ENERGY_CIRCLES
+#define DRAW_RANDOMDIRECTION
+//#define DRAW_ENERGY_CIRCLES_FUTR
+//#define DRAW_ENERGY_CIRCLES
 //#define DRAW_DAY_SPIRAL
+//#define ARCOLA_WEEK_CIRCLES
 
 #include <Stepper.h>
 #include <NewSoftSerial.h>
 #include <TimedAction.h>
 
-// Approximate number of steps per cm, calculated from radius of spool
-// and the number of steps per radius
-float circumference = 3.1415 * DIAMETER;
-int StepUnit = stepsPerRevolution / circumference;   
+#define LEFT 0
+#define RIGHT 1
+
+struct Point {
+  int x;
+  int y;
+} ;
+
+struct Ref {
+  Point origin;
+  float angle;
+  int remainder;
+  } reflected;
+const float circumference = 3.1415 * DIAMETER;
+const int StepUnit = stepsPerRevolution / circumference;   
 
 // Approximate dimensions (in steps) of the total drawing area
-int w= MOTOR_DIST_CM*StepUnit;
-int h= MOTOR_DIST_CM*StepUnit; //34 * StepUnit + ceiling;
-int ceiling = h / 4; //5; // 10*StepUnit;
-int margin = w / 4; //4;
+const int w= MOTOR_DIST_CM*StepUnit;
+const int h= MOTOR_DIST_CM*StepUnit; 
+
+const int ceiling = 24 * StepUnit; 
+//const int margin = ( w - 18 * StepUnit ) / 2;
+const int margin = 30 * StepUnit;
 
 // Coordinates of current (starting) point
 int x1= w/2;
 int y1= h/2;
+const int halfSquareWidth = 7;
+const int minX = x1 - halfSquareWidth * StepUnit;
+const int maxX = x1 + halfSquareWidth * StepUnit;
+const int minY = y1 - halfSquareWidth * StepUnit;
+const int maxY = y1 + halfSquareWidth * StepUnit; 
+
 
 boolean steppersOn = false;
 
@@ -42,54 +65,22 @@ int b1= sqrt(pow((w-x1),2)+pow(y1,2));
 
 //globals
 
-unsigned long lastTime;
-int penPos, lastPenPos;
-boolean draw= false;
 boolean stepping = false;
-int drawCount = 0;
 
-#define STATUS_LED 4                                    
-#define OPTO_ROLLER A4
-#define OPTO_PEN A5
-#define STEP_PWM 9 
-
-#define TENS_L 3
-#define TENS_R 2
-
-#define XBEETX 2
-#define XBEERX 3
-
-
-
-//pwm is causing arduino to reboot at low values - check with scope
-//matt's home version low = 1 high = 55
-#define PWM_LOW 10
-#define PWM_HIGH 155
-#define PWM_CHANGE_DELAY 1
-
-#define DEBUG
+#define XBEE
 
 NewSoftSerial xbeeSerial(XBEERX, XBEETX);
+
 #ifdef XBEE
-
-TimedAction ActionCheckXbeeData = TimedAction( 1000, checkXbeeData);
+//TimedAction ActionCheckXbeeData = TimedAction( 1000, checkXbeeData);
 #endif
-#ifdef DEBUG
+
 TimedAction ActionCheckSerialData = TimedAction( 200, checkSerialData);
-#endif
-
 TimedAction ActionTurnOffSteppers = TimedAction( 500, turnOffSteppers );
-//TimedAction ActionDraw = TimedAction( 1000, draw );
-//TimedAction ActionLEDColour = TimedAction( 1000, LEDColour );
-// initialize the stepper library on pins 8 through 11:
-// 3 brown
-// 4 red
-// 5 white
-// 6 green
 
-Stepper leftStepper(stepsPerRevolution, A0,A1,A2,A3);            
-//Stepper rightStepper(stepsPerRevolution, 13,10,11,12);   //mv         
-Stepper rightStepper(stepsPerRevolution, 10,11,12,13);   
+Stepper leftStepper(stepsPerRevolution, STEPLPIN1, STEPLPIN2, STEPLPIN3, STEPLPIN4 );
+Stepper rightStepper(stepsPerRevolution, STEPRPIN1, STEPRPIN2, STEPRPIN3, STEPRPIN4 );
+
 void setup() {
   pinMode( STATUS_LED, OUTPUT );
   pinMode( STEP_PWM, OUTPUT );
@@ -122,7 +113,7 @@ void setup() {
       digitalWrite( STATUS_LED, LOW );
   
 //  calibrate();
-
+    initDraw();
 }
 unsigned int counter = 0;
 
@@ -151,7 +142,6 @@ void burnTest(int number)
   delay(100);
  }
 }
-#ifdef DEBUG
 void checkSerialData()
 {
   #ifdef XBEE
@@ -164,7 +154,7 @@ void checkSerialData()
       case 'e':
       {
         Serial.println( "got energy command" );
-        delay(200 * delayFactor);
+        delay(200);
         int energy = xbeeserReadInt();
         int minute = xbeeserReadInt();
         int ckSum = xbeeserReadInt();
@@ -201,7 +191,7 @@ void checkSerialData()
     switch( command )
     {
       case 'c':
-        calibrate();
+        //calibrate();
         break;
       case 'b':
         burnTest( serReadInt() );
@@ -211,16 +201,27 @@ void checkSerialData()
         int energy = serReadInt();
         int minute = serReadInt();
         drawEnergy( energy, minute );
+/*
+        int energy = serReadInt();
+        int day = serReadInt();
+        int hour = serReadInt();
+        drawEnergy( energy, day, hour );
+*/
         Serial.print( "set energy to: " );
         Serial.print( energy );
         Serial.print( " at " );
         Serial.println( minute );
+/*
+        Serial.print( day );
+        Serial.print( ",");
+        Serial.println( hour );
+*/
         break;
       }
-      case 'l':
+      case 'l': //step left
         step( LEFT, serReadInt() );
         break;
-      case 'r':
+      case 'r': //step right
          step( RIGHT, serReadInt() );
          break;
       case 'v': //draw a straight line
@@ -232,22 +233,28 @@ void checkSerialData()
         drawLine( x1, y1,  x, y );        
         break;
       }
-      case 'p':
+      case 'p': //print debug info
         Serial.print( "steps per cm: " );
         Serial.println( StepUnit );
         Serial.print( "x1: " );
         Serial.println( x1 / StepUnit);
         Serial.print( "y1: ");
         Serial.println( y1 / StepUnit);
-        Serial.print( "a1: " );
+/*        Serial.print( "a1: " );
         Serial.println( a1 / StepUnit );
         Serial.print( "b1: " );
         Serial.println( b1 / StepUnit );
+        */
+        Serial.print( "w: " );
+        Serial.println( w);
+        Serial.print( "h: " );
+        Serial.println( h);
+        Serial.print( "ceil: " );
+        Serial.println( ceiling);
+        Serial.print( "marg: " );
+        Serial.println( margin);
         break;
-      case 'd':
-        draw = ! draw;
-        break;
-      case 'm':
+      case 'm': //moveto
       {
         int x = serReadInt();
         x *= StepUnit;
@@ -259,24 +266,7 @@ void checkSerialData()
         moveTo( x, y );
         break;
       }
-      case 'z':
-      {
-        int x = serReadInt();
-        int y = serReadInt();
-        int r = serReadInt();
-        int n = serReadInt();
-        x *= StepUnit;
-        y *= StepUnit;
-        r *= StepUnit;
-        Serial.print( x );
-        Serial.print( "," );
-        Serial.print( y );
-        Serial.print( "," );
-        Serial.println( r );
-        drawCircles(n,x,y,r);
-      break;
-      }
-      case 's':
+      case 's': //change stepper speed
        {
          int s = serReadInt();
          leftStepper.setSpeed( s );
@@ -290,4 +280,3 @@ void checkSerialData()
         digitalWrite( STATUS_LED, LOW );
   }
 }
-#endif

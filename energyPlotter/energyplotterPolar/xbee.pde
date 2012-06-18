@@ -4,7 +4,7 @@ void xbeeSetup()
   xbeeSerial.begin(9600);
 
 }
-#ifdef XBEE
+#ifdef XBEED
 void checkXbeeData()
 {
   int string = 0;
