@@ -52,7 +52,9 @@ void updateTotals()
   if( now.minute() % 5 == 0 && now.minute() != lastMinute )
   {
     lastMinute = now.minute();
-    sendRobotData(sumEnergyWS/1000);
+    int robotEnergy = sumEnergyWS / 1000;
+    Serial.print( "sumEnergyWS = " ); Serial.println( sumEnergyWS );
+    sendRobotData(robotEnergy);
     sumEnergyWS = 0;
   }
 }
