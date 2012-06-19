@@ -164,16 +164,27 @@ void checkSerialData()
           Serial.print( "bad checksum" );
           break;
         }
-
-       
-        Serial.print( "set energy to: " );
-        Serial.print( energy );
-        Serial.print( " at " );
-        Serial.println( minute );
-        drawEnergy( energy, minute );
-        xbeeSerial.println("OK");
-        Serial.println( "OK" );
-        xbeeSerial.flush();
+        else if( energy > MAX_ENERGY )
+        {
+            Serial.print( "energy is more than MAX_ENERGY: " );
+            Serial.println( energy );
+        }
+        else if( energy < 0 )
+        {
+            Serial.print( "energy is less than 0! :" );
+            Serial.println( energy );
+        }
+        else
+        {
+            Serial.print( "set energy to: " );
+            Serial.print( energy );
+            Serial.print( " at " );
+            Serial.println( minute );
+            drawEnergy( energy, minute );
+            xbeeSerial.println("OK");
+            Serial.println( "OK" );
+            xbeeSerial.flush();
+        }
         break;
       }
       default:
