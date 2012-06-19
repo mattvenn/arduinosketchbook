@@ -7,27 +7,27 @@ int dataArray[3][4];
 byte packet[35]; //Array size is 3*4*2+11
 
 //format the data for the robot and send with nss
-void sendRobotData()
+void sendRobotData(int energyData)
 {
-  if( minutes >= 0 )
+//  if( minutes >= 0 )
   {
     Serial.print( "sending to energy robot: " );
 
 
     Serial.print( "e" );
-    Serial.print( energyKWS );
+    Serial.print( energyData );
     Serial.print( "," );
     Serial.print( minutes );
     Serial.print( "," );
-    Serial.println( minutes + energyKWS );
+    Serial.println( minutes + energyData );
 
     //had problems with NSS, started working and don't know why :(
     xbeeSerial.print( "e" );
-    xbeeSerial.print( energyKWS );
+    xbeeSerial.print( energyData );
     xbeeSerial.print( "," );
     xbeeSerial.print( minutes );
     xbeeSerial.print( "," );
-    xbeeSerial.println( minutes + energyKWS );
+    xbeeSerial.println( minutes + energyData );
     
   }
 }

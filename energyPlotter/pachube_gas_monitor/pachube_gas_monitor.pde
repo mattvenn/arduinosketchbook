@@ -42,11 +42,11 @@ char fstr[10];
 boolean dataReady=false;
 double irms, gasPulses, temp, battv;
 double sumGasWS = 0, sumElecWS = 0; //counters for energy, will become the totals
-float gasKWHH = 0, elecKWHH = 0; //totals for the last hour
-float gasKWHD = 0, elecKWHD = 0; //totals for last day
+double gasKWHH = 0, elecKWHH = 0; //totals for the last hour
+double gasKWHD = 0, elecKWHD = 0; //totals for last day
 
 float elecW = 0, elecWS = 0, gasWS = 0; //instantaneous energy values for gas and electricity
-int energyKWS; //for the robot
+int sumEnergyWS; //for the robot
 double lastReading = 0; //milliseconds of last reading
 
 //int batteryLevel;
@@ -97,7 +97,6 @@ void loop()
     doPowerCalculations();
     
     digitalWrite( LED_PIN, LOW );
-    sendRobotData();
     sendToPachube();
     digitalWrite( LED_PIN, HIGH );
   }

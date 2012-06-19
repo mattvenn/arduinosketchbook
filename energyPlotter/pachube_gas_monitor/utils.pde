@@ -22,7 +22,7 @@ void printRTCTime()
 
 }
 
-int lastHour = 0, lastDay = 0;
+int lastHour = 0, lastDay = 0, lastMinute = 0;
 
 void updateTotals()
 {
@@ -32,6 +32,9 @@ void updateTotals()
   {
     lastHour = now.hour();
 
+    //large numbers seent to cosm
+    //4813.083
+    //2944.727
     elecKWHH = sumElecWS/1000/3600; 
     gasKWHH = sumGasWS/1000/3600;
 
@@ -45,7 +48,13 @@ void updateTotals()
     }
    
   }
-  
+  //only do this every 5 minutes
+  if( now.minute() % 5 == 0 && now.minute() != lastMinute )
+  {
+    lastMinute = now.minute();
+    sendRobotData(sumEnergyWS/1000);
+    sumEnergyWS = 0;
+  }
 }
 
 //convert gas pulses to kw/h
@@ -81,10 +90,13 @@ void doPowerCalculations()
   Serial.print( "gas ws:" );
   Serial.println( gasWS );
 
-  energyKWS = ( gasWS + elecWS ) / 1000;
-  Serial.print( "energy KWS for robot: " );
-  Serial.println( energyKWS );
+//  energyKWS = ( gasWS + elecWS ) / 1000;
+ // Serial.print( "energy KWS for robot: " );
+ // Serial.println( energyKWS );
   //update totals
+  sumEnergyWS += gasWS + elecWS;
+  Serial.print( "energy sum WS for robot: " );
+  Serial.println( sumEnergyWS );
   sumElecWS += elecWS;
   sumGasWS += gasWS;
 
@@ -129,6 +141,14 @@ void formatString()
   
   strcat(str,"\n6,");
   dtostrf(gasKWHH,0,3,fstr);
+  strcat(str,fstr);  
+
+  strcat(str,"\n7,");
+  dtostrf(elecWS,0,3,fstr);
+  strcat(str,fstr);  
+
+  strcat(str,"\n8,");
+  dtostrf(sumElecWS,0,3,fstr);
   strcat(str,fstr);  
 /*  
   strcat(str,"\n7,");  
