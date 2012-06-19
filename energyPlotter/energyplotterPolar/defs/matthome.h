@@ -8,7 +8,7 @@
 //const int margin = h / 5;
 
 
-#define MAX_ENERGY 4000 //W
+#define MAX_ENERGY 2000 //KWS summed over 5 minutes
 
 #define PWM_CHANGE_DELAY 1
 #define PWM_LOW 1
