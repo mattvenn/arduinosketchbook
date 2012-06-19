@@ -46,7 +46,7 @@ double gasKWHH = 0, elecKWHH = 0; //totals for the last hour
 double gasKWHD = 0, elecKWHD = 0; //totals for last day
 
 float elecW = 0, elecWS = 0, gasWS = 0; //instantaneous energy values for gas and electricity
-int sumEnergyWS; //for the robot
+double sumEnergyWS; //for the robot
 double lastReading = 0; //milliseconds of last reading
 
 //int batteryLevel;
