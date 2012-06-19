@@ -1,5 +1,5 @@
 #ifdef DRAW_RANDOMDIRECTION
-#define MAXENERGY 30 // think because this is so low, we need to store up all energy used in    10 mins and then draw.
+#define MAXENERGY 500 // think because this is so low, we need to store up all energy used in    10 mins and then draw.
 #define MAXLINE halfSquareWidth * StepUnit
 #define INFINITY 30000
 Point oldPoint, newPoint;
