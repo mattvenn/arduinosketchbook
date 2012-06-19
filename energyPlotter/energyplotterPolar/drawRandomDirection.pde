@@ -1,5 +1,5 @@
 #ifdef DRAW_RANDOMDIRECTION
-#define MAXENERGY 500 // think because this is so low, we need to store up all energy used in    10 mins and then draw.
+//MAXLINE is what we draw if we ever got MAX_ENERGY
 #define MAXLINE halfSquareWidth * StepUnit
 #define INFINITY 30000
 Point oldPoint, newPoint;
@@ -15,7 +15,7 @@ void initDraw()
 void drawEnergy( float energy, int minute )
 {
 
-     float lineLength = map( energy, 0, MAXENERGY, 0, MAXLINE );
+     float lineLength = map( energy, 0, MAX_ENERGY, 0, MAXLINE );
      float angle  =  random( 2 * PI * 100);
      angle /= 100;
      Serial.print( "line length: " ); Serial.println( lineLength );
