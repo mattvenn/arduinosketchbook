@@ -1,6 +1,7 @@
 #ifdef DRAW_RANDOMDIRECTION
 //MAXLINE is what we draw if we ever got MAX_ENERGY
 #define MAXLINE halfSquareWidth * StepUnit
+#define MINLINE 17 //seems to be the minimum length line the algorithm will draw
 #define INFINITY 30000
 Point oldPoint, newPoint;
 
@@ -15,12 +16,12 @@ void initDraw()
 void drawEnergy( float energy, int minute )
 {
 
-     float lineLength = map( energy, 0, MAX_ENERGY, 0, MAXLINE );
+     float lineLength = map( energy, 0, MAX_ENERGY, MINLINE, MAXLINE );
      float angle  =  random( 2 * PI * 100);
      angle /= 100;
      Serial.print( "line length: " ); Serial.println( lineLength );
-     Serial.print( "angle: " ); Serial.println( angle );
-     Serial.print( "old point x: " ); Serial.print( reflected.origin.x ); Serial.print(  " y: " ); Serial.println( reflected.origin.y );
+     //Serial.print( "angle: " ); Serial.println( angle );
+     Serial.print( "old point x: " ); Serial.print( reflected.origin.x );     Serial.print(  " y: " ); Serial.println( reflected.origin.y );
      reflected.angle = angle;
      reflected.remainder = lineLength;
      while( drawReflectLine( reflected.origin.x, reflected.origin.y, reflected.remainder, reflected.angle ) > 0 )
@@ -39,14 +40,14 @@ int drawReflectLine( int x, int y, int lineLength, float angle ) //, int recurse
   int maxLineLength; //the calculated line length
   int remainder = 0; //leftover line still to draw at the new bounceAngle
   float bounceAngle = 0; //the angle after the line bounces
-  Serial.print( "line length: " ); Serial.println( lineLength );
+  //Serial.print( "line length: " ); Serial.println( lineLength );
 
   //ensure angle is within 0 and 2PI
   while( angle < 0 )
   {
     angle += 2 * PI;
   }
-  Serial.print( "angle: " ); Serial.println( angle );    
+  //Serial.print( "angle: " ); Serial.println( angle );    
 
   //depending on the angle of the line, the room we have for it changes. Store this in max[XY]Dist
   if( angle  > (PI * 1.5) || angle < (PI / 2) )
@@ -58,7 +59,7 @@ int drawReflectLine( int x, int y, int lineLength, float angle ) //, int recurse
   else
     maxYDist = y - minY;
 
-  Serial.print( "max X: " ); Serial.print( maxXDist ); Serial.print( ", max Y: " ); Serial.println( maxYDist );
+  //Serial.print( "max X: " ); Serial.print( maxXDist ); Serial.print( ", max Y: " ); Serial.println( maxYDist );
   
   //now work out the actual length of the line we could draw for both X and Y directions
   //divide by 0 doesn't work in C like it does in java, so we have to detect when it happens and assign a high number
@@ -71,7 +72,7 @@ int drawReflectLine( int x, int y, int lineLength, float angle ) //, int recurse
     if( maxYLineLength == 0 )
         maxYLineLength = INFINITY;
 
-  Serial.print( "max Xdd: " ); Serial.print( maxXLineLength ); Serial.print( ", max Ydd: " ); Serial.println( maxYLineLength );    
+  //Serial.print( "max Xdd: " ); Serial.print( maxXLineLength ); Serial.print( ", max Ydd: " ); Serial.println( maxYLineLength );    
   
   //now see which the shortest line is, and we use that one
   //bounce angle is different for each direction
@@ -85,7 +86,7 @@ int drawReflectLine( int x, int y, int lineLength, float angle ) //, int recurse
     bounceAngle = - angle;
     maxLineLength = maxYLineLength;
   }
-  Serial.print( "max line length: " ); Serial.println( maxLineLength );
+  //Serial.print( "max line length: " ); Serial.println( maxLineLength );
 
   //if the lineLength is bigger than the available room, then work out the remainder left to draw
   if( lineLength > maxLineLength )
@@ -93,15 +94,15 @@ int drawReflectLine( int x, int y, int lineLength, float angle ) //, int recurse
     remainder = lineLength - maxLineLength;  
     lineLength = maxLineLength;
   }
-  Serial.print( "line length: " ); Serial.println( lineLength );
+//  Serial.print( "draw length: " ); Serial.println( lineLength );
 
   //we return the coordinates of the end of the line
   Point retPoint;
   retPoint.y = (int)(sin( angle ) * lineLength) + y;
   retPoint.x = (int)(cos( angle ) * lineLength) + x;
   //work out the end points of the line
-  Serial.print( "nx: " ); Serial.print( retPoint.x ); Serial.print( " ny: " ); Serial.println( retPoint.y );     
-
+    Serial.print( "nx: " ); Serial.print( retPoint.x ); Serial.print( " ny: " ); Serial.println( retPoint.y );     
+    Serial.println(freeMemory());
   //draw the line!
   drawLine( x, y, retPoint.x, retPoint.y );
   Serial.println( "drawn line" );
