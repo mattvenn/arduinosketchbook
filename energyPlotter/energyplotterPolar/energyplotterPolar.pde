@@ -11,7 +11,7 @@ todo:
 
 //where we define all the paramaters of the robot
 #include "robotdefs.h"
-
+#define DEBUG
 //pattern type
 #define DRAW_RANDOMDIRECTION
 //#define DRAW_ENERGY_CIRCLES_FUTR
@@ -291,3 +291,4 @@ void checkSerialData()
         digitalWrite( STATUS_LED, LOW );
   }
 }
+
