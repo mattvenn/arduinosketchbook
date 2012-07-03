@@ -1,7 +1,7 @@
 //help on getting xbee setup here
 //http://tropicarduino.blogspot.com/2010/11/xbee-and-newsoftserial.html
 
-NewSoftSerial xbeeSerial(XBEE_RX,XBEE_TX); //pin 5 is RX
+/*NewSoftSerial xbeeSerial(NULL,XBEE_TX); //pin 5 is RX
 int dataStart, adIn, numConv, idx;
 int dataArray[3][4];
 byte packet[35]; //Array size is 3*4*2+11
@@ -81,8 +81,4 @@ void checkXbeeData()
   }
 }
 
-
-
-
-
-
+*/
