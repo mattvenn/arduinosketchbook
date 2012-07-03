@@ -1,29 +1,10 @@
 
-//print the time and update the minutes global
-void printRTCTime()
-{
-  DateTime now = RTC.now();
-  Serial.print( "RTC: ");
-  Serial.print(now.year(), DEC);
-  Serial.print('/');
-  Serial.print(now.month(), DEC);
-  Serial.print('/');
-  Serial.print(now.day(), DEC);
-  Serial.print(' ');
-  Serial.print(now.hour(), DEC);
-  Serial.print(':');
-  Serial.print(now.minute(), DEC);
-  Serial.print(':');
-  Serial.print(now.second(), DEC);
-  Serial.println();
-
-  //update global minutes 
-  minutes = now.hour() * 60 + now.minute();
-
-}
-
 int lastHour = 0, lastDay = 0, lastMinute = 0;
-
+void updateTotals()
+{
+    Serial.println( freeMemory() );
+    }
+/*
 void updateTotals()
 {
   DateTime now = RTC.now();
@@ -58,7 +39,8 @@ void updateTotals()
     sumEnergyWS = 0;
   }
 }
-
+*/
+/*
 //convert gas pulses to kw/h
 double convertPulsesToKWH(int pulses)
 {
@@ -66,8 +48,8 @@ double convertPulsesToKWH(int pulses)
   //gas pulses are 100ths of a unit
   return pulses * 39.201 * 1.02264 / 3.6 / 100;
 }
-
-
+*/
+/*
 void doPowerCalculations()
 {
   //work out instantaneous power from our current reading P = IV
@@ -108,7 +90,7 @@ void doPowerCalculations()
   Serial.println( sumGasWS );
 
 }
-
+*/
 //format the energy numbers into a string to send to pachube
 void formatString()
 {
@@ -118,51 +100,29 @@ void formatString()
   // strcat  - adds a string to another string
   // strcpy  - copies a string
   strcpy(str,"0,");
-  dtostrf(battv,0,3,fstr); 
+  dtostrf(temp,0,1,fstr); 
   strcat(str,fstr);
   
   strcat(str,"\n1,");
-  dtostrf(gasPulses,0,3,fstr);
+  dtostrf(elecW,0,0,fstr);
   strcat(str,fstr);
-  
-  strcat(str,"\n2,");    
-  dtostrf(temp,0,3,fstr);
-  strcat(str,fstr);
-  
-  strcat(str,"\n3,");    
-  dtostrf(irms,0,3,fstr);
-  strcat(str,fstr);
-  
-  strcat(str,"\n4,");
-  dtostrf(elecW,0,3,fstr);
-  strcat(str,fstr);
-  
-  strcat(str,"\n5,");
-  dtostrf(elecKWHH,0,3,fstr); 
-  strcat(str,fstr);
-  
-  strcat(str,"\n6,");
-  dtostrf(gasKWHH,0,3,fstr);
-  strcat(str,fstr);  
-
-  strcat(str,"\n7,");
-  dtostrf(elecWS,0,3,fstr);
-  strcat(str,fstr);  
-
-  strcat(str,"\n8,");
-  dtostrf(sumElecWS,0,3,fstr);
-  strcat(str,fstr);  
-/*  
-  strcat(str,"\n7,");  
-  dtostrf(elecKWHD,0,3,fstr); 
-  strcat(str,fstr);
-  
-  strcat(str,"\n8,");
-  dtostrf(gasKWHD,0,3,fstr);
-  strcat(str,fstr);
-  */
-  Serial.print("str is chars: ");
-  Serial.println(strlen(str));
 }
+
+extern unsigned int __data_start;
+extern unsigned int __data_end;
+extern unsigned int __bss_start;
+extern unsigned int __bss_end;
+extern unsigned int __heap_start;
+extern void *__brkval;
+
+int freeMemory() {
+int free_memory;
+  
+    if((int)__brkval == 0)
+        free_memory = ((int)&free_memory) - ((int)&__bss_end);
+    else
+        free_memory = ((int)&free_memory) - ((int)__brkval);
+    return free_memory;
+};
 
 
