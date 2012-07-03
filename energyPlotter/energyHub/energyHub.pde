@@ -28,16 +28,14 @@ Had to edit ethershield/ip_config.h to #define NTP_client 1
 #include <Wire.h>
 #include <EtherShield.h>
 #include <TimedAction.h>
-#include <RTClib.h>
+//#include <RTClib.h>
 #include <NewSoftSerial.h>
 #include <NanodeMAC.h>
-
-RTC_DS1307 RTC;
+//RTC_DS1307 RTC;
 EtherShield es=EtherShield();
-
 //globals
 int minutes = -1;
-char str[80];
+char str[40];
 char fstr[10];
 boolean dataReady=false;
 double irms, gasPulses, temp, battv;
@@ -53,24 +51,19 @@ double lastReading = 0; //milliseconds of last reading
 
 //pin defs
 #define LED_PIN 6
-#define XBEE_RX 4
 #define XBEE_TX 5
+#define CC_RX 4
 
 //timed actions
-TimedAction ActionCheckXbeeData = TimedAction( 200, checkXbeeData);
-TimedAction ActionSendNTP = TimedAction( 60000, ntpRequest); //once a minute
-TimedAction ActionPrintRTC = TimedAction( 1000, printRTCTime);
 TimedAction ActionUpdateTotals = TimedAction( 1000, updateTotals );
 
 void setup()
 {
   Wire.begin();
-  RTC.begin();
   Serial.begin(9600);
   Serial.println("gas and electric monitor via nanode to pachube");
-  printRTCTime();
-  xbeeSetup();
-
+//  xbeeSetup();
+  currentCostSetup();
   //pin setups
   pinMode( LED_PIN, OUTPUT );
   digitalWrite( LED_PIN, HIGH );
@@ -85,16 +78,13 @@ void loop()
 {
   //  while( es.ES_dhcp_state() == DHCP_STATE_OK ) { no point in this because it never changes state
   checkNetwork(); //need to call this often. Why? I think because otherwise we'll lose buffered data
-  ActionSendNTP.check();
-  ActionPrintRTC.check(); //this also updates the global minutes variable
-  ActionCheckXbeeData.check();
+  readCurrentCost();
   ActionUpdateTotals.check();
-  
   if( dataReady ) //this flag set if we got energy data via xbee
   {
     dataReady = false;
     
-    doPowerCalculations();
+//    doPowerCalculations();
     
     digitalWrite( LED_PIN, LOW );
     sendToPachube();

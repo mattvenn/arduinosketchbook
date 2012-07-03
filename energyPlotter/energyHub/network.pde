@@ -1,7 +1,7 @@
 byte pachubeServer[4] = { 173,203,98,29}; //DNS doesn't work yet
 #define PACHUBE_VHOST "api.pachube.com"
-#define PACHUBEAPIURL "/v2/feeds/28462.csv"
-#define PACHUBEAPIKEY "X-PachubeApiKey: ZxBqcZRDClLxco2ZUbeat1D6x7pfOL5Jhmo60Ies2TU"
+#include "keys.h"
+
 
 static uint8_t mymac[6] = { 0,0,0,0,0,0 };
 NanodeMAC mac( mymac );
@@ -16,22 +16,6 @@ static uint8_t mynetmask[4] = { 0,0,0,0 };
 static uint8_t gwip[4] = { 0,0,0,0 };
 static uint8_t dnsip[4] = { 0,0,0,0 };
 static uint8_t dhcpsvrip[4] = { 0,0,0,0 };
-
-#define SECS_YR_1900_2000  (3155673600UL)
-
-#define NUM_TIMESERVERS 5
-int currentTimeserver = 0;
-
-// From http://support.ntp.org/bin/view/Servers/StratumTwoTimeServers
-byte timeServer[][4] = { 
-  {  64, 90, 182, 55      } , // nist1-ny.ustiming.org
-  {  66, 27, 60, 10     }   , // ntp2d.mcc.ac.uk
-  {     130, 88, 200, 4      }   , // ntp2c.mcc.ac.uk
-  {     31, 193, 9, 10       }   , // clock02.mnuk01.burstnet.eu 
-  {    82, 68, 133, 225     }   // ntp0.borg-collective.org.uk
-};
-
-uint16_t ntpPort = 123;
 
   
 //send data to pachube
@@ -62,33 +46,6 @@ void browserresult_callback(uint8_t statuscode,uint16_t datapos)
 void checkNetwork()
 {
   dat_p=es.ES_packetloop_icmp_tcp(buf,es.ES_enc28j60PacketReceive(BUFFER_SIZE, buf));
-  // Has unprocessed packet response
-  if (dat_p > 0)
-  {
-    uint32_t time;
-    //see if we have an NTP response
-    if (es.ES_client_ntp_process_answer(buf,&time,ntpPort)) {
-      Serial.print("got NTP update - time:");
-      Serial.println(time); // secs since year 1900
-
-      if (time) {
-        time -= SECS_YR_1900_2000;
-        DateTime now(time);
-        RTC.adjust(now);
-        Serial.println( "adjusted RTC to NTP" );
-      }
-    }
-  }
-}
-
-//send an NTP request
-void ntpRequest()
-{
-  Serial.print("Send NTP request ");
-  Serial.println( currentTimeserver, DEC );
-  es.ES_client_ntp_request(buf,timeServer[currentTimeserver++], ntpPort);
-  if( currentTimeserver >= NUM_TIMESERVERS )
-    currentTimeserver = 0; 
 }
 
 //start network
@@ -149,4 +106,3 @@ void printIP( uint8_t *buf ) {
       Serial.print( "." );
   }
 }
-
