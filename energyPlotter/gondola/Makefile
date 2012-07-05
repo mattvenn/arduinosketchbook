@@ -74,3 +74,5 @@ clean:
 ## Other dependencies
 -include $(shell mkdir dep 2>/dev/null) $(wildcard dep/*)
 
+load: gondola.hex
+	avrdude -C /etc/avrdude.conf -p attiny13 -c stk500 -P /dev/ttyACM0 -v -Uflash:w:gondola.hex
