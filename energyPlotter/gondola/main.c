@@ -3,7 +3,7 @@ do I actually need a microcontroller to do this?
 more example code:http://metku.net/index.html?path=articles/microcontroller-part-2/index_eng5
 */
 #include "common.h"
-const uint8_t startServoPos = 10;
+const uint8_t startServoPos = 1;
 //used for the 2 wire comms
 uint8_t counter = 0; 
 bool counting = false;
@@ -49,7 +49,7 @@ int main()
     
     //flash led on powerup
     setbit(PORTB,LED_PIN); //turn on led
-    _delay_ms(1000);
+    _delay_ms(200);
     clearbit(PORTB,LED_PIN); //turn off led
 
     //enable interrupts
@@ -87,6 +87,13 @@ ISR(TIM0_OVF_vect)
     //comms counter
     if(counting)
         counter ++;
+    //not sure if this is necessary, but it resets the counting stuff if it gets out of phase
+    if( counter > 100 )
+    {
+      counting = false;
+      counter = 0;
+      clearbit( PORTB, LED_PIN );
+    }
 }
 
 ISR(TIM0_COMPA_vect)

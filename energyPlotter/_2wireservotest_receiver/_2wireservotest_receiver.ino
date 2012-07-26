@@ -74,12 +74,14 @@ void loop()
     if( pulse )
     {
       flashLed( 1 );
+      delay(100);
         myservo.write( servoUpPos );
        pulse = false;
     }
     if( doublePulse )
     {
         flashLed( 2 );
+              delay(100);
         myservo.write( servoDownPos );
         doublePulse = false;
     }
