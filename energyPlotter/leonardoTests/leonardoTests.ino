@@ -25,6 +25,7 @@
 #define GPIO1_IN A7
 #define GPIO2_IN A11
 #define SD_SEL A4
+
 #define RFM_SEL A5
 
 #define RFM_INT 3
@@ -69,7 +70,7 @@ void bsR()
   delay(stepTime);
 }
 
-#define RADIO
+//#define RADIO
 MilliTimer sendTimer,statusTimer;
 byte needToSend;
 boolean ledState = false;
@@ -115,6 +116,13 @@ void setup() {
 digitalWrite(MS1, LOW ); //both low is no microstep 
 digitalWrite(MS2, LOW);
 
+//spi test
+pinMode(SCK,OUTPUT);
+pinMode(MOSI,OUTPUT);
+pinMode(MISO,OUTPUT);
+
+
+
   digitalWrite(led,HIGH);
  attachInterrupt(0, blink, RISING);
  analogWrite(PWMR, pwmVal );
@@ -147,8 +155,13 @@ void loop() {
   
    if( statusTimer.poll(500) )
    {
+    // Serial.println( "poll");
      ledState = ! ledState;
      digitalWrite(led,ledState);
+    
+    digitalWrite(SCK,ledState);
+        digitalWrite(MOSI,ledState);
+            digitalWrite(MISO,ledState);
    }
 /*  Serial.println( "step");
   for ( int i = 0; i < 100 ; i ++ )
@@ -178,7 +191,7 @@ delay(10);
     pulsePower( 1, 600 );
  */
 #ifdef RADIO
-  doRadio();
+  //doRadio();
   #endif
 }
 /*
