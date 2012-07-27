@@ -1,12 +1,17 @@
 #include <Servo.h>
-#define SERVO A4
+#define SERVO A3
+#include <JeeLib.h>
 
 
 #define DIRR 0
-#define LIMITL 1
+#define DIRL 4
+
+#define LIMITL 13
+#define LIMITR 5
+
+
 #define STEPR 2
-#define LIMITR 4
-#define STEPL 5
+#define STEPL 1
 #define GPIO1 6
 #define led 7
 #define MS1 8
@@ -16,22 +21,77 @@
 
 #define GPIO2 12
 
-#define DIRL 13
 
 #define GPIO1_IN A7
 #define GPIO2_IN A11
-#define SD_SEL A3
+#define SD_SEL A4
 #define RFM_SEL A5
 
 #define RFM_INT 3
+#include <AccelStepper.h>
 
-Servo myServo;
+AccelStepper stepperL(fsL, bsL); // use functions to step
+AccelStepper stepperR(fsR, bsR); // use functions to step
+
+const float maxSpeed = 600.0;
+const int pwmVal = 130;
+const int stepTime = 2;
+void fsL()
+{
+  digitalWrite( DIRL, LOW );
+  digitalWrite( STEPL, LOW );
+  delay(stepTime);
+  digitalWrite( STEPL, HIGH );
+  delay(stepTime);
+}
+void bsL()
+{
+  digitalWrite( DIRL, HIGH );
+  digitalWrite( STEPL, LOW );
+  delay(stepTime);
+  digitalWrite( STEPL, HIGH );
+  delay(stepTime);
+}
+void fsR()
+{
+  digitalWrite( DIRR, LOW );
+  digitalWrite( STEPR, LOW );
+  delay(stepTime);
+  digitalWrite( STEPR, HIGH );
+  delay(stepTime);
+}
+void bsR()
+{
+  digitalWrite( DIRR, HIGH );
+  digitalWrite( STEPR, LOW );
+  delay(stepTime);
+  digitalWrite( STEPR, HIGH );
+  delay(stepTime);
+}
+
+#define RADIO
+MilliTimer sendTimer,statusTimer;
+byte needToSend;
+boolean ledState = false;
+//payload def
+typedef struct {
+  byte servo;
+  int stepperL;
+  int stepperR;
+
+} 
+Payload;
+
+Payload payload;
+
+//Servo myServo;
 // the setup routine runs once when you press reset:
 void setup() {
   Serial.begin(9600);
   Serial.println("started");
-  myServo.attach(SERVO);  
+ // myServo.attach(SERVO);  
   // initialize the digital pin as an output.
+  pinMode(SERVO,OUTPUT);
   pinMode(led, OUTPUT);   
   pinMode(MS1, OUTPUT );
   pinMode(MS2, OUTPUT );
@@ -52,8 +112,28 @@ void setup() {
   digitalWrite( LIMITL, HIGH );
   pinMode( LIMITR, INPUT );
   digitalWrite( LIMITR, HIGH );
-  
+digitalWrite(MS1, LOW ); //both low is no microstep 
+digitalWrite(MS2, LOW);
+
+  digitalWrite(led,HIGH);
  attachInterrupt(0, blink, RISING);
+ analogWrite(PWMR, pwmVal );
+ analogWrite(PWML, pwmVal );
+
+ stepperL.setMaxSpeed(maxSpeed);
+    stepperL.setAcceleration(200.0);
+    stepperL.moveTo(400);
+    
+    stepperR.setMaxSpeed(maxSpeed);
+    stepperR.setAcceleration(200.0);
+    stepperR.moveTo(300);
+    
+  delay(4000);
+    #ifdef RADIO
+  rf12_initialize(1, RF12_433MHZ,212);
+  Serial.println( "rf12 setup done" );
+  #endif
+  
 }
 
 volatile int b = 0;
@@ -61,9 +141,47 @@ void blink()
 {
   b ++;
 }
+
 // the loop routine runs over and over again forever:
 void loop() {
   
+   if( statusTimer.poll(500) )
+   {
+     ledState = ! ledState;
+     digitalWrite(led,ledState);
+   }
+/*  Serial.println( "step");
+  for ( int i = 0; i < 100 ; i ++ )
+  {
+forwardstep();
+delay(10);
+  }
+  for ( int i = 0; i < 100 ; i ++ )
+  {
+backwardstep();
+delay(10);
+  }*/
+  /*
+    if (stepperL.distanceToGo() == 0)
+	stepperL.moveTo(-stepperL.currentPosition());
+    stepperL.run();
+    
+     if (stepperR.distanceToGo() == 0)
+	stepperR.moveTo(-stepperR.currentPosition());
+    stepperR.run();
+   */ 
+  
+/* 
+  //lift servo
+  pulsePower( 1, 20 );
+  delay(2000);
+    pulsePower( 1, 600 );
+ */
+#ifdef RADIO
+  doRadio();
+  #endif
+}
+/*
   Serial.print( "ints: " );
   Serial.println( b );
   Serial.print( "gpio1:" );
@@ -112,3 +230,30 @@ void loop() {
   // turn the LED off by making the voltage LOW
   delay(1000);               // wait for a second
 }
+*/
+
+
+void pulsePower( int pulseLength, int delayTime )
+{
+    Serial.print( "pulsing servo line: " );
+    Serial.println( delayTime );
+    setPowerPin(LOW);
+    delay(2000);
+      setPowerPin( HIGH   );
+      delay( pulseLength );
+      setPowerPin( LOW );
+      delay( delayTime );
+            setPowerPin( HIGH   );
+            delay( pulseLength );
+      setPowerPin( LOW );
+      //wait for servo to move
+      delay(2000);
+    setPowerPin(HIGH);
+  
+}
+void setPowerPin( boolean state )
+{
+    digitalWrite(SERVO,  state );
+  digitalWrite(led, ! state );
+}
+
