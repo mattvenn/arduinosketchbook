@@ -1,0 +1,10 @@
+attiny45 seems very similar, and the same in cost: (0.96)
+http://uk.farnell.com/atmel/attiny45-20su/8bit-mcu-4k-flash-5v-smd-soic8/dp/1288353
+
+cheapest 13 is here: http://uk.rs-online.com/web/p/microcontroller/6962395P/
+(1.05 moq 5)
+
+comparison here:
+http://avrprogrammers.com/doc-attiny13-attiny85.php
+
+think it may be worth switching to attiny45 as they seem cheaper and have more program space and sram.
