@@ -4,7 +4,7 @@ int lastSegment = 0;
 boolean newCell = false;
 int radius = minRadius;
 int radiusIncrement = 10; //steps not mm
-int energyPerSegment = 50; //how much energy (KWS) before we draw a segment. There are 20 segments to a circle
+int energyPerSegment = 200; //how much energy (KWS) before we draw a segment. There are 20 segments to a circle
 /*
 with 50kws per segment that makes each circle worth 1000kws, or 0.3kwh, 
 as the max our house seems to use is about 16kwh per hour, 1 set of circles (which is 10 minutes) would be 2.6kwh per 10 minutes
@@ -12,7 +12,7 @@ so this would result in about 9 circles for high energy times
 */
 int remainderEnergy;
 int lastMinute;
-
+void initDraw(){}
 //takes an energy and a minute
 void drawEnergy( float energy, int minute )
 {
