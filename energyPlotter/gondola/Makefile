@@ -7,6 +7,7 @@ PROJECT = gondola
 MCU = attiny13
 TARGET = gondola.elf
 CC = avr-gcc
+dev = /dev/ttyACM0
 
 ## Options common to compile, link and assembly rules
 COMMON = -mmcu=$(MCU)
@@ -75,4 +76,4 @@ clean:
 -include $(shell mkdir dep 2>/dev/null) $(wildcard dep/*)
 
 load: gondola.hex
-	avrdude -C /etc/avrdude.conf -p attiny13 -c stk500 -P /dev/ttyACM0 -v -Uflash:w:gondola.hex
+	avrdude -C /etc/avrdude.conf -p attiny13 -c stk500 -P $(dev)  -v -Uflash:w:gondola.hex -B10

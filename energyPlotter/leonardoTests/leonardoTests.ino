@@ -1,8 +1,10 @@
-//#define testSteppers
-//#define TEST_SD
+#define testSteppers
+#define testSD
 #define testRadio
 #define testLED
+#define testServo
 //#define testIO
+#define testMem
 
 #include <JeeLib.h>
 #include <Stepper.h>
@@ -31,38 +33,40 @@
 #define RFM_SEL A5
 #define RFM_INT 3
 
-#ifdef testSteppers
-
-// #include <AccelStepper.h>
-// AccelStepper stepperL(fsL, bsL); // use functions to step
-// AccelStepper stepperR(fsR, bsR); // use functions to step
-
-
-//  const int stepTime = 2;
-
-#endif
-
-MilliTimer sendTimer,statusTimer;
-
-
+MilliTimer sendTimer,statusTimer,sdTimer;
+boolean commandWaiting = false;
+boolean sendAck = false;
+int servoPos = 20;
 boolean ledState = false;
+
+//payload def
+typedef struct {
+  char command;
+  int arg1;
+  int arg2;
+
+} Payload;
+Payload payload;
 
 void setup() {
   Serial.begin(9600);
   pinMode(led, OUTPUT);   
 
   digitalWrite(led,HIGH);
-  delay(2000);
+//  delay(2000);
   Serial.println("started");
 
   // initialize the digital pin as an output.
   pinMode(SERVO,OUTPUT);
+  setPowerPin(LOW);
+  
   pinMode(MS1, OUTPUT );
   pinMode(MS2, OUTPUT );
   //pinMode( GPIO1, OUTPUT);
   //pinMode(GPIO2, OUTPUT );
   //  pinMode( GPIO1, INPUT );
   //  pinMode( GPIO2, INPUT );
+ 
   pinMode( SD_SEL, OUTPUT );
   pinMode( RFM_SEL, OUTPUT );
 
@@ -82,16 +86,6 @@ void setup() {
   digitalWrite(RFM_SEL, HIGH); 
   //spi test
   
-  /*pinMode(SCK,OUTPUT);
-  pinMode(MOSI,OUTPUT);
-
-  pinMode(MISO,INPUT);
-  digitalWrite(MISO,HIGH);
-  pinMode(SS,OUTPUT);
-  pinMode(RFM_INT,INPUT);
-  digitalWrite(RFM_INT,HIGH);
-  
-  */
   // attachInterrupt(0, blink, RISING);
 
   
@@ -106,6 +100,7 @@ void setup() {
 
 }
 
+int i = 0;
 volatile int b = 0;
 void blink()
 {
@@ -115,26 +110,83 @@ void blink()
 // the loop routine runs over and over again forever:
 void loop() {
 
-#ifdef testLED
+
   if( statusTimer.poll(500) )
   {
+    #ifdef testLED
     Serial.println( "led");
     ledState = ! ledState;
     digitalWrite(led,ledState);
+    #endif
+    #ifdef testMem
+    Serial.print("mem:");
+    Serial.println(freeMemory());
+    #endif
+  }
+  if( sdTimer.poll(5000) )
+  {
+    #ifdef testSD()
+    readSD();
+    writeSD(i++);
+    #endif
   }
 
-#endif
+
+  if(Serial.available() > 0 )
+  {
+    payload.command = Serial.read();
+    payload.arg1 = serReadInt();
+    payload.arg2 = serReadInt();
+    commandWaiting = true;
+    Serial.flush();
+  }
+
+  if( commandWaiting )
+  {
+    commandWaiting = false;
+
+
+    switch( payload.command )
+    {
+      case 's':
+        pulsePower( 1, payload.arg1 );
+      break;
+      case 'm':
+        moveSteppers();
+        break;
+      case 'p':
+        setSpeed(payload.arg1);
+      break;
+      case 'w':
+        writeSD(payload.arg1);
+        break;
+      case 'r':
+        readSD();
+    }
+    
+     sendAck = true;   
+  }
+        
 
 #ifdef testSteppers
 //  delay(100);
-  moveSteppers();
+ // moveSteppers();
 #endif
 
 #ifdef testServo 
   //lift servo
-  pulsePower( 1, 20 );
-  delay(2000);
-  pulsePower( 1, 600 );
+ // digitalWrite(SERVO,HIGH);
+
+/*if( statusTimer.poll(5000) )
+{
+  pulsePower( 1, servoPos );
+  if(servoPos==200)
+    servoPos = 20;
+  else
+    servoPos = 200;
+  
+}
+*/
 #endif
 
 #ifdef testRadio
@@ -143,9 +195,6 @@ void loop() {
 #endif
 
 
-#ifdef TEST_SD
-  test_SD();
-#endif
 
 
 #ifdef testIO
