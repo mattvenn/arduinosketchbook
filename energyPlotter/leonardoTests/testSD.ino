@@ -25,18 +25,23 @@ SdFile myFile;
 void initSD()
 {
   //moving the prints outside the interrupts made a difference. Check on what John was saying.
-  
+  //worked for a bit then broke, removing cli and sei made it work again ;( 
   Serial.println("sd init" );
-
-  cli();
   delay(500);
-   if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) sd.initErrorHalt();
+  //cli();
+
+   if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) 
+     {
+       sei();
+       Serial.println( "sd init failed" );
+       return;
+     }
 
   
   
   delay(100);
 
-  sei();
+  //sei();
   Serial.println("done");
 }
 

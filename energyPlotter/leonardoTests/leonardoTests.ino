@@ -97,18 +97,12 @@ void setup() {
   initSteppers();
 #endif
 
-  
+  //leave some time in case this doesn't work. Makes it easier to reprogram!  
   delay(4000);
-
   initSD();
-    initRadio();
-}
-
-int i = 0;
-volatile int b = 0;
-void blink()
-{
-  b ++;
+  initRadio();
+  checkRadio = true;    
+  
 }
 
 // the loop routine runs over and over again forever:
