@@ -1,6 +1,4 @@
-#ifdef testRadio
-
-
+#ifdef useRadio
 byte needToSend;
 
 void initRadio()
@@ -8,6 +6,7 @@ void initRadio()
   rf12_initialize(1, RF12_433MHZ,212);
   Serial.println( "rf12 setup done" );
 }
+/*
 void testRadioPins()
 {
   Serial.println("radio miso: ");
@@ -19,7 +18,7 @@ void testRadioPins()
  //   delay(200);
   
 }
-
+*/
 void doRadio()
 {
  if (rf12_recvDone() && rf12_crc == 0 and rf12_len == sizeof(Payload))

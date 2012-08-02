@@ -1,12 +1,21 @@
+/* 
+total program size is 19k with sd and radio, 9k without sd
+grbl is about 17k. Available is 28k with bootloader.
+*/
 #define testSteppers
-//#define testSD
-#define testRadio
+#define useSD //uses 10k
+#define useRadio //uses 180bytes?!
 #define testLED
 #define testServo
 //#define testIO
-#define testMem
+//#define testMem
 
+
+#ifdef useRadio
 #include <JeeLib.h>
+MilliTimer statusTimer;
+#endif
+
 #include <Stepper.h>
 
 //pin defs
@@ -33,7 +42,6 @@
 #define RFM_SEL A5
 #define RFM_INT 3
 
-MilliTimer sendTimer,statusTimer,sdTimer;
 boolean commandWaiting = false;
 boolean sendAck = false;
 int servoPos = 20;
@@ -52,56 +60,56 @@ Payload payload;
 
 void setup() {
   Serial.begin(9600);
-  pinMode(led, OUTPUT);   
-
-  digitalWrite(led,HIGH);
-//  delay(2000);
   Serial.println("started");
+  
+  pinMode(led, OUTPUT);   
+  digitalWrite(led,HIGH);
 
   // initialize the digital pin as an output.
   pinMode(SERVO,OUTPUT);
   setPowerPin(LOW);
-  
+
+  //stepper microstep control pins  
   pinMode(MS1, OUTPUT );
   pinMode(MS2, OUTPUT );
-  //pinMode( GPIO1, OUTPUT);
-  //pinMode(GPIO2, OUTPUT );
-  //  pinMode( GPIO1, INPUT );
-  //  pinMode( GPIO2, INPUT );
- 
-  pinMode( SD_SEL, OUTPUT );
-  pinMode( RFM_SEL, OUTPUT );
-
-  digitalWrite( SD_SEL, HIGH );
-  digitalWrite(RFM_SEL, HIGH); 
-  
   pinMode( PWML, OUTPUT );
   pinMode( PWMR, OUTPUT );
-
+  //stepper step and dir
   pinMode( DIRL, OUTPUT );
   pinMode( DIRR, OUTPUT );
   pinMode( STEPL, OUTPUT );
   pinMode( STEPR, OUTPUT );
+
+  //pinMode( GPIO1, OUTPUT);
+  //pinMode(GPIO2, OUTPUT );
+  //  pinMode( GPIO1, INPUT );
+  //  pinMode( GPIO2, INPUT );
+
+  //spi setup
+  pinMode( SS, OUTPUT ); //needed to make us the master of spi bus
+  pinMode( SD_SEL, OUTPUT );
+  pinMode( RFM_SEL, OUTPUT );
+  digitalWrite( SD_SEL, HIGH );
+  digitalWrite(RFM_SEL, HIGH); 
+  
+  //limits
   pinMode( LIMITL, INPUT );
   digitalWrite( LIMITL, HIGH );
   pinMode( LIMITR, INPUT );
   digitalWrite( LIMITR, HIGH );
 
-
-  //spi test
-  
-  // attachInterrupt(0, blink, RISING);
-
-  
-#ifdef testSteppers
+  //config steppers
   initSteppers();
-#endif
 
   //leave some time in case this doesn't work. Makes it easier to reprogram!  
   delay(4000);
-  initSD();
+  #ifdef useSD
+    initSD();
+  #endif
+  #ifdef useRadio
   initRadio();
   checkRadio = true;    
+  #endif
   
 }
 
@@ -120,9 +128,9 @@ void loop() {
     Serial.print("mem:");
     Serial.println(freeMemory());
     #endif
-    //sendAck = true;
+
   }
- 
+
  /* if( testSD && sdTimer.poll(5000) )
   {
 
@@ -146,8 +154,6 @@ void loop() {
   if( commandWaiting )
   {
     commandWaiting = false;
-
-
     switch( payload.command )
     {
       case 's':
@@ -159,67 +165,35 @@ void loop() {
       case 'p':
         setSpeed(payload.arg1);
       break;
+      #ifdef useSD
       case 'w':
         writeSD(payload.arg1);
         readSD();
+        #ifdef useRadio
         initRadio(); //need this after a write/read some combo?
-        break;
-      case 'r':
-        initRadio();
-        checkRadio = true;
-        break;
-      case 'i':
-        if( payload.arg1 )
-          initSD();
-        if( payload.arg2 )
-         {
-          initRadio();
-          checkRadio=true;
-         }
-        
-        break;
+        #endif
+        break;  
       case 't':
         testSD = payload.arg1;
         Serial.println( testSD );
         break;
+      #endif
+      #ifdef useRadio
+      case 'r':
+        initRadio();
+        checkRadio = true;
+        break;
+      #endif
       default:
         Serial.println( "bad command");
         break;
     }
-    
      sendAck = true;   
   }
-        
-
-#ifdef testSteppers
-//  delay(100);
- // moveSteppers();
-#endif
-
-#ifdef testServo 
-  //lift servo
- // digitalWrite(SERVO,HIGH);
-
-/*if( statusTimer.poll(5000) )
-{
-  pulsePower( 1, servoPos );
-  if(servoPos==200)
-    servoPos = 20;
-  else
-    servoPos = 200;
-  
-}
-*/
-#endif
-
+#ifdef useRadio        
 if( checkRadio)
-
- // testRadioPins();
   doRadio();
-
-
-
-
+#endif
 
 #ifdef testIO
   Serial.print( "ints: " );
@@ -269,7 +243,3 @@ if( checkRadio)
 
 #endif
 }
-
-
-
-

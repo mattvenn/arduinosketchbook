@@ -1,3 +1,4 @@
+/*
 void test_SD()
 {
   digitalWrite(SD_SEL,LOW);
@@ -7,7 +8,7 @@ void test_SD()
     delay(200);
   
 }
-
+*/
 /*
  
  created   Nov 2010
@@ -18,6 +19,7 @@ void test_SD()
  This example code is in the public domain.
  	 
  */
+#ifdef useSD
 #include <SdFat.h>
 SdFat sd;
 SdFile myFile;
@@ -104,4 +106,4 @@ void readSD()
     delay(100);
   sei();
 }
-
+#endif
