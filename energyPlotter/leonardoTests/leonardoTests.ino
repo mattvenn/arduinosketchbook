@@ -1,5 +1,5 @@
 #define testSteppers
-#define testSD
+//#define testSD
 #define testRadio
 #define testLED
 #define testServo
@@ -38,12 +38,14 @@ boolean commandWaiting = false;
 boolean sendAck = false;
 int servoPos = 20;
 boolean ledState = false;
+boolean testSD = false;
+boolean checkRadio = false;
 
 //payload def
 typedef struct {
   char command;
-  int arg1;
-  int arg2;
+  unsigned int arg1;
+  unsigned int arg2;
 
 } Payload;
 Payload payload;
@@ -70,6 +72,9 @@ void setup() {
   pinMode( SD_SEL, OUTPUT );
   pinMode( RFM_SEL, OUTPUT );
 
+  digitalWrite( SD_SEL, HIGH );
+  digitalWrite(RFM_SEL, HIGH); 
+  
   pinMode( PWML, OUTPUT );
   pinMode( PWMR, OUTPUT );
 
@@ -82,8 +87,7 @@ void setup() {
   pinMode( LIMITR, INPUT );
   digitalWrite( LIMITR, HIGH );
 
-  digitalWrite( SD_SEL, HIGH );
-  digitalWrite(RFM_SEL, HIGH); 
+
   //spi test
   
   // attachInterrupt(0, blink, RISING);
@@ -93,11 +97,10 @@ void setup() {
   initSteppers();
 #endif
 
-#ifdef testRadio
-  rf12_initialize(1, RF12_433MHZ,212);
-  Serial.println( "rf12 setup done" );
-#endif
+  
 
+
+//initSD();
 }
 
 int i = 0;
@@ -122,13 +125,16 @@ void loop() {
     Serial.print("mem:");
     Serial.println(freeMemory());
     #endif
+    //sendAck = true;
   }
-  if( sdTimer.poll(5000) )
+  if( testSD && sdTimer.poll(5000) )
   {
-    #ifdef testSD()
-    readSD();
+
+   // readSD();
     writeSD(i++);
-    #endif
+    //work out why we need this?
+    initRadio();
+
   }
 
 
@@ -159,9 +165,23 @@ void loop() {
       break;
       case 'w':
         writeSD(payload.arg1);
+        readSD();
         break;
       case 'r':
-        readSD();
+        initRadio();
+        checkRadio = true;
+        break;
+      case 'i':
+        initSD();
+        //testSD = true;
+        break;
+      case 't':
+        testSD = payload.arg1;
+        Serial.println( testSD );
+        break;
+      default:
+        Serial.println( "bad command");
+        break;
     }
     
      sendAck = true;   
@@ -189,10 +209,11 @@ void loop() {
 */
 #endif
 
-#ifdef testRadio
+if( checkRadio)
+
  // testRadioPins();
   doRadio();
-#endif
+
 
 
 

@@ -6,12 +6,14 @@ boolean readyToSend = false;
 //payload def
 typedef struct {
   char command;
-  int arg1;
-  int arg2;
+  unsigned int arg1;
+  unsigned int arg2;
 
 }
 Payload;
 Payload payload;
+int testNum = 0;
+MilliTimer testTimer;
 
 void setup()
 {
@@ -43,6 +45,55 @@ void loop()
     
   }
 
+  if(testTimer.poll(4000))
+  {
+   Serial.println( "-----------" );
+    if(++testNum  > 2)
+      testNum = 0;
+    payload.arg1 = 0;
+    payload.arg2 = 0;
+    switch( testNum )
+    {
+      case 0:
+        Serial.println( "servo" );
+        payload.command = 's';
+        payload.arg1 = random(200,500);
+
+            readyToSend = true;
+
+        break;
+      case 1:
+        Serial.println( "stepper" );
+        payload.command = 'm';
+        payload.arg1 = 0; //random(100,300);
+        payload.arg2 = random(100,300);
+    readyToSend = true;
+
+        break;
+      case 2:
+        Serial.println( "SD" );
+        payload.command = 'w';
+        payload.arg1 = random(1000);
+    readyToSend = true;
+
+        break;
+        default:
+          Serial.print( "no test:" );
+          Serial.println( testNum );
+          break;
+    }
+  }
+  
+  if (readyToSend && rf12_canSend())
+  {
+
+    readyToSend = false;
+    //broadcast
+    rf12_sendStart(0, &payload, sizeof payload);
+    Serial.println("sent");
+
+  }
+  
   if (rf12_recvDone() && rf12_crc == 0 and rf12_len == sizeof(Payload))
   {
     const Payload* p = (const Payload*) rf12_data;
@@ -55,15 +106,6 @@ void loop()
     Serial.println( p->arg2 );
   }
 
-  if (readyToSend && rf12_canSend())
-  {
-
-    readyToSend = false;
-    //broadcast
-    rf12_sendStart(0, &payload, sizeof payload);
-    Serial.println("sent");
-
-  }
 
 }
 
