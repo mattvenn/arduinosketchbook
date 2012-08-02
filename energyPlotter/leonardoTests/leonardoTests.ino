@@ -98,9 +98,10 @@ void setup() {
 #endif
 
   
+  delay(4000);
 
-
-//initSD();
+  initSD();
+    initRadio();
 }
 
 int i = 0;
@@ -127,7 +128,8 @@ void loop() {
     #endif
     //sendAck = true;
   }
-  if( testSD && sdTimer.poll(5000) )
+ 
+ /* if( testSD && sdTimer.poll(5000) )
   {
 
    // readSD();
@@ -136,7 +138,7 @@ void loop() {
     initRadio();
 
   }
-
+*/
 
   if(Serial.available() > 0 )
   {
@@ -166,14 +168,21 @@ void loop() {
       case 'w':
         writeSD(payload.arg1);
         readSD();
+        initRadio(); //need this after a write/read some combo?
         break;
       case 'r':
         initRadio();
         checkRadio = true;
         break;
       case 'i':
-        initSD();
-        //testSD = true;
+        if( payload.arg1 )
+          initSD();
+        if( payload.arg2 )
+         {
+          initRadio();
+          checkRadio=true;
+         }
+        
         break;
       case 't':
         testSD = payload.arg1;

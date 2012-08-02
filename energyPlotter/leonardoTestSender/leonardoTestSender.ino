@@ -1,7 +1,7 @@
 #include <JeeLib.h>
 MilliTimer sendTimer;
 
-#define LED 5
+#define LED 6
 boolean readyToSend = false;
 //payload def
 typedef struct {
@@ -17,6 +17,7 @@ MilliTimer testTimer;
 
 void setup()
 {
+  pinMode(LED,OUTPUT);
   Serial.begin(9600);
   Serial.println( "sender" );
 
@@ -25,7 +26,6 @@ void setup()
   rf12_initialize(2, RF12_433MHZ,212);
   Serial.println( "rf12 setup done" );
 }
-
 byte pos = 0;
 void loop()
 {
@@ -44,8 +44,8 @@ void loop()
       digitalWrite( LED, LOW );
     
   }
-
-  if(testTimer.poll(4000))
+ 
+  if(testTimer.poll(4000) )
   {
    Serial.println( "-----------" );
     if(++testNum  > 2)
@@ -86,8 +86,10 @@ void loop()
   
   if (readyToSend && rf12_canSend())
   {
-
-    readyToSend = false;
+digitalWrite(LED,HIGH);
+delay(100);
+digitalWrite(LED,LOW);
+readyToSend = false;
     //broadcast
     rf12_sendStart(0, &payload, sizeof payload);
     Serial.println("sent");
