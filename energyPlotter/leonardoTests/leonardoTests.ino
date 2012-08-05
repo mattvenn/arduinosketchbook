@@ -2,7 +2,13 @@
 total program size is 19k with sd and radio, 9k without sd
 grbl is about 17k. Available is 28k with bootloader.
 
-strange spi problems where radio stopped sending after an sd write has stopped
+strange spi problems where radio stopped sending after an sd write has stopped.
+Just discovered this is because the spi programmer was still plugged in. 
+Doesn't need to be on, just attached. 
+So must be an electrical characteristic of the spi bus is wrong 
+eg pullup/down resistors required. a pulldown of 1k on miso seems to solve the problem.
+setting miso to pullup prevents radio from working but sd still works.
+check with a scope
 
 jeelib/rf12.cpp needs adjusting to set rf12 chip select to portf bit 0
 
@@ -18,7 +24,7 @@ jeelib/rf12.cpp needs adjusting to set rf12 chip select to portf bit 0
 
 #ifdef useRadio
 #include <JeeLib.h>
-MilliTimer statusTimer;
+MilliTimer statusTimer,sdTimer;
 #endif
 
 #include <Stepper.h>
@@ -51,8 +57,9 @@ boolean commandWaiting = false;
 boolean sendAck = false;
 int servoPos = 20;
 boolean ledState = false;
-boolean testSD = false;
+boolean testSD = true;
 boolean checkRadio = false;
+int i = 0;
 
 //payload def
 typedef struct {
@@ -115,7 +122,6 @@ void setup() {
   initRadio();
   checkRadio = true;    
   #endif
-  
 }
 
 // the loop routine runs over and over again forever:
@@ -136,16 +142,11 @@ void loop() {
     sendAck = 1;
   }
 
- /* if( testSD && sdTimer.poll(5000) )
+  if( testSD && sdTimer.poll(5000) )
   {
-
-   // readSD();
+    readSD();
     writeSD(i++);
-    //work out why we need this?
-    initRadio();
-
   }
-*/
 
   if(Serial.available() > 0 )
   {

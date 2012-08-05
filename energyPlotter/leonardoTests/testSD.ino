@@ -23,7 +23,7 @@ void test_SD()
 #include <SdFat.h>
 SdFat sd;
 SdFile myFile;
-
+#define FILENAME "test3.txt"
 void initSD()
 {
   //moving the prints outside the interrupts made a difference. Check on what John was saying.
@@ -57,7 +57,7 @@ void writeSD(int number)
   // change to SPI_FULL_SPEED for more performance.
  
   // open the file for write at end like the Native SD library
-  if (!myFile.open("test.txt", O_RDWR | O_CREAT | O_AT_END)) {
+  if (!myFile.open(FILENAME, O_RDWR | O_CREAT | O_AT_END)) {
     Serial.println( "open for write failed" );
     sei();
     return; //sd.errorHalt("opening test.txt for write failed");
@@ -81,7 +81,7 @@ void readSD()
     if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) sd.initErrorHalt();
 
   // re-open the file for reading:
-  if (!myFile.open("test.txt", O_READ)) {
+  if (!myFile.open(FILENAME, O_READ)) {
     Serial.println( "open for read failed" );
     sei();
     return;
