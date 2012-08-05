@@ -1,6 +1,11 @@
 /* 
 total program size is 19k with sd and radio, 9k without sd
 grbl is about 17k. Available is 28k with bootloader.
+
+strange spi problems where radio stopped sending after an sd write has stopped
+
+jeelib/rf12.cpp needs adjusting to set rf12 chip select to portf bit 0
+
 */
 #define testSteppers
 #define useSD //uses 10k
@@ -128,7 +133,7 @@ void loop() {
     Serial.print("mem:");
     Serial.println(freeMemory());
     #endif
-
+    sendAck = 1;
   }
 
  /* if( testSD && sdTimer.poll(5000) )
@@ -168,20 +173,17 @@ void loop() {
       #ifdef useSD
       case 'w':
         writeSD(payload.arg1);
-        readSD();
+        
         #ifdef useRadio
-        initRadio(); //need this after a write/read some combo?
+        //initRadio(); //need this after a write/read some combo?
         #endif
         break;  
       case 't':
-        testSD = payload.arg1;
-        Serial.println( testSD );
         break;
       #endif
       #ifdef useRadio
       case 'r':
-        initRadio();
-        checkRadio = true;
+        readSD();
         break;
       #endif
       default:

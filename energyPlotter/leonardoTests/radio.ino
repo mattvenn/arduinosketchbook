@@ -24,9 +24,9 @@ void doRadio()
  if (rf12_recvDone() && rf12_crc == 0 and rf12_len == sizeof(Payload))
   {
     const Payload* p = (const Payload*) rf12_data;
-    digitalWrite(led,HIGH);
+   /* digitalWrite(led,HIGH);
     delay(100);
-    digitalWrite(led,LOW);
+    digitalWrite(led,LOW);*/
     Serial.print( "got data: " );
     Serial.print( p->command ); 
     Serial.print(":");
@@ -47,7 +47,7 @@ void doRadio()
     sendAck = false;
     rf12_sendStart(0, &payload, sizeof payload);
     Serial.println("sent"); 
-        delay(100);
+//        delay(100);
   }
 
 }

@@ -29,19 +29,19 @@ void initSD()
   //moving the prints outside the interrupts made a difference. Check on what John was saying.
   //worked for a bit then broke, removing cli and sei made it work again ;( 
   Serial.println("sd init" );
-  delay(500);
+ // delay(500);
   //cli();
 
    if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) 
      {
-       sei();
+   //    sei();
        Serial.println( "sd init failed" );
        return;
      }
 
   
   
-  delay(100);
+  //delay(100);
 
   //sei();
   Serial.println("done");
@@ -51,7 +51,7 @@ void writeSD(int number)
 {
 
   cli();
-      delay(100);
+    //  delay(100);
   // Initialize SdFat or print a detailed error message and halt
   // Use half speed like the native library.
   // change to SPI_FULL_SPEED for more performance.
@@ -69,7 +69,7 @@ void writeSD(int number)
   // close the file:
   myFile.close();
   Serial.println("done.");
-    delay(100);
+    //delay(100);
   sei();
 
 }
@@ -77,7 +77,7 @@ void writeSD(int number)
 void readSD()
 {
   cli();
-      delay(100);
+    //  delay(100);
     if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) sd.initErrorHalt();
 
   // re-open the file for reading:
@@ -103,7 +103,7 @@ void readSD()
   Serial.print( "lines: ") ; Serial.println( lines );
   // close the file:
   myFile.close();
-    delay(100);
+   // delay(100);
   sei();
 }
 #endif
