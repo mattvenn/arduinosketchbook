@@ -1,6 +1,13 @@
 #ifdef useRadio
 byte needToSend;
 
+void cleanSPIBus()
+{
+   //don't understand this, but necessary for radio to work after an SD write
+   digitalWrite(RFM_SEL,LOW);
+   SPI.transfer(0x00);
+   digitalWrite(RFM_SEL,HIGH);
+}
 void initRadio()
 {
   rf12_initialize(1, RF12_433MHZ,212);

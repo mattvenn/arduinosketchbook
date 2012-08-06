@@ -1,3 +1,4 @@
+
 /*
 void test_SD()
 {
@@ -71,6 +72,7 @@ void writeSD(int number)
   Serial.println("done.");
     //delay(100);
   sei();
+  //cleanSPIBus();
 
 }
 //puts number of lines read int arg1 and arg2

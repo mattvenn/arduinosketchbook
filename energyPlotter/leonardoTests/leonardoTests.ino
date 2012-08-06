@@ -21,7 +21,7 @@ jeelib/rf12.cpp needs adjusting to set rf12 chip select to portf bit 0
 //#define testIO
 //#define testMem
 
-
+#include <SPI.h>
 #ifdef useRadio
 #include <JeeLib.h>
 MilliTimer statusTimer,sdTimer;
@@ -57,7 +57,7 @@ boolean commandWaiting = false;
 boolean sendAck = false;
 int servoPos = 20;
 boolean ledState = false;
-boolean testSD = true;
+boolean testSD = false;
 boolean checkRadio = false;
 int i = 0;
 
@@ -112,7 +112,7 @@ void setup() {
 
   //config steppers
   initSteppers();
-
+  SPI.begin();
   //leave some time in case this doesn't work. Makes it easier to reprogram!  
   delay(4000);
   #ifdef useSD
@@ -162,6 +162,11 @@ void loop() {
     commandWaiting = false;
     switch( payload.command )
     {
+      case 'b':
+       
+       
+       
+        break;
       case 's':
         pulsePower( 1, payload.arg1 );
       break;
