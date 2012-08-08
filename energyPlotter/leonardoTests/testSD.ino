@@ -1,3 +1,5 @@
+
+/*
 void test_SD()
 {
   digitalWrite(SD_SEL,LOW);
@@ -7,7 +9,7 @@ void test_SD()
     delay(200);
   
 }
-
+*/
 /*
  
  created   Nov 2010
@@ -18,28 +20,29 @@ void test_SD()
  This example code is in the public domain.
  	 
  */
+#ifdef useSD
 #include <SdFat.h>
 SdFat sd;
 SdFile myFile;
-
+#define FILENAME "test1.txt"
 void initSD()
 {
   //moving the prints outside the interrupts made a difference. Check on what John was saying.
   //worked for a bit then broke, removing cli and sei made it work again ;( 
   Serial.println("sd init" );
-  delay(500);
+ // delay(500);
   //cli();
 
    if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) 
      {
-       sei();
+   //    sei();
        Serial.println( "sd init failed" );
        return;
      }
 
   
   
-  delay(100);
+  //delay(100);
 
   //sei();
   Serial.println("done");
@@ -49,13 +52,13 @@ void writeSD(int number)
 {
 
   cli();
-      delay(100);
+    //  delay(100);
   // Initialize SdFat or print a detailed error message and halt
   // Use half speed like the native library.
   // change to SPI_FULL_SPEED for more performance.
  
   // open the file for write at end like the Native SD library
-  if (!myFile.open("test.txt", O_RDWR | O_CREAT | O_AT_END)) {
+  if (!myFile.open(FILENAME, O_RDWR | O_CREAT | O_AT_END)) {
     Serial.println( "open for write failed" );
     sei();
     return; //sd.errorHalt("opening test.txt for write failed");
@@ -67,19 +70,20 @@ void writeSD(int number)
   // close the file:
   myFile.close();
   Serial.println("done.");
-    delay(100);
+    //delay(100);
   sei();
+  cleanSPIBus();
 
 }
 //puts number of lines read int arg1 and arg2
 void readSD()
 {
   cli();
-      delay(100);
-    if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) sd.initErrorHalt();
+    //  delay(100);
+   // if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) sd.initErrorHalt();
 
   // re-open the file for reading:
-  if (!myFile.open("test.txt", O_READ)) {
+  if (!myFile.open(FILENAME, O_READ)) {
     Serial.println( "open for read failed" );
     sei();
     return;
@@ -101,7 +105,8 @@ void readSD()
   Serial.print( "lines: ") ; Serial.println( lines );
   // close the file:
   myFile.close();
-    delay(100);
+   // delay(100);
   sei();
+  cleanSPIBus();
 }
-
+#endif

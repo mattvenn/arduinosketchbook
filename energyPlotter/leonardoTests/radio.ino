@@ -1,13 +1,19 @@
-#ifdef testRadio
-
-
+#ifdef useRadio
 byte needToSend;
 
+void cleanSPIBus()
+{
+   //don't understand this, but necessary for radio to work after an SD write
+   digitalWrite(RFM_SEL,LOW);
+   SPI.transfer(0x00);
+   digitalWrite(RFM_SEL,HIGH);
+}
 void initRadio()
 {
   rf12_initialize(1, RF12_433MHZ,212);
   Serial.println( "rf12 setup done" );
 }
+/*
 void testRadioPins()
 {
   Serial.println("radio miso: ");
@@ -19,15 +25,15 @@ void testRadioPins()
  //   delay(200);
   
 }
-
+*/
 void doRadio()
 {
  if (rf12_recvDone() && rf12_crc == 0 and rf12_len == sizeof(Payload))
   {
     const Payload* p = (const Payload*) rf12_data;
-    digitalWrite(led,HIGH);
+   /* digitalWrite(led,HIGH);
     delay(100);
-    digitalWrite(led,LOW);
+    digitalWrite(led,LOW);*/
     Serial.print( "got data: " );
     Serial.print( p->command ); 
     Serial.print(":");
@@ -48,7 +54,7 @@ void doRadio()
     sendAck = false;
     rf12_sendStart(0, &payload, sizeof payload);
     Serial.println("sent"); 
-        delay(100);
+//        delay(100);
   }
 
 }

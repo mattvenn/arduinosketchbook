@@ -1,12 +1,32 @@
+/* 
+total program size is 19k with sd and radio, 9k without sd
+grbl is about 17k. Available is 28k with bootloader.
+
+strange spi problems where radio stopped sending after an sd write has stopped.
+Just discovered this is because the spi programmer was still plugged in. 
+Doesn't need to be on, just attached. 
+So must be an electrical characteristic of the spi bus is wrong 
+eg pullup/down resistors required. a pulldown of 1k on miso seems to solve the problem.
+setting miso to pullup prevents radio from working but sd still works.
+check with a scope
+
+jeelib/rf12.cpp needs adjusting to set rf12 chip select to portf bit 0
+
+*/
 #define testSteppers
-//#define testSD
-#define testRadio
+#define useSD //uses 10k
+#define useRadio //uses 180bytes?!
 #define testLED
 #define testServo
 //#define testIO
-#define testMem
+//#define testMem
 
+#include <SPI.h>
+#ifdef useRadio
 #include <JeeLib.h>
+MilliTimer statusTimer,sdTimer;
+#endif
+
 #include <Stepper.h>
 
 //pin defs
@@ -33,13 +53,13 @@
 #define RFM_SEL A5
 #define RFM_INT 3
 
-MilliTimer sendTimer,statusTimer,sdTimer;
 boolean commandWaiting = false;
 boolean sendAck = false;
 int servoPos = 20;
 boolean ledState = false;
-boolean testSD = false;
+boolean testSD = true; //auto test the SD
 boolean checkRadio = false;
+int i = 0;
 
 //payload def
 typedef struct {
@@ -52,57 +72,55 @@ Payload payload;
 
 void setup() {
   Serial.begin(9600);
-  pinMode(led, OUTPUT);   
-
-  digitalWrite(led,HIGH);
-//  delay(2000);
   Serial.println("started");
+  
+  pinMode(led, OUTPUT);   
+  digitalWrite(led,HIGH);
 
   // initialize the digital pin as an output.
   pinMode(SERVO,OUTPUT);
   setPowerPin(LOW);
-  
+
+  //stepper microstep control pins  
   pinMode(MS1, OUTPUT );
   pinMode(MS2, OUTPUT );
-  //pinMode( GPIO1, OUTPUT);
-  //pinMode(GPIO2, OUTPUT );
-  //  pinMode( GPIO1, INPUT );
-  //  pinMode( GPIO2, INPUT );
- 
-  pinMode( SD_SEL, OUTPUT );
-  pinMode( RFM_SEL, OUTPUT );
-
-  digitalWrite( SD_SEL, HIGH );
-  digitalWrite(RFM_SEL, HIGH); 
-  
   pinMode( PWML, OUTPUT );
   pinMode( PWMR, OUTPUT );
-
+  //stepper step and dir
   pinMode( DIRL, OUTPUT );
   pinMode( DIRR, OUTPUT );
   pinMode( STEPL, OUTPUT );
   pinMode( STEPR, OUTPUT );
+
+  //pinMode( GPIO1, OUTPUT);
+  //pinMode(GPIO2, OUTPUT );
+  //  pinMode( GPIO1, INPUT );
+  //  pinMode( GPIO2, INPUT );
+
+  //spi setup
+  pinMode( SS, OUTPUT ); //needed to make us the master of spi bus
+  pinMode( SD_SEL, OUTPUT );
+  pinMode( RFM_SEL, OUTPUT );
+  digitalWrite( SD_SEL, HIGH );
+  digitalWrite(RFM_SEL, HIGH); 
+  
+  //limits
   pinMode( LIMITL, INPUT );
   digitalWrite( LIMITL, HIGH );
   pinMode( LIMITR, INPUT );
   digitalWrite( LIMITR, HIGH );
 
-
-  //spi test
-  
-  // attachInterrupt(0, blink, RISING);
-
-  
-#ifdef testSteppers
+  //config steppers
   initSteppers();
-#endif
-
   //leave some time in case this doesn't work. Makes it easier to reprogram!  
   delay(4000);
-  initSD();
+  #ifdef useSD
+    initSD();
+  #endif
+  #ifdef useRadio
   initRadio();
   checkRadio = true;    
-  
+  #endif
 }
 
 // the loop routine runs over and over again forever:
@@ -120,19 +138,14 @@ void loop() {
     Serial.print("mem:");
     Serial.println(freeMemory());
     #endif
-    //sendAck = true;
+    sendAck = 1;
   }
- 
- /* if( testSD && sdTimer.poll(5000) )
+
+  if( testSD && sdTimer.poll(5000) )
   {
-
-   // readSD();
+    readSD();
     writeSD(i++);
-    //work out why we need this?
-    initRadio();
-
   }
-*/
 
   if(Serial.available() > 0 )
   {
@@ -146,8 +159,6 @@ void loop() {
   if( commandWaiting )
   {
     commandWaiting = false;
-
-
     switch( payload.command )
     {
       case 's':
@@ -159,67 +170,32 @@ void loop() {
       case 'p':
         setSpeed(payload.arg1);
       break;
+      #ifdef useSD
       case 'w':
         writeSD(payload.arg1);
-        readSD();
-        initRadio(); //need this after a write/read some combo?
-        break;
-      case 'r':
-        initRadio();
-        checkRadio = true;
-        break;
-      case 'i':
-        if( payload.arg1 )
-          initSD();
-        if( payload.arg2 )
-         {
-          initRadio();
-          checkRadio=true;
-         }
         
-        break;
+        #ifdef useRadio
+        //initRadio(); //need this after a write/read some combo?
+        #endif
+        break;  
       case 't':
-        testSD = payload.arg1;
-        Serial.println( testSD );
         break;
+      #endif
+      #ifdef useRadio
+      case 'r':
+        readSD();
+        break;
+      #endif
       default:
         Serial.println( "bad command");
         break;
     }
-    
      sendAck = true;   
   }
-        
-
-#ifdef testSteppers
-//  delay(100);
- // moveSteppers();
-#endif
-
-#ifdef testServo 
-  //lift servo
- // digitalWrite(SERVO,HIGH);
-
-/*if( statusTimer.poll(5000) )
-{
-  pulsePower( 1, servoPos );
-  if(servoPos==200)
-    servoPos = 20;
-  else
-    servoPos = 200;
-  
-}
-*/
-#endif
-
+#ifdef useRadio        
 if( checkRadio)
-
- // testRadioPins();
   doRadio();
-
-
-
-
+#endif
 
 #ifdef testIO
   Serial.print( "ints: " );
@@ -269,7 +245,3 @@ if( checkRadio)
 
 #endif
 }
-
-
-
-
