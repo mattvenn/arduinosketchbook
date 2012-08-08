@@ -57,7 +57,7 @@ boolean commandWaiting = false;
 boolean sendAck = false;
 int servoPos = 20;
 boolean ledState = false;
-boolean testSD = false;
+boolean testSD = true; //auto test the SD
 boolean checkRadio = false;
 int i = 0;
 
@@ -112,7 +112,6 @@ void setup() {
 
   //config steppers
   initSteppers();
-  SPI.begin();
   //leave some time in case this doesn't work. Makes it easier to reprogram!  
   delay(4000);
   #ifdef useSD
@@ -162,11 +161,6 @@ void loop() {
     commandWaiting = false;
     switch( payload.command )
     {
-      case 'b':
-       
-       
-       
-        break;
       case 's':
         pulsePower( 1, payload.arg1 );
       break;
