@@ -24,7 +24,7 @@ void test_SD()
 #include <SdFat.h>
 SdFat sd;
 SdFile myFile;
-#define FILENAME "test3.txt"
+#define FILENAME "test1.txt"
 void initSD()
 {
   //moving the prints outside the interrupts made a difference. Check on what John was saying.
@@ -72,7 +72,7 @@ void writeSD(int number)
   Serial.println("done.");
     //delay(100);
   sei();
-  //cleanSPIBus();
+  cleanSPIBus();
 
 }
 //puts number of lines read int arg1 and arg2
@@ -80,7 +80,7 @@ void readSD()
 {
   cli();
     //  delay(100);
-    if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) sd.initErrorHalt();
+   // if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) sd.initErrorHalt();
 
   // re-open the file for reading:
   if (!myFile.open(FILENAME, O_READ)) {
@@ -107,5 +107,6 @@ void readSD()
   myFile.close();
    // delay(100);
   sei();
+  cleanSPIBus();
 }
 #endif
