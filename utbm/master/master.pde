@@ -1,21 +1,18 @@
-#include <JeeLib.h>
+#include <JeeLib.h> //for MilliTimer
 #include <SoftwareSerial.h>
 #include <EEPROM.h>
+
 SoftwareSerial mySerial(2, 3);
 
+//pin defs
 const int LED = 13;
 const int voltagePin = A0;
 const int currentPin = A1;
-const int AREF = 5000.0; //mv
 
-const int idAddress = 0;
-byte id;
-MilliTimer send;
+//globals
 boolean ledState = false;
 
-const float vDivider = 0.5;
-const float iDivider = 0.5;
-
+//data struct
 typedef struct
 {
   float voltage;
@@ -23,6 +20,7 @@ typedef struct
   byte status;
   byte id;
   int cksum;
+  unsigned long uptime;
 } Message;
 Message message;
 
@@ -38,37 +36,39 @@ void loop()
 {
   int size = sizeof(Message);
   char * ptr;
+  //wait for data of the right size
   if(mySerial.available() >= size + 2)
   {
+    //has to have correct header
     if( mySerial.read() == '\001' && mySerial.read() == '\002' )
     {
-      if( mySerial.available() >= size)
-      {
-        flash();
-        ptr = (char *)&message;
-        for(int count=0; count<size; count++)
-          *(ptr+count) = mySerial.read();
+      flash();
+      ptr = (char *)&message;
+      for(int count=0; count<size; count++)
+        *(ptr+count) = mySerial.read();
 
-        if( validateCheckSum() )
-        {
-          Serial.println("got data:" );
-          printData();
-        }
-        else
-        {
-          Serial.println("data corrupt" );
-        }
+      //check the data is OK
+      if( validateCheckSum() )
+      {
+        Serial.println("got data:" );
+        printData();
+      }
+      else
+      {
+        Serial.println("data corrupt" );
       }
     }
   }
 }
 
+//prints formatted data
 void printData()
 {
   Serial.print( "v:" ); Serial.println( message.voltage );
   Serial.print( "i:" ); Serial.println( message.current );
   Serial.print( "stat:" ); Serial.println( message.status, DEC );
   Serial.print( "id:" ); Serial.println( message.id, DEC );
+  Serial.print( "uptime:" ); Serial.println( message.uptime );
 }
 
 void flash()
@@ -87,6 +87,7 @@ boolean validateCheckSum()
   return true;
 }
 
+//XOR checksum
 int getCheckSum() 
 {
   int i;
