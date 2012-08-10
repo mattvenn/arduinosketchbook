@@ -17,7 +17,7 @@ const int currentPin = A1;
 
 //globals
 boolean ledState = false;
-MilliTimer getData;
+MilliTimer getData,showData;
 int msgSize;
 
 //data struct
@@ -36,19 +36,28 @@ void setup()
 {
   Serial.begin(9600);
   Serial.println("master"); 
+  Serial.println("init ports");
   for( int i = 0; i < numPorts; i ++ )
   {
     serialPorts[i].begin(9600);
   }
   pinMode(LED1,OUTPUT);
   msgSize = sizeof(Message);
+  Serial.println("rtc setup");
+  setupRTC();
+  Serial.println("sd setup");
+  setupSD();
 }
 
 void loop()
 {
+  if( showData.poll(5000) )
+    readData();
+
   //wait till it's time to fetch data
   if( getData.poll(1000))
   {
+    printDate();
     for( int port = 0; port < numPorts; port ++ )
     {
       Serial.print( "requesting data from slave on port:" );
@@ -72,6 +81,7 @@ void loop()
           {
             Serial.println("got data:" );
             printData();
+            writeData();
           }
           else
           {
