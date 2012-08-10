@@ -15,6 +15,12 @@ void setupRTC () {
   }
 }
 
+unsigned long getUnixSecs()
+{
+    DateTime now = RTC.now();
+    return now.unixtime();
+}
+
 void printDate()
 {
     DateTime now = RTC.now();
