@@ -4,7 +4,6 @@ const int chipSelect = 10;
 #include <SdFat.h>
 SdFat sd;
 SdFile myFile;
-#define FILENAME "data2.txt"
 
 void setupSD()
 {
@@ -14,15 +13,34 @@ void setupSD()
   if (!sd.begin(chipSelect, SPI_HALF_SPEED)) sd.initErrorHalt();
   Serial.println( "SD initialized");
 }
+void writeError(String errString)
+{
+  if (!myFile.open(ERRORFILE, O_RDWR | O_CREAT | O_AT_END)) {
+    sd.errorHalt("opening file for write failed");
+  }
+
+  Serial.println( "writing error to SD...");
+  // if the file opened okay, write to it:
+  myFile.print( getUnixSecs() );
+  myFile.print( "," );
+  myFile.println( errString );
+
+  // close the file:
+  myFile.close();
+  Serial.println("done.");
+}
 
 void writeData()
 {
-  // open the file for write at end like the Native SD library
-  if (!myFile.open(FILENAME, O_RDWR | O_CREAT | O_AT_END)) {
+  if (!myFile.open(DATAFILE, O_RDWR | O_CREAT | O_AT_END)) {
     sd.errorHalt("opening file for write failed");
   }
+
+  Serial.print("writing data to SD...");
+
   // if the file opened okay, write to it:
-  Serial.print("writing to SD...");
+  myFile.print( getUnixSecs() );
+  myFile.print( "," );
   myFile.print( message.voltage );
   myFile.print( "," );
   myFile.print( message.current );
@@ -32,6 +50,7 @@ void writeData()
   myFile.print( message.id, DEC );
   myFile.print( "," );
   myFile.print( message.uptime );
+
   myFile.println("");
 
   // close the file:
@@ -39,10 +58,10 @@ void writeData()
   Serial.println("done.");
 }
 
-void readData()
+void readFile(const char * filename)
 {
   // re-open the file for reading:
-  if (!myFile.open(FILENAME, O_READ)) {
+  if (!myFile.open(filename, O_READ)) {
     sd.errorHalt("opening file for read failed");
   }
 
