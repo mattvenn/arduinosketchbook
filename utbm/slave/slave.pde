@@ -1,8 +1,13 @@
-#include <JeeLib.h> //for MilliTimer
+//#include <JeeLib.h> //for MilliTimer
 #include <SoftwareSerial.h>
 #include <EEPROM.h>
+#include <LiquidCrystal.h>
 
-SoftwareSerial mySerial(2, 3);
+// initialize the library with the numbers of the interface pins
+LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
+
+
+SoftwareSerial mySerial(8,9); //RX,TX
 
 //pin defs
 const int LED = 13;
@@ -15,10 +20,12 @@ const float vDivider = 0.5;
 const float iDivider = 0.5;
 
 //globals
+const boolean DEBUG = true;
 const int idAddress = 0;
 byte id;
-MilliTimer send;
+//MilliTimer send;
 boolean ledState = false;
+unsigned long lastTime;
 
 //data struct
 typedef struct
@@ -34,7 +41,7 @@ Message message;
 
 void setup()  
 {
-  //EEPROM.write(idAddress,1); //set address
+ // EEPROM.write(idAddress,2); //set address
   id = getId();
   Serial.begin(9600);
   Serial.print("slave id:"); 
@@ -42,27 +49,51 @@ void setup()
 
   mySerial.begin(9600);
   pinMode(LED,OUTPUT);
+  
+    lcd.begin(16, 2);
+  // Print a message to the LCD.
+  lcd.print("slave:");
+  lcd.print(id);
+
 }
 
 void loop()
 {
-  //every sec send a message
-  if( send.poll(1000) )
+  //check to see if we need to send anything
+  if( mySerial.available() )
   {
-    message.id = id;
-    message.status = 5;
-    message.voltage = vDivider*AREF/1024*analogRead(voltagePin);
-    message.current = iDivider*AREF/1024*analogRead(currentPin);
-    message.uptime = millis();
-    message.cksum = 0;
-    //calculate checksum
-    message.cksum = getCheckSum();
-    //header
-    mySerial.print("\001\002");
-    //body
-    mySerial.write((const uint8_t *)&message,sizeof(Message));
-    flash();
+    if( mySerial.read() == '\001' )
+    {
+        debug("sending data");
+        lastTime = millis();
+        message.id = id;
+        message.status = 5;
+        message.voltage = vDivider*AREF/1024*analogRead(voltagePin);
+        message.current = iDivider*AREF/1024*analogRead(currentPin);
+        message.uptime = millis();
+        message.cksum = 0;
+        //calculate checksum
+        message.cksum = getCheckSum();
+        //header
+        mySerial.print("\001\002");
+        //body
+        mySerial.write((const uint8_t *)&message,sizeof(Message));
+       
+        lcd.setCursor(0, 1);
+        // print the number of seconds since reset:
+        lcd.print(message.status);
+        lcd.print(':');
+        lcd.print(millis()/1000);
+
+        flash();
+      }
   }
+}
+
+void debug(const char * msg )
+{
+  if( DEBUG )
+    Serial.print(msg);
 }
 
 void flash()

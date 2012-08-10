@@ -2,15 +2,23 @@
 #include <SoftwareSerial.h>
 #include <EEPROM.h>
 
-SoftwareSerial mySerial(2, 3);
+const int numPorts = 2;
+SoftwareSerial serialPorts[numPorts] =
+    { 
+        SoftwareSerial(2,3),
+        SoftwareSerial(4,5)
+    };
 
 //pin defs
-const int LED = 13;
+const int LED1 = 8;
+const int LED2 = 9;
 const int voltagePin = A0;
 const int currentPin = A1;
 
 //globals
 boolean ledState = false;
+MilliTimer getData;
+int msgSize;
 
 //data struct
 typedef struct
@@ -28,34 +36,52 @@ void setup()
 {
   Serial.begin(9600);
   Serial.println("master"); 
-  mySerial.begin(9600);
-  pinMode(LED,OUTPUT);
+  for( int i = 0; i < numPorts; i ++ )
+  {
+    serialPorts[i].begin(9600);
+  }
+  pinMode(LED1,OUTPUT);
+  msgSize = sizeof(Message);
 }
 
 void loop()
 {
-  int size = sizeof(Message);
-  char * ptr;
-  //wait for data of the right size
-  if(mySerial.available() >= size + 2)
+  //wait till it's time to fetch data
+  if( getData.poll(1000))
   {
-    //has to have correct header
-    if( mySerial.read() == '\001' && mySerial.read() == '\002' )
+    for( int port = 0; port < numPorts; port ++ )
     {
-      flash();
-      ptr = (char *)&message;
-      for(int count=0; count<size; count++)
-        *(ptr+count) = mySerial.read();
-
-      //check the data is OK
-      if( validateCheckSum() )
+      Serial.print( "requesting data from slave on port:" );
+      Serial.println( port );
+      serialPorts[port].listen();
+      serialPorts[port].write('\001');
+      //wait for slave to respond
+      delay(100);
+      if(serialPorts[port].available() >= msgSize + 2)
       {
-        Serial.println("got data:" );
-        printData();
+        //has to have correct header
+        if( serialPorts[port].read() == '\001' && serialPorts[port].read() == '\002' )
+        {
+          flash();
+          char * ptr = (char*)&message;
+          for(int count=0; count<msgSize; count++)
+            *(ptr+count) = serialPorts[port].read();
+
+          //check the data is OK
+          if( validateCheckSum() )
+          {
+            Serial.println("got data:" );
+            printData();
+          }
+          else
+          {
+            Serial.println("data corrupt" );
+          }
+        }
       }
       else
       {
-        Serial.println("data corrupt" );
+        Serial.println( "slave didn't respond");
       }
     }
   }
@@ -69,11 +95,12 @@ void printData()
   Serial.print( "stat:" ); Serial.println( message.status, DEC );
   Serial.print( "id:" ); Serial.println( message.id, DEC );
   Serial.print( "uptime:" ); Serial.println( message.uptime );
+  Serial.println("-------");
 }
 
 void flash()
 {
-  digitalWrite(LED,ledState);
+  digitalWrite(LED1,ledState);
   ledState = !ledState;
 }
 
@@ -93,7 +120,7 @@ int getCheckSum()
   int i;
   int XOR;
   char * ptr = (char*)&message;
-  for (XOR = 0, i = 0; i < sizeof(Message); i++) {
+  for (XOR = 0, i = 0; i < msgSize; i++) {
     XOR ^= *ptr ++;
   }
   return XOR;
