@@ -2,6 +2,7 @@
 #include <SoftwareSerial.h>
 #include <EEPROM.h>
 
+#include "fuelcell.h"
 
 const int numPorts = 2;
 const int pollInterval = 2000; //ms
@@ -25,18 +26,6 @@ boolean ledState = false;
 MilliTimer getData,showData,statusLED;
 int msgSize;
 String fString;
-
-//data struct
-typedef struct
-{
-  float voltage;
-  float current;
-  byte status;
-  byte id;
-  int cksum;
-  unsigned long uptime;
-} Message;
-Message message;
 
 void setup()  
 {
@@ -104,7 +93,7 @@ void loop()
           if( validateCheckSum() )
           {
             Serial.println("got data OK" );
-            //printData();
+            displayFuelCellStatus();
             writeData();
           }
           else
@@ -127,16 +116,6 @@ void loop()
   }
 }
 
-//prints formatted data
-void printData()
-{
-  Serial.print( "v:" ); Serial.println( message.voltage );
-  Serial.print( "i:" ); Serial.println( message.current );
-  Serial.print( "stat:" ); Serial.println( message.status, DEC );
-  Serial.print( "id:" ); Serial.println( message.id, DEC );
-  Serial.print( "uptime:" ); Serial.println( message.uptime );
-  Serial.println("-------");
-}
 
 void flash(int LED)
 {

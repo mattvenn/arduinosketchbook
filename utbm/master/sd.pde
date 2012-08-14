@@ -41,11 +41,19 @@ void writeData()
   // if the file opened okay, write to it:
   myFile.print( getUnixSecs() );
   myFile.print( "," );
-  myFile.print( message.voltage );
+  myFile.print( message.fuelcellStatus );
   myFile.print( "," );
-  myFile.print( message.current );
+  myFile.print( message.fuelcellAmbientT );
   myFile.print( "," );
-  myFile.print( message.status, DEC );
+  myFile.print( message.fuelcellStackV );
+  myFile.print( "," );
+  myFile.print( message.fuelcellStackI );
+  myFile.print( "," );
+  myFile.print( message.fuelcellStackT );
+  myFile.print( "," );
+  myFile.print( message.fuelcellOutputCurrent );
+  myFile.print( "," );
+  myFile.print( message.fuelcellBatteryV );
   myFile.print( "," );
   myFile.print( message.id, DEC );
   myFile.print( "," );
