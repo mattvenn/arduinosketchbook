@@ -82,8 +82,6 @@ void updateFuelCellStatus ()
   message.fuelcellStackV = fuelcellStackRawV * .1;
   message.fuelcellStackI = fuelcellStackRawI * .1;
   message.fuelcellStackT = fuelcellStackRawT * .5;
-  message.fuelcellOutputCurrent = ((fuelcellRawOutputCurrent1<<8) + fuelcellRawOutputCurrent2) * .1;// 
-  message.fuelcellBatteryV = fuelcellBatteryRawV * .10;
   
 }  
 

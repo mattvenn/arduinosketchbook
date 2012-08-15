@@ -58,7 +58,7 @@ void displayFuelCellStatus()
   // print the number of seconds since reset:
   lcd.print( message.fuelcellStackV );
   lcd.print( "V " );
-  lcd.print( message.fuelcellOutputCurrent );
+  lcd.print( message.fuelcellStackI );
   lcd.print( "A" );
 }
 void loop()

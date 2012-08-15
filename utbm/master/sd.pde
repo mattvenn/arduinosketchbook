@@ -51,10 +51,6 @@ void writeData()
   myFile.print( "," );
   myFile.print( message.fuelcellStackT );
   myFile.print( "," );
-  myFile.print( message.fuelcellOutputCurrent );
-  myFile.print( "," );
-  myFile.print( message.fuelcellBatteryV );
-  myFile.print( "," );
   myFile.print( message.id, DEC );
   myFile.print( "," );
   myFile.print( message.uptime );
