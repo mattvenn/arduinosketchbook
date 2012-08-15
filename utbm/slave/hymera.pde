@@ -54,16 +54,20 @@ void setupFuelcellSerial()
   Serial.println("ARCOLA ENERGY > HYMERA DIAGNOSTICS");
 }
 
-void updateFuelCellStatus () {
+void updateFuelCellStatus () 
+{
+  fuelcellSerial.listen();  
   fuelcellSerial.flush();  //  clear buffer 
   while (fuelcellSerial.available() > 0 ) {      // wait for a gap of over 100ms with no byte received
+   // debug( "read char\n" );
     fuelcellSerial.read();  //     
     delay (100); 
   }
-
-  while (fuelcellSerial.available() <8) {      // wait for buffer to contain 8 bytes - maybe not necessary. i put it in to debug
+  //debug("found gap\n" );
+  while (fuelcellSerial.available() <8) {
+   //  Serial.println( fuelcellSerial.available() );    // wait for buffer to contain 8 bytes - maybe not necessary. i put it in to debug
   }
-
+  //debug("buffer full\n" );
   message.fuelcellStatus = fuelcellSerial.read();
   fuelcellAmbientRawT = fuelcellSerial.read();
   fuelcellStackRawV = fuelcellSerial.read();
