@@ -9,7 +9,7 @@ const int pollInterval = 2000; //ms
 SoftwareSerial serialPorts[numPorts] =
     { 
         SoftwareSerial(2,3),
-      //  SoftwareSerial(4,5)
+      //  SoftwareSerial(4,5),
     };
 
 //pin defs
@@ -18,8 +18,8 @@ const int LED2 = 9;
 const int voltagePin = A0;
 const int currentPin = A1;
 
-#define DATAFILE "data4.txt"
-#define ERRORFILE "error4.txt"
+#define DATAFILE "data5.txt"
+#define ERRORFILE "error5.txt"
 
 //globals
 boolean ledState = false;
