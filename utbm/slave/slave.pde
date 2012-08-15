@@ -38,14 +38,22 @@ void setup()
   pinMode(LED,OUTPUT);
 
   lcd.begin(16, 2);
-  // Print a message to the LCD.
-  lcd.print("slave:");
-  lcd.print(id);
+  
 
 }
 
 void displayFuelCellStatus()
 {
+  //lcd.setCursor(8, 0);
+  //lcd.print "
+  // Print a message to the LCD.
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("id:");
+  lcd.print(id);
+  lcd.print(" ");
+  lcd.print( message.fuelcellStackT );
+  lcd.print( "C" );
   lcd.setCursor(0, 1);
   // print the number of seconds since reset:
   lcd.print( message.fuelcellStackV );
@@ -56,36 +64,38 @@ void displayFuelCellStatus()
 void loop()
 {
   //update fuelcell serial
- // updateFuelCellStatus();
-  //printFuelCellStatus();
-//  displayFuelCellStatus();
-  //check to see if we need to send anything
-  if( masterSerial.available() )
+  updateFuelCellStatus();
+
+  printFuelCellStatus();
+  displayFuelCellStatus();
+
+  sendData();
+  
+}
+
+void sendData()
+{
+  //wait for master to ask for data
+  masterSerial.listen();
+  while (masterSerial.available() != 1 )
   {
-    if( masterSerial.read() == '\001' )
-    {
-      debug("sending data");
-      lcd.setCursor(8, 0);
-      lcd.print( "send" );
+    delay (10); 
+  }
+  if( masterSerial.read() == '\001' )
+  {
+    debug("sending data\n");
 
-      lastTime = millis();
-      message.id = id;
-      message.uptime = millis();
-      message.cksum = 0;
-      //calculate checksum
-      message.cksum = getCheckSum();
-      //header
-      masterSerial.print("\001\002");
-      //body
-      masterSerial.write((const uint8_t *)&message,sizeof(Message));
-
-
-
-      flash();
-      
-      lcd.setCursor(8, 0);
-      lcd.print( "    " );
-    }
+    lastTime = millis();
+    message.id = id;
+    message.uptime = millis();
+    message.cksum = 0;
+    //calculate checksum
+    message.cksum = getCheckSum();
+    //header
+    masterSerial.print("\001\002");
+    //body
+    masterSerial.write((const uint8_t *)&message,sizeof(Message));
+    flash();
   }
 }
 
@@ -99,6 +109,10 @@ void flash()
 {
   digitalWrite(LED,ledState);
   ledState = !ledState;
+  if( ledState )
+    lcd.cursor();
+  else
+    lcd.noCursor();
 }
 
 byte getId()
@@ -117,4 +131,5 @@ int getCheckSum()
   }
   return XOR;
 }
+
 
