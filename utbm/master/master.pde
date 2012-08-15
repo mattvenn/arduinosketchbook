@@ -8,8 +8,12 @@ const int numPorts = 1;
 const int pollInterval = 2000; //ms
 SoftwareSerial serialPorts[numPorts] =
     { 
-        SoftwareSerial(2,3),
+      SoftwareSerial(2,3),
       //  SoftwareSerial(4,5),
+      //  SoftwareSerial(6,7),
+      //  SoftwareSerial(A0,A1), //can't use pins 10->13 as they are used for SD
+      //  SoftwareSerial(A2,A3), //can't use A4 and A5 because they are used by wire library
+
     };
 
 //pin defs
