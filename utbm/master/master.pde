@@ -4,12 +4,12 @@
 
 #include "fuelcell.h"
 
-const int numPorts = 2;
+const int numPorts = 1;
 const int pollInterval = 2000; //ms
 SoftwareSerial serialPorts[numPorts] =
     { 
         SoftwareSerial(2,3),
-        SoftwareSerial(4,5)
+      //  SoftwareSerial(4,5)
     };
 
 //pin defs
@@ -18,8 +18,8 @@ const int LED2 = 9;
 const int voltagePin = A0;
 const int currentPin = A1;
 
-#define DATAFILE "data3.txt"
-#define ERRORFILE "error.txt"
+#define DATAFILE "data4.txt"
+#define ERRORFILE "error4.txt"
 
 //globals
 boolean ledState = false;
@@ -29,7 +29,7 @@ String fString;
 
 void setup()  
 {
-  Serial.begin(57600);
+  Serial.begin(9600);
   Serial.println("master"); 
   Serial.println("init ports");
   for( int i = 0; i < numPorts; i ++ )
@@ -93,7 +93,7 @@ void loop()
           if( validateCheckSum() )
           {
             Serial.println("got data OK" );
-            displayFuelCellStatus();
+            printFuelCellStatus();
             writeData();
           }
           else

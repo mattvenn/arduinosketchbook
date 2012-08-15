@@ -10,7 +10,7 @@ LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
 
 
 SoftwareSerial masterSerial(8,9); //RX,TX
-SoftwareSerial fuelcellSerial(4,5);  // define pins for rs232 comms with Hymera
+SoftwareSerial fuelcellSerial(11,12);  // define pins for rs232 comms with Hymera
 
 //pin defs
 const int LED = 13;
@@ -27,51 +27,65 @@ unsigned long lastTime;
 
 void setup()  
 {
- // EEPROM.write(idAddress,2); //set address
+  // EEPROM.write(idAddress,2); //set address
   id = getId();
   Serial.begin(9600);
   Serial.print("slave id:"); 
   Serial.println(id);
 
   masterSerial.begin(9600);
+  setupFuelcellSerial();
   pinMode(LED,OUTPUT);
-  
-    lcd.begin(16, 2);
+
+  lcd.begin(16, 2);
   // Print a message to the LCD.
   lcd.print("slave:");
   lcd.print(id);
 
 }
 
+void displayFuelCellStatus()
+{
+  lcd.setCursor(0, 1);
+  // print the number of seconds since reset:
+  lcd.print( message.fuelcellStackV );
+  lcd.print( "V " );
+  lcd.print( message.fuelcellOutputCurrent );
+  lcd.print( "A" );
+}
 void loop()
 {
   //update fuelcell serial
-  updateFuelCellStatus();
-  displayFuelCellStatus();
+ // updateFuelCellStatus();
+  //printFuelCellStatus();
+//  displayFuelCellStatus();
   //check to see if we need to send anything
   if( masterSerial.available() )
   {
     if( masterSerial.read() == '\001' )
     {
-        debug("sending data");
-        lastTime = millis();
-        message.id = id;
-        message.uptime = millis();
-        message.cksum = 0;
-        //calculate checksum
-        message.cksum = getCheckSum();
-        //header
-        masterSerial.print("\001\002");
-        //body
-        masterSerial.write((const uint8_t *)&message,sizeof(Message));
-       
-        lcd.setCursor(0, 1);
-        // print the number of seconds since reset:
-        lcd.print(':');
-        lcd.print(millis()/1000);
+      debug("sending data");
+      lcd.setCursor(8, 0);
+      lcd.print( "send" );
 
-        flash();
-      }
+      lastTime = millis();
+      message.id = id;
+      message.uptime = millis();
+      message.cksum = 0;
+      //calculate checksum
+      message.cksum = getCheckSum();
+      //header
+      masterSerial.print("\001\002");
+      //body
+      masterSerial.write((const uint8_t *)&message,sizeof(Message));
+
+
+
+      flash();
+      
+      lcd.setCursor(8, 0);
+      lcd.print( "    " );
+    }
   }
 }
 
@@ -103,3 +117,4 @@ int getCheckSum()
   }
   return XOR;
 }
+

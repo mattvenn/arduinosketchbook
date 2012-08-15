@@ -20,7 +20,7 @@ typedef struct
 } Message;
 Message message;
 
-void displayFuelCellStatus () 
+void printFuelCellStatus () 
 {
   Serial.print("Status:            "); Serial.print(message.fuelcellStatus);         Serial.println("");
   Serial.print("Ambient Temp:      "); Serial.print(message.fuelcellAmbientT);       Serial.println(" C");  
