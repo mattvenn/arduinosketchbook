@@ -1,8 +1,8 @@
 
 void pulsePower( int pulseLength, int delayTime )
 {
-  Serial.print( "pulsing servo line: " );
-  Serial.println( delayTime );
+  //Serial.print( "pulsing servo line: " );
+  //Serial.println( delayTime );
 
   //turn on power to the board
   setPowerPin(HIGH);

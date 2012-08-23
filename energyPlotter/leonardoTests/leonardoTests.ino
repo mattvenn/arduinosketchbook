@@ -14,7 +14,7 @@ jeelib/rf12.cpp needs adjusting to set rf12 chip select to portf bit 0
 
 */
 #define testSteppers
-#define useSD //uses 10k
+//#define useSD //uses 10k
 #define useRadio //uses 180bytes?!
 #define testLED
 #define testServo
@@ -22,12 +22,18 @@ jeelib/rf12.cpp needs adjusting to set rf12 chip select to portf bit 0
 //#define testMem
 
 #include <SPI.h>
-#ifdef useRadio
 #include <JeeLib.h>
+
+#ifdef useRadio
 MilliTimer statusTimer,sdTimer;
 #endif
 
-#include <Stepper.h>
+#include <AccelStepper.h>
+
+//servo constants
+#define PENUP 300
+#define PENDOWN 500
+#define PULSELEN 2
 
 //pin defs
 #define DIRR 0
@@ -57,15 +63,33 @@ boolean commandWaiting = false;
 boolean sendAck = false;
 int servoPos = 20;
 boolean ledState = false;
-boolean testSD = true; //auto test the SD
+boolean servoState = false;
+boolean testSD = false; //auto test the SD
 boolean checkRadio = false;
+boolean servoTest = false;
 int i = 0;
+
+//drawing globals
+// Approximate dimensions (in steps) of the total drawing area
+#define stepsPerRevolution 200
+const float DIAMETER = 1.1;
+const float circumference = 3.1415 * DIAMETER;
+ float StepUnit = stepsPerRevolution / circumference;   
+float MOTOR_DIST_CM = 64;
+float w= MOTOR_DIST_CM*StepUnit;
+float h= MOTOR_DIST_CM*StepUnit; 
+int x1 = w/2;
+int y1 = 20 * MOTOR_DIST_CM;
+//int x2,y2; 
+// Approximate length of strings from marker to staple
+int a1= sqrt(pow(x1,2)+pow(y1,2));
+int b1= sqrt(pow((w-x1),2)+pow(y1,2));
 
 //payload def
 typedef struct {
   char command;
-  unsigned int arg1;
-  unsigned int arg2;
+  int arg1;
+  int arg2;
 
 } Payload;
 Payload payload;
@@ -118,8 +142,8 @@ void setup() {
     initSD();
   #endif
   #ifdef useRadio
-  initRadio();
-  checkRadio = true;    
+ // initRadio();
+ // checkRadio = true;    
   #endif
 }
 
@@ -130,7 +154,7 @@ void loop() {
   if( statusTimer.poll(500) )
   {
     #ifdef testLED
-    Serial.println( "led");
+    //Serial.println( "led");
     ledState = ! ledState;
     digitalWrite(led,ledState);
     #endif
@@ -138,14 +162,38 @@ void loop() {
     Serial.print("mem:");
     Serial.println(freeMemory());
     #endif
-    sendAck = 1;
+    //sendAck = 1;
   }
 
   if( testSD && sdTimer.poll(5000) )
   {
-    readSD();
-    writeSD(i++);
+ //   readSD();
+  //  writeSD(i++);
   }
+  /*
+  if( servoTest )
+  {
+     setMS(HIGH,LOW);
+     setSpeed(1000);
+     setAccel(1000);
+     pulsePower( PULSELEN, PENUP ); 
+    moveSteppers(0,0);
+    for( int i = 100; i < 800; i += 10 )
+    {
+     //start pos
+      moveSteppers(i,i); 
+      delay(1000); //otherwise servo micro getss confused
+      pulsePower( PULSELEN, PENDOWN);
+      moveSteppers(-800,800);
+      pulsePower( PULSELEN, PENUP ); 
+      moveSteppers(800,-800);
+      pulsePower( PULSELEN, PENDOWN ); 
+      moveSteppers(i,i); 
+      pulsePower( PULSELEN, PENUP ); 
+    }
+    servoTest = false;
+  }
+  */
 
   if(Serial.available() > 0 )
   {
@@ -161,29 +209,60 @@ void loop() {
     commandWaiting = false;
     switch( payload.command )
     {
-      case 's':
-        pulsePower( 1, payload.arg1 );
-      break;
-      case 'm':
-        moveSteppers();
+      case 't':
+        servoTest = payload.arg1; 
         break;
+      case 's':
+        pulsePower( payload.arg2, payload.arg1 );
+        Serial.println("ok");
+        break;
+      case 'c':
+        calibrate();
+        Serial.println("ok");
+        break;
+      case 'a':
+        setAccel(payload.arg1);
+        break;
+      case 'm':
+        stepLeft(payload.arg1);
+        stepRight(payload.arg2);
+        
+        break;
+      case 'g':
+          drawLine(x1,y1,payload.arg1,payload.arg2);
+          Serial.println( "ok" );
+        break;
+      case 'q':
+         Serial.println( "pos" );
+         Serial.println( x1 / StepUnit );
+         Serial.println( y1 / StepUnit);
+         Serial.println( a1 / StepUnit);
+         Serial.println( b1 / StepUnit);
+         Serial.println( StepUnit );
+         Serial.println( MOTOR_DIST_CM);
+         Serial.println("ok");
+         break;
       case 'p':
         setSpeed(payload.arg1);
+        setPWM(payload.arg2);
+        Serial.println("ok");
+      break;
+      case 'i':
+        setMS(payload.arg1,payload.arg2);
+        Serial.println("ok");
       break;
       #ifdef useSD
       case 'w':
         writeSD(payload.arg1);
         
-        #ifdef useRadio
+        //#ifdef useRadio
         //initRadio(); //need this after a write/read some combo?
-        #endif
+        //#endif
         break;  
-      case 't':
-        break;
       #endif
       #ifdef useRadio
       case 'r':
-        readSD();
+     //   readSD();
         break;
       #endif
       default:
@@ -193,8 +272,8 @@ void loop() {
      sendAck = true;   
   }
 #ifdef useRadio        
-if( checkRadio)
-  doRadio();
+//if( checkRadio)
+ // doRadio();
 #endif
 
 #ifdef testIO
