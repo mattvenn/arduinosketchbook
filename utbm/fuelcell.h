@@ -22,7 +22,7 @@ Message message;
 
 void printFuelCellStatus () 
 {
-  Serial.print("Status:            "); Serial.print(message.fuelcellStatus);         Serial.println("");
+  Serial.print("Status:            "); Serial.print(message.fuelcellStatus, DEC);         Serial.println("");
   Serial.print("Ambient Temp:      "); Serial.print(message.fuelcellAmbientT);       Serial.println(" C");  
   Serial.print("Stack Voltage:     "); Serial.print(message.fuelcellStackV);         Serial.println(" V");  
   Serial.print("Stack Current:     "); Serial.print(message.fuelcellStackI);         Serial.println(" A");  
