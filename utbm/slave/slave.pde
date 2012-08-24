@@ -27,7 +27,7 @@ unsigned long lastTime;
 
 void setup()  
 {
-  // EEPROM.write(idAddress,2); //set address
+  //EEPROM.write(idAddress,3); //set address
   id = getId();
   Serial.begin(9600);
   Serial.print("slave id:"); 
@@ -38,41 +38,68 @@ void setup()
   pinMode(LED,OUTPUT);
 
   lcd.begin(16, 2);
-  
+  displayStartScreen();
+  delay(2000);
 
 }
 
-void displayFuelCellStatus()
-{
-  //lcd.setCursor(8, 0);
-  //lcd.print "
-  // Print a message to the LCD.
-  lcd.clear();
-  lcd.setCursor(0,0);
-  lcd.print("id:");
-  lcd.print(id);
-  lcd.print(" ");
-  lcd.print( message.fuelcellStackT );
-  lcd.print( "C" );
-  lcd.setCursor(0, 1);
-  // print the number of seconds since reset:
-  lcd.print( message.fuelcellStackV );
-  lcd.print( "V " );
-  lcd.print( message.fuelcellStackI );
-  lcd.print( "A" );
-}
 void loop()
 {
-  //update fuelcell serial
+  //update fuelcell serial, blocks till something comes in from the fuel cell
+  displayWaitStack();
   updateFuelCellStatus();
 
   printFuelCellStatus();
-  displayFuelCellStatus();
+  displayLCDFuelCellStatus();
 
+  //this blocks till we receive a data request
   sendData();
-  
 }
 
+void displayWaitStack()
+{
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print( "waiting for" );
+  lcd.setCursor(0,1);
+  lcd.print( "data from stack" );
+}
+
+void displayStartScreen()
+{
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print( "Arcola Energy");
+  lcd.setCursor(0,1);
+  lcd.print( "lab systems");
+}
+
+void displayLCDSend()
+{
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print( "sending data" );
+  lcd.setCursor(0, 1);
+  lcd.print( "id " );
+  lcd.print( id );
+}
+
+void displayLCDFuelCellStatus()
+{
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print( message.fuelcellStackI * message.fuelcellStackV );
+  lcd.print( "W" );
+  lcd.setCursor(8,0);
+  lcd.print( message.fuelcellStackT );
+  lcd.print( "C" );
+  lcd.setCursor(0, 1);
+  lcd.print( message.fuelcellStackV );
+  lcd.print( "V" );
+  lcd.setCursor(8, 1);
+  lcd.print( message.fuelcellStackI );
+  lcd.print( "A" );
+}
 void sendData()
 {
   //wait for master to ask for data
@@ -84,7 +111,6 @@ void sendData()
   if( masterSerial.read() == '\001' )
   {
     debug("sending data\n");
-
     lastTime = millis();
     message.id = id;
     message.uptime = millis();
@@ -96,6 +122,8 @@ void sendData()
     //body
     masterSerial.write((const uint8_t *)&message,sizeof(Message));
     flash();
+    displayLCDSend();
+    delay(500);
   }
 }
 
@@ -109,10 +137,6 @@ void flash()
 {
   digitalWrite(LED,ledState);
   ledState = !ledState;
-  if( ledState )
-    lcd.cursor();
-  else
-    lcd.noCursor();
 }
 
 byte getId()
