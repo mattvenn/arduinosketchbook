@@ -4,17 +4,20 @@
 
 #include "fuelcell.h"
 
-const int numPorts = 1;
-const int pollInterval = 2000; //ms
+#define testMem 1
+
+const int numPorts = 5;
+const int slaveDelay = 150;
+const int pollInterval = 4000; //ms
 SoftwareSerial serialPorts[numPorts] =
     { 
       //can't use pins 10->13 as they are used for SD
       //can't use A4 and A5 because they are used by wire library
-      SoftwareSerial(2,3), //slave 0
-      //  SoftwareSerial(4,5), //slave 1
-      //  SoftwareSerial(6,7), //slave 2
-      //  SoftwareSerial(A0,A1), //slave 3
-      //  SoftwareSerial(A2,A3), //salve 4
+    SoftwareSerial(7,6), //slave 0
+    SoftwareSerial(5,4), //slave 1
+    SoftwareSerial(3,2), //slave 2
+    SoftwareSerial(A3,A2), //slave 3
+    SoftwareSerial(A1,A0), //slave 4
 
     };
 
@@ -45,18 +48,26 @@ void setup()
   pinMode(LED1,OUTPUT);
   pinMode(LED2,OUTPUT);
   msgSize = sizeof(Message);
-  Serial.println("rtc setup");
+  Serial.println("rtc");
   setupRTC();
-  Serial.println("sd setup");
+  Serial.println("ok");
+  Serial.println("sd");
   setupSD();
-  fString = "started OK";
+  Serial.println("ok");
+  fString = "started";
   writeError( fString );
+  Serial.println("started");
+#ifdef testMem
+Serial.print( "mem: ");
+Serial.println(freeMemory());
+#endif
 }
 
 void loop()
 {
   if( statusLED.poll(500) )
     flash(LED1);
+    /*
   if( Serial.available() )
   {
     char c = Serial.read();
@@ -73,18 +84,23 @@ void loop()
         break;
     }
   }
+  */
   //wait till it's time to fetch data
   if( getData.poll(pollInterval))
   {
+    #ifdef testMem
+    Serial.print( "mem: ");
+    Serial.println(freeMemory());
+    #endif
     printDate();
     for( int port = 0; port < numPorts; port ++ )
     {
-      Serial.print( "requesting data from slave on port:" );
+      Serial.print( "data req:" );
       Serial.println( port );
       serialPorts[port].listen();
       serialPorts[port].write('\001');
       //wait for slave to respond
-      delay(100);
+      delay(slaveDelay);
       if(serialPorts[port].available() >= msgSize + 2)
       {
         //has to have correct header
@@ -98,24 +114,31 @@ void loop()
           //check the data is OK
           if( validateCheckSum() )
           {
-            Serial.println("got data OK" );
-            printFuelCellStatus();
+            Serial.println("data ok" );
+            //printFuelCellStatus();
             writeData();
           }
           else
           {
-            fString = "corrupt data from port "; 
+            fString = "corrupt data from "; 
             fString += port;
+            Serial.println(fString);
             writeError( fString );
-            Serial.println("data corrupt" );
           }
+        }
+        else
+        {
+            fString = "bad header from "; 
+            fString += port;
+            Serial.println(fString);
+            writeError( fString );
         }
       }
       else
       {
-        Serial.println( "slave didn't respond");
-        fString = "slave didn't respond on port ";
+        fString = "no reply from ";
         fString += port;
+        Serial.println(fString);
         writeError( fString );
       }
     }
@@ -136,7 +159,10 @@ boolean validateCheckSum()
   message.cksum = 0;
   if( getCheckSum() != sentCksum )
     return false;
-  Serial.print( "valid cksum: " ); Serial.println( sentCksum, DEC );
+ /*
+ Serial.print( "valid cksum: " );
+  Serial.println( sentCksum, DEC );
+  */
   return true;
 }
 
@@ -151,3 +177,23 @@ int getCheckSum()
   }
   return XOR;
 }
+
+#ifdef testMem
+extern unsigned int __data_start;
+extern unsigned int __data_end;
+extern unsigned int __bss_start;
+extern unsigned int __bss_end;
+extern unsigned int __heap_start;
+extern void *__brkval;
+
+int freeMemory() {
+int free_memory;
+  
+    if((int)__brkval == 0)
+        free_memory = ((int)&free_memory) - ((int)&__bss_end);
+    else
+        free_memory = ((int)&free_memory) - ((int)__brkval);
+    return free_memory;
+};
+#endif
+
