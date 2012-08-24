@@ -4,7 +4,7 @@
 
 #include "fuelcell.h"
 
-#define testMem 1
+//#define testMem 1
 
 const int numPorts = 5;
 const int slaveDelay = 150;
