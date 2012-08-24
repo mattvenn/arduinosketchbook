@@ -11,15 +11,15 @@ void setupSD()
   // Use half speed like the native library.
   // change to SPI_FULL_SPEED for more performance.
   if (!sd.begin(chipSelect, SPI_HALF_SPEED)) sd.initErrorHalt();
-  Serial.println( "SD initialized");
+  Serial.println( "SD init");
 }
 void writeError(String errString)
 {
   if (!myFile.open(ERRORFILE, O_RDWR | O_CREAT | O_AT_END)) {
-    sd.errorHalt("opening file for write failed");
+      Serial.println( "err opening file");
+      return;
   }
-
-  Serial.println( "writing error to SD...");
+  Serial.print( "write err to SD:");
   // if the file opened okay, write to it:
   myFile.print( getUnixSecs() );
   myFile.print( "," );
@@ -27,16 +27,17 @@ void writeError(String errString)
 
   // close the file:
   myFile.close();
-  Serial.println("done.");
+  Serial.println("ok");
 }
 
 void writeData()
 {
   if (!myFile.open(DATAFILE, O_RDWR | O_CREAT | O_AT_END)) {
-    sd.errorHalt("opening file for write failed");
+      Serial.println( "err opening file");
+      return;
   }
 
-  Serial.print("writing data to SD...");
+  Serial.print("writing SD:");
 
   // if the file opened okay, write to it:
   myFile.print( getUnixSecs() );
@@ -59,14 +60,15 @@ void writeData()
 
   // close the file:
   myFile.close();
-  Serial.println("done.");
+  Serial.println("ok");
 }
 
 void readFile(const char * filename)
 {
   // re-open the file for reading:
   if (!myFile.open(filename, O_READ)) {
-    sd.errorHalt("opening file for read failed");
+      Serial.println( "err opening file");
+      return;
   }
 
   // read from the file until there's nothing else in it:
