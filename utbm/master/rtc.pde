@@ -9,7 +9,7 @@ void setupRTC () {
     RTC.begin();
 
   if (! RTC.isrunning()) {
-    Serial.println("RTC is NOT running!");
+//    Serial.println("RTC is NOT running!");
     // following line sets the RTC to the date & time this sketch was compiled
     RTC.adjust(DateTime(__DATE__, __TIME__));
   }
@@ -37,11 +37,4 @@ void printDate()
     Serial.print(':');
     Serial.print(now.second(), DEC);
     Serial.println();
-   /* 
-    Serial.print(" since midnight 1/1/1970 = ");
-    Serial.print(now.unixtime());
-    Serial.print("s = ");
-    Serial.print(now.unixtime() / 86400L);
-    Serial.println("d");
-*/
 }
