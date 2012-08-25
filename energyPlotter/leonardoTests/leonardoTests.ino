@@ -31,8 +31,8 @@ MilliTimer statusTimer,sdTimer;
 #include <AccelStepper.h>
 
 //servo constants
-#define PENUP 300
-#define PENDOWN 500
+#define PENDOWN 300
+#define PENUP 450
 #define PULSELEN 2
 
 //pin defs
@@ -212,11 +212,17 @@ void loop() {
       case 't':
         servoTest = payload.arg1; 
         break;
+      case 'd':
+        pulsePower( PULSELEN, payload.arg1 ? PENDOWN : PENUP );
+        Serial.println( payload.arg1 ? "pen down" : "pen up" );
+        Serial.println( "ok");
+        break;
       case 's':
         pulsePower( payload.arg2, payload.arg1 );
         Serial.println("ok");
         break;
       case 'c':
+        pulsePower( PULSELEN, PENUP ); 
         calibrate();
         Serial.println("ok");
         break;
@@ -234,11 +240,17 @@ void loop() {
         break;
       case 'q':
          Serial.println( "pos" );
-         Serial.println( x1 / StepUnit );
+         Serial.print( "x: " );
+         Serial.print( x1 / StepUnit );
+         Serial.print( " y: " );
          Serial.println( y1 / StepUnit);
-         Serial.println( a1 / StepUnit);
+         Serial.print( " a1: " );
+         Serial.print( a1 / StepUnit);
+         Serial.print( " b1: " );
          Serial.println( b1 / StepUnit);
+         Serial.print( "stepunit: " );
          Serial.println( StepUnit );
+         Serial.print( "motordist: " );
          Serial.println( MOTOR_DIST_CM);
          Serial.println("ok");
          break;
