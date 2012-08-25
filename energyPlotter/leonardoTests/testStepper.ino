@@ -9,10 +9,11 @@
 #endif
 #define BIT_TST(REG, bit, val) ( ( (REG & (1UL << (bit) ) ) == ( (val) << (bit) ) ) )
 
-const int HOME_PWM_HIGH = 150;
+const int HOME_PWM_HIGH = 70;
 const int HOME_PWM_LOW = 10;
-const int maxSpeed = 5; //800;
-int pwmVal = 100;
+const int HOME_SPEED = 3;
+const int maxSpeed = 3; //800;
+const int DEFAULT_PWM = 60;
 //const int steps = 200;
 int stepTime = 2;
 const int SUPERFAST_ACCELERATION = 6000;
@@ -23,7 +24,7 @@ AccelStepper rightStepper(fsR,bsR);
 
 void initSteppers()
 {
-  setPWM(pwmVal);
+  setPWM(DEFAULT_PWM);
   setSpeed(maxSpeed);
   setAccel(SUPERFAST_ACCELERATION);
 
@@ -39,41 +40,36 @@ void initSteppers()
 
 void setPWM(int pwm)
 {
-  pwmVal = pwm;
-  setPWML(pwmVal);
-  setPWMR(pwmVal);
-  Serial.print( "pwm set to" );
-  Serial.println(pwmVal);
+  setPWML(pwm);
+  setPWMR(pwm);
 }
-void setPWML(int pwmVal)
+void setPWML(int pwm)
 {
-  analogWrite(PWML, pwmVal );
+  analogWrite(PWML, pwm);
   Serial.print( "pwmL = ");
-  Serial.println( pwmVal );
+  Serial.println( pwm);
 }
-void setPWMR(int pwmVal )
+void setPWMR(int pwm)
 {
-  analogWrite(PWMR, pwmVal );
+  analogWrite(PWMR, pwm);
   Serial.print( "pwmR = ");
-  Serial.println( pwmVal );
+  Serial.println( pwm);
 }
 
 void calibrate()
 {
   setMS(LOW,LOW);
-  //set speed to normal
- // setSpeed( 1000 );
+  setSpeed( HOME_SPEED );
   findLeftLimit();
+  //for now, pay out left side
+//  stepLeft(1000);
+
   int steps = findRightLimit();
-  Serial.println( steps );
- // Serial.println( steps / StepUnit );
-//  setSpeed(400);
+  Serial.print( "steps to right: " ); Serial.println( steps );
   const int GONDOLAWIDTH = 14;
-//  MOTOR_DIST_CM = 64;
- // StepUnit = steps/ (MOTOR_DIST_CM - GONDOLAWIDTH);
   MOTOR_DIST_CM = steps / StepUnit;
   MOTOR_DIST_CM += GONDOLAWIDTH ;
-  Serial.println( MOTOR_DIST_CM);
+  Serial.print( "width (cm): " ); Serial.println( MOTOR_DIST_CM);
   w= MOTOR_DIST_CM*StepUnit;
   h= 0;
   Serial.print( "w = ");
@@ -82,17 +78,14 @@ void calibrate()
   y1 = 0;
   a1= sqrt(pow(x1,2)+pow(y1,2));
   b1= sqrt(pow((w-x1),2)+pow(y1,2));
-  Serial.println( a1);
-  Serial.println( b1 );
-  Serial.print( "about to move to midpoint" );
-  Serial.println( x1 );
-  Serial.println( y1 );
-  Serial.println( w/2 );
-  Serial.println( w/2 );
+  Serial.print( "a1:" ); Serial.println( a1);
+  Serial.print( "b1:" ); Serial.println( b1 );
+  Serial.println( "about to move to midpoint" );
+  setPWM(DEFAULT_PWM);
 
   drawLine(x1,y1,w/2,w/2);
-
 }
+
 int findRightLimit()
 {
   int steps = 0;
@@ -100,18 +93,17 @@ int findRightLimit()
   //set pwmR to high
   setPWMR(HOME_PWM_HIGH);
   //set pwmR to low
-  setPWML(HOME_PWM_LOW);
+  setPWML(HOME_PWM_HIGH);
 
   //while limit l is high, wind l motor
   while( digitalRead( LIMITR ) == HIGH )
 //  while( bit_is_set( PORTC, 7 ) )  //reg bit val
   {
-    stepLeft(-1);stepRight(-1);
+    stepLeft(+1);
+    stepRight(-1);
     steps++;
   }
   Serial.println( "right limit reached" );
-  setPWMR(pwmVal);
-  setPWML(pwmVal);
   return steps;
 }
 
@@ -134,8 +126,6 @@ int findLeftLimit()
 //    steps +=5;
   }
   Serial.println( "left limit reached" );
-  setPWMR(pwmVal);
-  setPWML(pwmVal);
   return steps;
 }
 
