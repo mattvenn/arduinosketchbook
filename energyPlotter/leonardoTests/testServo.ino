@@ -15,13 +15,13 @@ void pulsePower( int pulseLength, int delayTime )
   delay( pulseLength );
   setPowerPin( HIGH );
 
-  //wait for servo to move
-  delay(1000);
+  //wait for servo to move, think this is about right
+  delay(2*delayTime);
 
   //then turn off the power
   setPowerPin(LOW);
-
-
+  //wait for a bit longer to allow board to reset (multiple calls can stop the servo working properly)
+  delay(500);
 }
 void setPowerPin( boolean state )
 {
