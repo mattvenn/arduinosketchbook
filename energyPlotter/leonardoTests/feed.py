@@ -1,6 +1,8 @@
 #!/usr/bin/python
 import re
+import tty
 import time
+import string
 
 polar = True
 
@@ -9,9 +11,10 @@ gcodes = gcode.readlines()
 serial = None
 port = '/dev/ttyACM0'
 serial = open( port, 'r+' )
-print "wait for port"
-time.sleep( 1)
-import string
+tty.setraw(serial);
+#print "wait for port"
+#//time.sleep( 1)
+
 def readResponse():
   response = ""
   while string.find(response,"ok"):
@@ -24,7 +27,7 @@ p = re.compile( "^#" )
 
 for line in gcodes:
   if p.match(line):
-    print "skip"
+    print "skipping line:", line
   else:
     print line
     serial.write(line)
