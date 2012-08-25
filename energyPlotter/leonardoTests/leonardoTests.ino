@@ -72,7 +72,7 @@ int i = 0;
 //drawing globals
 // Approximate dimensions (in steps) of the total drawing area
 #define stepsPerRevolution 200
-const float DIAMETER = 1.1;
+const float DIAMETER = 1.01; //for thin stainless
 const float circumference = 3.1415 * DIAMETER;
  float StepUnit = stepsPerRevolution / circumference;   
 float MOTOR_DIST_CM = 64;
@@ -137,7 +137,7 @@ void setup() {
   //config steppers
   initSteppers();
   //leave some time in case this doesn't work. Makes it easier to reprogram!  
-  delay(4000);
+  //delay(4000);
   #ifdef useSD
     initSD();
   #endif
