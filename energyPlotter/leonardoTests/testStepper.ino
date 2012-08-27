@@ -67,15 +67,18 @@ void calibrate()
   int steps = findRightLimit();
   Serial.print( "steps to right: " ); Serial.println( steps );
   const int GONDOLAWIDTH = 14;
+  /*
   MOTOR_DIST_CM = steps / StepUnit;
   MOTOR_DIST_CM += GONDOLAWIDTH ;
+  */
+  MOTOR_DIST_CM - 64;
   Serial.print( "width (cm): " ); Serial.println( MOTOR_DIST_CM);
   w= MOTOR_DIST_CM*StepUnit;
   h= 0;
   Serial.print( "w = ");
   Serial.println( w );
   x1 = w - (GONDOLAWIDTH/2) * StepUnit;
-  y1 = 0;
+  y1 = 1 * StepUnit; //FIXME;
   a1= sqrt(pow(x1,2)+pow(y1,2));
   b1= sqrt(pow((w-x1),2)+pow(y1,2));
   Serial.print( "a1:" ); Serial.println( a1);
