@@ -77,7 +77,7 @@ if __name__ == '__main__':
         action='store', dest='pwm', type=int, default=80,
         help="pwm to draw")
     parser.add_argument('--speed',
-        action='store', dest='speed', type=int, default=3,
+        action='store', dest='speed', type=int, default=4,
         help="speed to draw")
     parser.add_argument('--ms',
         action='store', dest='ms', type=int, default=0,
