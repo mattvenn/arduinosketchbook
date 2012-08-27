@@ -15,7 +15,7 @@ signal.signal(signal.SIGALRM, handler)
 
 def readResponse(serial,timeout=10):
   response = ""
-  print "setting timeout to", timeout
+  #print "setting timeout to", timeout
   while string.find(response,"ok"):
     try:
       if(timeout > 0):
@@ -23,7 +23,7 @@ def readResponse(serial,timeout=10):
 
       response = serial.readline()
       signal.alarm(0)
-      print response
+      #print response
       if response == "ok\n":
         print "got ok"
     except:
@@ -49,8 +49,11 @@ def readFile(args):
     serial.write("c")
     readResponse(serial,0)
 
-   #speed and pwm
+  #speed and pwm
   serial.write("p%d,%d" % (args.speed, args.pwm ))
+  readResponse(serial)
+  #ms
+  serial.write("i%d,%d" % (MS0, MS1 ))
   readResponse(serial)
 
   for line in gcodes:
@@ -76,8 +79,27 @@ if __name__ == '__main__':
     parser.add_argument('--speed',
         action='store', dest='speed', type=int, default=3,
         help="speed to draw")
+    parser.add_argument('--ms',
+        action='store', dest='ms', type=int, default=0,
+        help="micro step: 0,1,2,3")
+
 
     args = parser.parse_args()
+    #none
+    if args.ms == 0:
+      MS0 = 0
+      MS1 = 0
+    #half
+    elif args.ms == 1:
+      MS0 = 1
+      MS1 = 0
+    #quarter
+    elif args.ms == 2:
+      MS0 = 0
+      MS1 = 1
+    #eigth
+    elif args.ms == 3:
+      MS0 = 1
+      MS1 = 1
 
-    #set values, must be a better way of doing this
     readFile(args)
