@@ -1,3 +1,7 @@
+/*
+todo
+test!
+*/
 //#include <JeeLib.h> //for MilliTimer
 #include <SoftwareSerial.h>
 #include <EEPROM.h>
@@ -8,8 +12,13 @@
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
 
+const int RX = 8;
+const int TX = 9;
 
-SoftwareSerial masterSerial(8,9); //RX,TX
+long int lastComms;
+const int badComms = 5000; //5 secs until we display a bad comms symbol (- for bad, + for good)
+
+SoftwareSerial masterSerial(RX,TX); //RX,TX
 SoftwareSerial fuelcellSerial(11,12);  // define pins for rs232 comms with Hymera
 
 //pin defs
@@ -23,12 +32,12 @@ const int idAddress = 0;
 byte id;
 //MilliTimer send;
 boolean ledState = false;
-unsigned long lastTime;
 
 void setup()  
 {
   //EEPROM.write(idAddress,3); //set address
   id = getId();
+  initialiseMessage(); //blank all the data, stops the LCD showing junk
   Serial.begin(9600);
   Serial.print("slave id:"); 
   Serial.println(id);
@@ -36,6 +45,9 @@ void setup()
   masterSerial.begin(9600);
   setupFuelcellSerial();
   pinMode(LED,OUTPUT);
+
+  //not sure if needed
+  pinMode(RX,INPUT);
 
   lcd.begin(16, 2);
   displayStartScreen();
@@ -46,23 +58,14 @@ void setup()
 void loop()
 {
   //update fuelcell serial, blocks till something comes in from the fuel cell
-  displayWaitStack();
   updateFuelCellStatus();
 
   printFuelCellStatus();
   displayLCDFuelCellStatus();
 
   //this blocks till we receive a data request
-  sendData();
-}
-
-void displayWaitStack()
-{
-  lcd.clear();
-  lcd.setCursor(0,0);
-  lcd.print( "waiting for" );
-  lcd.setCursor(0,1);
-  lcd.print( "data from stack" );
+  if( digitalRead(RX) )
+    sendData();
 }
 
 void displayStartScreen()
@@ -88,43 +91,48 @@ void displayLCDFuelCellStatus()
 {
   lcd.clear();
   lcd.setCursor(0,0);
-  lcd.print( message.fuelcellStackI * message.fuelcellStackV );
-  lcd.print( "W" );
-  lcd.setCursor(8,0);
-  lcd.print( message.fuelcellStackT );
-  lcd.print( "C" );
-  lcd.setCursor(0, 1);
-  lcd.print( message.fuelcellStackV );
-  lcd.print( "V" );
-  lcd.setCursor(8, 1);
-  lcd.print( message.fuelcellStackI );
-  lcd.print( "A" );
+  //if all OK, show some values
+  if( message.fuelcellStatus == 0 )
+  {
+    lcd.print( message.fuelcellStackI * message.fuelcellStackV, 1 );
+    lcd.print( "W" );
+    lcd.setCursor(8,0);
+    lcd.print( message.fuelcellStackT, 1 );
+    lcd.print( "C" );
+    lcd.setCursor(15,0);
+    lcd.print( millis() - lastComms > badComms ? "-" : "+" );
+    lcd.setCursor(0, 1);
+    lcd.print( message.fuelcellStackV, 1 );
+    lcd.print( "V" );
+    lcd.setCursor(8, 1);
+    lcd.print( message.fuelcellStackI, 1 );
+    lcd.print( "A" );
+  }
+  //otherwise show the error
+  else
+  {
+    lcd.print( "fuelcell error:" );
+    lcd.setCursor(0,1);
+    printStatus(message.fuelcellStatus);
+  }
 }
+
 void sendData()
 {
   //wait for master to ask for data
-  masterSerial.listen();
-  while (masterSerial.available() != 1 )
-  {
-    delay (10); 
-  }
-  if( masterSerial.read() == '\001' )
-  {
-    debug("sending data\n");
-    lastTime = millis();
-    message.id = id;
-    message.uptime = millis();
-    message.cksum = 0;
-    //calculate checksum
-    message.cksum = getCheckSum();
-    //header
-    masterSerial.print("\001\002");
-    //body
-    masterSerial.write((const uint8_t *)&message,sizeof(Message));
-    flash();
-    displayLCDSend();
-    delay(500);
-  }
+  debug("sending data\n");
+  message.id = id;
+  message.uptime = millis();
+  message.cksum = 0;
+  //calculate checksum
+  message.cksum = getCheckSum();
+  //header
+  masterSerial.print("\001\002");
+  //body
+  masterSerial.write((const uint8_t *)&message,sizeof(Message));
+  flash();
+  displayLCDSend();
+  lastComms = millis();
 }
 
 void debug(const char * msg )
