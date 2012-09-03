@@ -31,3 +31,15 @@ void printFuelCellStatus ()
   Serial.print("id:                "); Serial.print(message.id, DEC );               Serial.println("");
   Serial.print("uptime:            "); Serial.print(message.uptime );                Serial.println(" ms");
 }
+
+void initialiseMessage()
+{
+  message.fuelcellStatus = 0;
+  message.fuelcellAmbientT = 0;
+  message.fuelcellStackV = 0;
+  message.fuelcellStackI = 0;
+  message.fuelcellStackT = 0;
+  message.fuelcellOutputCurrent = 0;
+  message.id =0;
+  message.uptime = 0;
+}
