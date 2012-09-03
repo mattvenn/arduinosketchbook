@@ -13,6 +13,36 @@ Had problems using Hardware Serial on a Mega
  12: ARDUINO SOFT SERIAL RX PIN 4
  
  */
+#include <avr/pgmspace.h>
+
+//define status strings
+prog_char string_0[] PROGMEM = "normal          ";
+prog_char string_1[] PROGMEM = "stack temp high";
+prog_char string_2[] PROGMEM = "op current high";
+prog_char string_3[] PROGMEM = "stk current high";
+prog_char string_4[] PROGMEM = "batt < 10.5v";
+prog_char string_5[] PROGMEM = "batt < 11v";
+prog_char string_6[] PROGMEM = "h2 pressure low";
+prog_char string_7[] PROGMEM = "stack V low";
+prog_char string_8[] PROGMEM = "manual turn off";
+prog_char string_9[] PROGMEM = "fcp temp > 55C";
+prog_char string_10[] PROGMEM = "h2low+batt<10.5";
+
+//make a table
+PROGMEM const char *string_table[] = 	   // change "string_table" name to suit
+{   
+  string_0,
+  string_1,
+  string_2,
+  string_3,
+  string_4,
+  string_5, 
+  string_6, 
+  string_7, 
+  string_8, 
+  string_9, 
+  string_10,
+  };
 
 
 //raw vals
@@ -35,6 +65,15 @@ float fuelcellOutputCurrent;//
 float fuelcellBatteryV;
 */
 
+void printStatus(int message)
+{
+  char buffer[16];    // make sure this is large enough for the largest string it must hold
+
+    strcpy_P(buffer, (char*)pgm_read_word(&(string_table[message]))); // Necessary casts and dereferencing, just copy. 
+    lcd.print(buffer);
+    Serial.print("error: ");
+    Serial.println(buffer);
+}
 
 // Convert normal decimal numbers to binary coded decimal
 byte decToBcd(byte val)
