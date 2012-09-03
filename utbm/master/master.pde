@@ -1,7 +1,13 @@
+/*
+todo
+- Could you make each log file on the SD card have a human friendly date/timestamp - so when someone opens up a text file, I can see straightaway if it is the one from my most recent session
+- At present, I only see a single file DATA5.txt on the SD plus a few files in the old folder. Could you make it initialise a fresh log file each time and keep the previous ones. Maybe you've already got code for doing this but if not grab it from the attached hymera remote monitoring file which stores the log number in eeprom and increments it each time.
+- If SD Card missing or corrupt, Slaves don't display anything useful - they get stuck on their first output which can include junk data e.g. "0W, 112C" expect this will be solved if slaves can work regardless of master comms.
+
+*/
 #include <JeeLib.h> //for MilliTimer
 #include <SoftwareSerial.h>
 #include <EEPROM.h>
-
 #include "fuelcell.h"
 
 //#define testMem 1
@@ -9,10 +15,12 @@
 const int numPorts = 5;
 const int slaveDelay = 150;
 const int pollInterval = 4000; //ms
+const int slaveSignal[numPorts] = { 6,4,2,A2,A0 };
 SoftwareSerial serialPorts[numPorts] =
     { 
       //can't use pins 10->13 as they are used for SD
       //can't use A4 and A5 because they are used by wire library
+      //rx,tx
     SoftwareSerial(7,6), //slave 0
     SoftwareSerial(5,4), //slave 1
     SoftwareSerial(3,2), //slave 2
@@ -41,9 +49,11 @@ void setup()
   Serial.begin(9600);
   Serial.println("master"); 
   Serial.println("init ports");
-  for( int i = 0; i < numPorts; i ++ )
+  for( int port = 0; port < numPorts; port ++ )
   {
-    serialPorts[i].begin(9600);
+    serialPorts[port].begin(9600); //we'll use the software serial ports for reading, but not writing
+    pinMode(slaveSignal[port],OUTPUT); //we'll use the TX pin instead for a simple signal
+    digitalWrite(slaveSignal[port],LOW);
   }
   pinMode(LED1,OUTPUT);
   pinMode(LED2,OUTPUT);
@@ -98,9 +108,12 @@ void loop()
       Serial.print( "data req:" );
       Serial.println( port );
       serialPorts[port].listen();
-      serialPorts[port].write('\001');
+      //send the signal
+      digitalWrite(slaveSignal[port],HIGH);
       //wait for slave to respond
       delay(slaveDelay);
+      //reset signal
+      digitalWrite(slaveSignal[port],LOW);
       if(serialPorts[port].available() >= msgSize + 2)
       {
         //has to have correct header
