@@ -1,190 +1,84 @@
-/*
- * Arduino + Wicked Node / Reciever Posted to Pachube 
- *      Created on: Aug 10, 2011
- *          Author: Victor Aprea
- *   Documentation: http://wickeddevice.com
- *
- *       Source Revision: 567
- *
- * Licensed under Creative Commons Attribution-Noncommercial-Share Alike 3.0
- *
- */
+// Simple demo for feeding some random data to Pachube.
+// Based on pachube.pde 2011-07-08 <jcw@equi4.com> http://opensource.org/licenses/mit-license.php
+// Created by <maniacbug@ymail.com>
+//
+// See blog post at http://maniacbug.wordpress.com/2011/08/07/nanode/
 
-#include "EtherShield.h"
+// This has been tested with EtherCard rev 7752
+// Get it from http://jeelabs.net/projects/11/wiki/EtherCard
+#include <EtherCard.h>
 
+// change these settings to match your own setup
+#define FEED    "46756"
+#define APIKEY  "QHcIMwn4vsbSC3kgzClHrh_3XdiSAKw0b1dvY1VBV3JQRT0g"
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
- * The following #defines govern the behavior of the sketch. You can view console outputs using the Serial Monitor set to 2400 baud
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+// On Nanode, this will get the MAC from the 11AA02E48 chip
+byte mymac[6];
 
-#define MY_MAC_ADDRESS {0x54,0x55,0x58,0x10,0x00,0x25}               // must be uniquely defined for all Nanodes, e.g. just change the last number
-#define USE_DHCP                                                     // comment out this line to use static network parameters
-#define PACHUBE_API_KEY "QHcIMwn4vsbSC3kgzClHrh_3XdiSAKw0b1dvY1VBV3JQRT0g" // change this to your API key
-#define HTTPFEEDPATH "/v2/feeds/46756.csv"                               // change this to th relative URL of your feed
+// Static IP configuration to use if no DHCP found
+// Change these to match your site setup
+static byte static_ip[] = { 10,0,0,100 };
+// gateway ip address
+static byte static_gw[] = { 10,0,0,1 };
+static byte static_dns[] = { 10,0,0,1 };
 
-#ifndef USE_DHCP // then you need to supply static network parameters, only if you are not using DHCP
-  #define MY_IP_ADDRESS {192,168,  2, 25}
-  #define MY_NET_MASK   {255,255,255,  0}
-  #define MY_GATEWAY    {192,168,  2,  1}
-  #define MY_DNS_SERVER {192,168,  1,  1}
-#endif
+char website[] PROGMEM = "api.pachube.com";
 
-// change the template to be consistent with your datastreams: see http://api.pachube.com/v2/
-#define FEED_POST_MAX_LENGTH 256
-static char feedTemplate[] = "{\"version\":\"1.0.0\",\"datastreams\":[{\"id\":\"sensor1\", \"current_value\":\"%d\"},{\"id\":\"sensor2\",\"current_value\":\"%d\"}]}";
-static char feedPost[FEED_POST_MAX_LENGTH] = {0}; // this will hold your filled out template
-uint8_t fillOutTemplateWithSensorValues(uint8_t node_id, uint8_t sensorValue1, uint8_t sensorValue2, uint8_t sensorValue3, uint8_t sensorValue4){
-  // change this function to be consistent with your feed template, it will be passed the node id and four sensor values by the sketch
-  // if you return (1) this the sketch will post the contents of feedPost to Pachube, if you return (0) it will not post to Pachube
-  // you may use as much of the passed information as you need to fill out the template
-  
-  snprintf(feedPost, FEED_POST_MAX_LENGTH, feedTemplate, sensorValue1, sensorValue2); // this simply populates the current_value filed with sensorValue1
-  return (1);
-}
+byte Ethernet::buffer[500];
+uint32_t timer;
+Stash stash;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * You shouldn't need to make changes below here for configuring the sketch
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// mac and ip (if not using DHCP) have to be unique
-// in your local area network. You can not have the same numbers in
-// two devices:
-static uint8_t mymac[6] = MY_MAC_ADDRESS;
-
-// IP address of the host being queried to contact (IP of the first portion of the URL):
-static uint8_t websrvip[4] = { 0, 0, 0, 0 }; // resolved through DNS
-
-#ifndef USE_DHCP
-// use the provided static parameters
-static uint8_t myip[4]      = MY_IP_ADDRESS;
-static uint8_t mynetmask[4] = MY_NET_MASK;
-static uint8_t gwip[4]      = MY_GATEWAY;
-static uint8_t dnsip[4]     = MY_DNS_SERVER;
-#else
-// these will all be resolved through DHCP
-static uint8_t dhcpsvrip[4] = { 0,0,0,0 };    
-static uint8_t myip[4]      = { 0,0,0,0 };
-static uint8_t mynetmask[4] = { 0,0,0,0 };
-static uint8_t gwip[4]      = { 0,0,0,0 };
-static uint8_t dnsip[4]     = { 0,0,0,0 };
-#endif
-
-// global string buffer for hostname message:
-#define FEEDHOSTNAME "api.pachube.com\r\nX-PachubeApiKey: " PACHUBE_API_KEY
-#define FEEDWEBSERVER_VHOST "api.pachube.com"
-static char hoststr[150] = FEEDWEBSERVER_VHOST;
-
-#define BUFFER_SIZE 550
-static uint8_t buf[BUFFER_SIZE+1];
-
-EtherShield es=EtherShield();
-//WickedReceiver receiver;
+void printf_begin(void);
+void read_MAC(byte*);
 
 #define LIGHT_PIN A0
 #define LED_PIN 6
 int lightLevel = 10;
 int temp = 10;
-
-char str[50];
-char fstr[10];
 char tempStr[20];
 
-#include <TimedAction.h>
-TimedAction ActionUploadData= TimedAction( 10000, uploadData);
 
 
-  
-void setup(){
-  Serial.begin(9600);
+void setup () {
+  Serial.begin(57600);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN,LOW);
   setupTherm();
-  Serial.println("hackspace nanode");
+  printf_begin();
+  printf_P(PSTR("\nEtherCard/examples/nanode_pachube\n\r"));
 
-  // Initialise SPI interface
-  es.ES_enc28j60SpiInit();
+  // Fetch the MAC address -- Nanode-specific
+  read_MAC(mymac);
 
-  // initialize ENC28J60
-  es.ES_enc28j60Init(mymac, 8);
+  printf_P(PSTR("MAC: %02x:%02x:%02x:%02x:%02x:%02x\n\r"),
+      mymac[0],
+      mymac[1],
+      mymac[2],
+      mymac[3],
+      mymac[4],
+      mymac[5]
+  );
 
-#ifdef USE_DHCP
-  acquireIPAddress();
-#endif
-
-  printNetworkParameters();
-
-  //init the ethernet/ip layer:
-  es.ES_init_ip_arp_udp_tcp(mymac,myip, 80);
-
-  // init the web client:
-  es.ES_client_set_gwip(gwip);  // e.g internal IP of dsl router
-  es.ES_dnslkup_set_dnsip(dnsip); // generally same IP as router
+  if (ether.begin(sizeof Ethernet::buffer, mymac) == 0) 
+    printf_P(PSTR( "Failed to access Ethernet controller\n\r"));
   
-  Serial.println("Awaiting Client Gateway");
-  while(es.ES_client_waiting_gw()){
-    int plen = es.ES_enc28j60PacketReceive(BUFFER_SIZE, buf);
-    es.ES_packetloop_icmp_tcp(buf,plen);    
-  }
-  Serial.println("Client Gateway Complete, Resolving Host");
-
-  resolveHost(hoststr, websrvip);
-  Serial.print("Resolved host: ");
-  Serial.print(hoststr);
-/*
-  websrvip[0] = 10;
-  websrvip[1] = 0;
-  websrvip[2] = 0;
-  websrvip[3] = 2;
-  */
-  Serial.print(" to IP: ");
-  printIP(websrvip);
-  Serial.println();
-  
-  es.ES_client_set_wwwip(websrvip);
-}
-
-void loop(){
-  int plen = es.ES_enc28j60PacketReceive(BUFFER_SIZE, buf);
-  es.ES_packetloop_icmp_tcp(buf,plen);
-    ActionUploadData.check();
-}
-
-void formatString()
-{
-  
-    // Convert int/double to string, add it to main string, add csv commas
-    // dtostrf - converts a double to a string!
-    // strcat  - adds a string to another string
-    // strcpy  - copies a string
-    strcpy(str,"light,");
-    
-    dtostrf(lightLevel,0,3,fstr); 
-    strcat(str,fstr);
-    strcat(str,"\ntemp,");
-    
-    strcat(str,tempStr);
-
-    
-}
-
-//callback after the http push
-void browserresult_callback(uint8_t statuscode,uint16_t datapos) 
-{
-  // statuscode=0 means a good webpage was received, with http code 200 OK
-  // statuscode=1 an http error was received
-  // statuscode=2 means the other side in not a web server and in this case datapos is also zero
-
-  if (statuscode==0)
+  //always fails, so setup static straight away.
+  //if (!ether.dhcpSetup("Nanode"))
   {
-    Serial.println( "pachube returned OK" );
-  }  
-  else if( statuscode==1)
-  {  
-    Serial.println( "pachube error" );
+    printf_P(PSTR("DHCP failed, using static configuration\n\r"));
+    ether.staticSetup(static_ip, static_gw);
+    ether.copyIp(ether.dnsip, static_dns);
   }
-  else
-  {
-    Serial.print( "callback with unknown status: " );
-    Serial.println( statuscode );
-  }
+
+  ether.printIp("IP:  ", ether.myip);
+  ether.printIp("GW:  ", ether.gwip);  
+  ether.printIp("DNS: ", ether.dnsip);  
+
+  if (!ether.dnsLookup(website))
+    printf_P(PSTR("DNS failed\n\r"));
+    
+  ether.printIp("SRV: ", ether.hisip);
+  digitalWrite(LED_PIN,HIGH);
 }
 
 void getData()
@@ -192,100 +86,204 @@ void getData()
   lightLevel = 1024 - analogRead( LIGHT_PIN ); //to invert it so higher number = more light
   getTemp(); //updates tempStr
 }
-void uploadData()
-{
-    digitalWrite( LED_PIN, LOW );
-    //get the data
+
+void loop () {
+  ether.packetLoop(ether.packetReceive());
+
+  if (millis() > timer ) {
     getData();
-    
-   formatString();
- Serial.println( "sending " );
- Serial.println( str );
-      es.ES_client_http_post(PSTR(HTTPFEEDPATH),PSTR(FEEDWEBSERVER_VHOST),PSTR(FEEDHOSTNAME), PSTR("PUT "), str, &browserresult_callback);    
-    
+    digitalWrite(LED_PIN,LOW);
   
-    digitalWrite( LED_PIN, HIGH );  
+    timer = millis() + 10000;
+
+    printf_P(PSTR("Sending...\n\r"));
+    
+    // generate two fake values as payload - by using a separate stash,
+    // we can determine the size of the generated message ahead of time
+    byte sd = stash.create();
+    stash.print("light,");
+    stash.println((word) lightLevel);
+    stash.print("temp,");
+    stash.println(tempStr );
+    stash.save();
+    
+    // generate the header with payload - note that the stash size is used,
+    // and that a "stash descriptor" is passed in as argument using "$H"
+    Stash::prepare(PSTR("PUT http://$F/v2/feeds/$F.csv HTTP/1.0" "\r\n"
+                        "Host: $F" "\r\n"
+                        "X-PachubeApiKey: $F" "\r\n"
+                        "Content-Length: $D" "\r\n"
+                        "\r\n"
+                        "$H"),
+            website, PSTR(FEED), website, PSTR(APIKEY), stash.size(), sd);
+
+    // send the packet - this also releases all stash buffers once done
+    ether.tcpSend();
+
+
+    //ether.browseUrl(PSTR("/foo/"), "bar", website, my_callback);
+    digitalWrite(LED_PIN,HIGH);
+  }
+  
 }
 
-#ifdef USE_DHCP
-void acquireIPAddress(){
-  uint16_t dat_p;
-  long lastDhcpRequest = millis();
-  uint8_t dhcpState = 0;
-  Serial.println("Sending initial DHCP Discover");
-  es.ES_dhcp_start( buf, mymac, myip, mynetmask,gwip, dnsip, dhcpsvrip );
+// called when the client request is complete
+static void my_callback (byte status, word off, word len) {
+  Serial.println(">>>");
+  Ethernet::buffer[off+300] = 0;
+  Serial.print((const char*) Ethernet::buffer + off);
+  Serial.println("...");
+}
 
-  while(1) {
-    // handle ping and wait for a tcp packet
-    int plen = es.ES_enc28j60PacketReceive(BUFFER_SIZE, buf);
 
-    dat_p=es.ES_packetloop_icmp_tcp(buf,plen);
-    //    dat_p=es.ES_packetloop_icmp_tcp(buf,es.ES_enc28j60PacketReceive(BUFFER_SIZE, buf));
-    if(dat_p==0) {
-      int retstat = es.ES_check_for_dhcp_answer( buf, plen);
-      dhcpState = es.ES_dhcp_state();
-      // we are idle here
-      if( dhcpState != DHCP_STATE_OK ) {
-        if (millis() > (lastDhcpRequest + 10000L) ){
-          lastDhcpRequest = millis();
-          // send dhcp
-          Serial.println("Sending DHCP Discover");
-          es.ES_dhcp_start( buf, mymac, myip, mynetmask,gwip, dnsip, dhcpsvrip );
-        }
-      } 
-      else {
-        return;        
-      }
+int serial_putc( char c, FILE * ) 
+{
+  Serial.write( c );
+
+  return c;
+} 
+
+void printf_begin(void)
+{
+  fdevopen( &serial_putc, 0 );
+}
+
+// Nanode_MAC
+// Rufus Cable, June 2011 (threebytesfull)
+
+// Sample code to read the MAC address from the 11AA02E48 on the
+// back of the Nanode V5 board.
+
+// This code is hacky and basic - it doesn't check for bus errors
+// and will probably fail horribly if it's interrupted. It's best
+// run in setup() - fetch the MAC address once and keep it. After
+// the address is fetched, it puts the chip back in standby mode
+// in which it apparently only consumes 1uA.
+
+// Feel free to reuse this code - suggestions for improvement are
+// welcome! :)
+
+// http://ww1.microchip.com/downloads/en/DeviceDoc/DS-22067H.pdf
+// http://ww1.microchip.com/downloads/en/devicedoc/22122a.pdf 
+
+// Nanode has UNI/O SCIO on PD7 
+
+#define D7_ON  _BV(7) 
+#define D7_OFF (~D7_ON)
+
+#define SCIO_HIGH PORTD |= D7_ON
+#define SCIO_LOW  PORTD &= D7_OFF
+
+#define SCIO_OUTPUT DDRD |= D7_ON
+#define SCIO_INPUT  DDRD &= D7_OFF
+
+#define SCIO_READ ((PIND & D7_ON) != 0)
+
+#define WAIT_QUARTER_BIT delayMicroseconds(9);
+#define WAIT_HALF_BIT delayMicroseconds(20);
+
+#define NOP PORTD &= 0xff
+
+// Fixed Timings
+// standby pulse time (600us+)
+#define UNIO_TSTBY_US 600
+// start header setup time (10us+)
+#define UNIO_TSS_US 10
+// start header low pulse (5us+)
+#define UNIO_THDR_US 6
+
+// SCIO Manipulation macros
+#define BIT0 SCIO_HIGH;WAIT_HALF_BIT;SCIO_LOW;WAIT_HALF_BIT;
+#define BIT1 SCIO_LOW;WAIT_HALF_BIT;SCIO_HIGH;WAIT_HALF_BIT;
+
+// 11AA02E48 defines
+#define DEVICE_ADDRESS 0xA0
+#define READ_INSTRUCTION 0x03
+
+// Where on the chip is the MAC address located?
+#define CHIP_ADDRESS 0xFA
+
+inline bool unio_readBit()
+{
+  SCIO_INPUT;
+  WAIT_QUARTER_BIT;
+  bool value1 = SCIO_READ;
+  WAIT_HALF_BIT;
+  bool value2 = SCIO_READ;
+  WAIT_QUARTER_BIT;
+  return (value2 && !value1);
+}
+
+void unio_standby() {
+  
+  SCIO_OUTPUT;
+  SCIO_HIGH;
+  delayMicroseconds(UNIO_TSTBY_US);
+}
+
+void unio_sendByte(byte data) {
+  
+  SCIO_OUTPUT;
+  for (int i=0; i<8; i++) {
+    if (data & 0x80) {
+      BIT1;
+    } else {
+      BIT0;
     }
-  }   
+    data <<= 1;
+  }
+  // MAK
+  BIT1;
+  // SAK?
+  /*bool sak =*/ unio_readBit();
 }
-#endif
 
-// hostName is an input parameter, ipAddress is an outputParame
-void resolveHost(char *hostName, uint8_t *ipAddress){
-  es.ES_dnslkup_request(buf, (uint8_t*)hostName );
-  while(1){
-    int plen = es.ES_enc28j60PacketReceive(BUFFER_SIZE, buf);
-    es.ES_packetloop_icmp_tcp(buf,plen);   
-    if(es.ES_udp_client_check_for_dns_answer(buf, plen)) {
-      uint8_t *websrvipptr = es.ES_dnslkup_getip();
-      for(int on=0; on <4; on++ ) {
-     //   Serial.println( *websrvipptr, DEC );
-        ipAddress[on] = *websrvipptr++;
+void unio_readBytes(byte *addr, int length) {
+  for (int i=0; i<length; i++) {
+    
+    byte data = 0;
+    for (int b=0; b<8; b++) {
+      data = (data << 1) | (unio_readBit() ? 1 : 0);
+    }
+    SCIO_OUTPUT;
+    if (i==length-1) {
+      BIT0; // NoMAK
+    } else {
+      BIT1; // MAK
+    }
+    /*bool sak =*/ unio_readBit();
+    addr[i] = data;
+  }
+}
+
+void unio_start_header() {
+  SCIO_LOW;
+  delayMicroseconds(UNIO_THDR_US);
+  unio_sendByte(B01010101);
+}
+
+void read_MAC(byte* mac_address) {
+
+  // no interrupts!
+  cli();
+
+  // standby
+  unio_standby();
   
-      }     
-      return;
-    }    
-  }
-}  
+  // start header
+  unio_start_header();
+  
+  unio_sendByte(DEVICE_ADDRESS);
+  unio_sendByte(READ_INSTRUCTION);
+  unio_sendByte(CHIP_ADDRESS >> 8);
+  unio_sendByte(CHIP_ADDRESS & 0xff);
+  
+  // read 6 bytes
+  unio_readBytes(mac_address, 6);
+ 
+  // back to standby
+  unio_standby();
 
-
-
-// Output a ip address from buffer from startByte
-void printIP( uint8_t *buf ) {
-  for( int i = 0; i < 4; i++ ) {
-    Serial.print( buf[i], DEC );
-    if( i<3 )
-      Serial.print( "." );
-  }
+  // interrupts ok now
+  sei();
 }
-
-void printNetworkParameters(){
-  Serial.print( "My IP: " );
-  printIP( myip );
-  Serial.println();
-
-  Serial.print( "Netmask: " );
-  printIP( mynetmask );
-  Serial.println();
-
-  Serial.print( "DNS IP: " );
-  printIP( dnsip );
-  Serial.println();
-
-  Serial.print( "GW IP: " );
-  printIP( gwip );
-  Serial.println();  
-}
-
-
