@@ -60,12 +60,17 @@ void loop()
   //update fuelcell serial, blocks till something comes in from the fuel cell
   updateFuelCellStatus();
 
-  printFuelCellStatus();
+  //update display and print data on serial
   displayLCDFuelCellStatus();
+  printFuelCellStatus();
 
   //this blocks till we receive a data request
   if( digitalRead(RX) )
+  {
+    //wait for line to go low
+    while( digitalRead(RX) ) {;;}
     sendData();
+  }
 }
 
 void displayStartScreen()
