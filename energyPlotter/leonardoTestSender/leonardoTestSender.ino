@@ -14,7 +14,7 @@ Payload;
 Payload payload;
 int testNum = 0;
 MilliTimer testTimer;
-
+boolean autoTest = false;
 void setup()
 {
   pinMode(LED,OUTPUT);
@@ -45,18 +45,18 @@ void loop()
     
   }
  
-  if(testTimer.poll(4000) )
+  if( autoTest && testTimer.poll(1000) )
   {
    Serial.println( "-----------" );
-    if(++testNum  > 2)
+    if(++testNum  > 0)
       testNum = 0;
     payload.arg1 = 0;
     payload.arg2 = 0;
     switch( testNum )
     {
       case 0:
-        Serial.println( "servo" );
-        payload.command = 's';
+        Serial.println( "q" );
+        payload.command = 'q';
         payload.arg1 = random(200,500);
 
             readyToSend = true;
@@ -83,7 +83,7 @@ void loop()
           break;
     }
   }
-  
+ 
   if (readyToSend && rf12_canSend())
   {
 digitalWrite(LED,HIGH);
