@@ -11,7 +11,7 @@
 
 const int HOME_PWM_HIGH = 70;
 const int HOME_PWM_LOW = 10;
-const int HOME_SPEED = 3;
+const int HOME_SPEED = 4;
 const int maxSpeed = 3; //800;
 const int DEFAULT_PWM = 60;
 //const int steps = 200;
