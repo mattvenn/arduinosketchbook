@@ -24,9 +24,7 @@ jeelib/rf12.cpp needs adjusting to set rf12 chip select to portf bit 0
 #include <SPI.h>
 #include <JeeLib.h>
 
-#ifdef useRadio
 MilliTimer statusTimer,sdTimer;
-#endif
 
 #include <AccelStepper.h>
 
@@ -68,11 +66,12 @@ boolean testSD = false; //auto test the SD
 boolean checkRadio = false;
 boolean servoTest = false;
 int i = 0;
+long int lastCommandTime = 0;
 
 //drawing globals
 // Approximate dimensions (in steps) of the total drawing area
 #define stepsPerRevolution 200
-const float DIAMETER = 1.01; //for thin stainless
+const float DIAMETER = 1.05; //for thin green wire 1.01; //for thin stainless
 const float circumference = 3.1415 * DIAMETER;
  float StepUnit = stepsPerRevolution / circumference;   
 float MOTOR_DIST_CM = 64;
@@ -142,8 +141,8 @@ void setup() {
     initSD();
   #endif
   #ifdef useRadio
- // initRadio();
- // checkRadio = true;    
+  initRadio();
+  checkRadio = true;    
   #endif
 }
 
@@ -162,7 +161,12 @@ void loop() {
     Serial.print("mem:");
     Serial.println(freeMemory());
     #endif
-    //sendAck = 1;
+    //try to cope with lost packets. Send an ack if enough time has elapsed since we last completed a command.
+    if( millis() - lastCommandTime > 10000 ) 
+    {
+      sendAck = 1;
+      Serial.println( millis() );
+    }
   }
 
   if( testSD && sdTimer.poll(5000) )
@@ -170,30 +174,7 @@ void loop() {
  //   readSD();
   //  writeSD(i++);
   }
-  /*
-  if( servoTest )
-  {
-     setMS(HIGH,LOW);
-     setSpeed(1000);
-     setAccel(1000);
-     pulsePower( PULSELEN, PENUP ); 
-    moveSteppers(0,0);
-    for( int i = 100; i < 800; i += 10 )
-    {
-     //start pos
-      moveSteppers(i,i); 
-      delay(1000); //otherwise servo micro getss confused
-      pulsePower( PULSELEN, PENDOWN);
-      moveSteppers(-800,800);
-      pulsePower( PULSELEN, PENUP ); 
-      moveSteppers(800,-800);
-      pulsePower( PULSELEN, PENDOWN ); 
-      moveSteppers(i,i); 
-      pulsePower( PULSELEN, PENUP ); 
-    }
-    servoTest = false;
-  }
-  */
+   
 
   if(Serial.available() > 0 )
   {
@@ -206,11 +187,13 @@ void loop() {
 
   if( commandWaiting )
   {
+ //   stopRadio();
     commandWaiting = false;
     switch( payload.command )
     {
       case 't':
         servoTest = payload.arg1; 
+        Serial.print( "line tset: " ); Serial.println( servoTest );
         break;
       case 'd':
         pulsePower( PULSELEN, payload.arg1 ? PENDOWN : PENUP );
@@ -253,6 +236,8 @@ void loop() {
          Serial.print( "motordist: " );
          Serial.println( MOTOR_DIST_CM);
          Serial.println("ok");
+         payload.arg1 = x1 / StepUnit;
+         payload.arg2 = y1 / StepUnit;
          break;
       case 'p':
         setSpeed(payload.arg1);
@@ -274,18 +259,30 @@ void loop() {
       #endif
       #ifdef useRadio
       case 'r':
+        initRadio();
+        Serial.println( "useradio" );
      //   readSD();
+        break;
+      case 'x':
+        detachInterrupt(0);
+        Serial.println( "detach inter" );
+        SPI.end();
         break;
       #endif
       default:
         Serial.println( "bad command");
         break;
     }
+//    startRadio();
+//    initRadio();
      sendAck = true;   
+     lastCommandTime = millis();
+     Serial.print( "command finished at: " );
+     Serial.println( lastCommandTime );
   }
 #ifdef useRadio        
-//if( checkRadio)
- // doRadio();
+if( checkRadio)
+  doRadio();
 #endif
 
 #ifdef testIO
