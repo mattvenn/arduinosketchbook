@@ -67,7 +67,7 @@ void getTemp()
     Fract = Tc_100 % 100;
 
     sprintf(tempStr, "%c%d.%d",SignBit ? '-' : '+', Whole, Fract < 10 ? 0 : Fract);  
-    Serial.print( "new temp: " );
-    Serial.println( tempStr );
+    //Serial.print( "new temp: " );
+    //Serial.println( tempStr );
 }
 

@@ -7,6 +7,7 @@
 // This has been tested with EtherCard rev 7752
 // Get it from http://jeelabs.net/projects/11/wiki/EtherCard
 #include <EtherCard.h>
+#include <JeeLib.h>
 
 // change these settings to match your own setup
 #define FEED    "46756"
@@ -17,12 +18,19 @@ byte mymac[6];
 
 // Static IP configuration to use if no DHCP found
 // Change these to match your site setup
-static byte static_ip[] = { 10,0,0,100 };
+static byte static_ip[] = { 
+  10,0,0,100 };
 // gateway ip address
-static byte static_gw[] = { 10,0,0,1 };
-static byte static_dns[] = { 10,0,0,1 };
+static byte static_gw[] = { 
+  10,0,0,1 };
+static byte static_dns[] = { 
+  10,0,0,1 };
 
-char website[] PROGMEM = "api.pachube.com";
+char cosmURL[] PROGMEM = "api.pachube.com";
+char robotURL[] PROGMEM = "mattvenn.net";
+
+byte cosmIP[4];
+byte robotIP[4];
 
 byte Ethernet::buffer[500];
 uint32_t timer;
@@ -36,13 +44,39 @@ void read_MAC(byte*);
 int lightLevel = 10;
 int temp = 10;
 char tempStr[20];
+boolean gotAck = true;
+//robot command def
+typedef struct {
+  char command;
+  unsigned int arg1;
+  unsigned int arg2;
 
+}
+Payload;
+#define PARSE
+#define MAXCOMMANDQUEUE 10
+Payload payload[MAXCOMMANDQUEUE];
+boolean readyToSend = false;
+MilliTimer testTimer;
+int commands = 0; // number of commands successfully parsed.
+int commandIndex = 0; //which command we're on at the mo
 
+#define MEMTEST
+boolean uploadData = true;
+boolean updateRobot = true;
+
+MilliTimer getDataTimer, uploadTimer;
 
 void setup () {
-  Serial.begin(57600);
+  Serial.begin(9600);
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN,LOW);
+
+  Serial.println( "initialising radio" );
+  delay(100);
+  rf12_initialize(2, RF12_433MHZ,212);
+  Serial.println( "rf12 setup done" );
+
   setupTherm();
   printf_begin();
   printf_P(PSTR("\nEtherCard/examples/nanode_pachube\n\r"));
@@ -51,17 +85,17 @@ void setup () {
   read_MAC(mymac);
 
   printf_P(PSTR("MAC: %02x:%02x:%02x:%02x:%02x:%02x\n\r"),
-      mymac[0],
-      mymac[1],
-      mymac[2],
-      mymac[3],
-      mymac[4],
-      mymac[5]
-  );
+  mymac[0],
+  mymac[1],
+  mymac[2],
+  mymac[3],
+  mymac[4],
+  mymac[5]
+    );
 
   if (ether.begin(sizeof Ethernet::buffer, mymac) == 0) 
     printf_P(PSTR( "Failed to access Ethernet controller\n\r"));
-  
+
   //always fails, so setup static straight away.
   //if (!ether.dhcpSetup("Nanode"))
   {
@@ -74,66 +108,149 @@ void setup () {
   ether.printIp("GW:  ", ether.gwip);  
   ether.printIp("DNS: ", ether.dnsip);  
 
-  if (!ether.dnsLookup(website))
+  //do the lookups
+  if (!ether.dnsLookup(robotURL))
     printf_P(PSTR("DNS failed\n\r"));
-    
-  ether.printIp("SRV: ", ether.hisip);
+  ether.copyIp(robotIP,ether.hisip);
+  ether.printIp("robot ip: ", robotIP);
+  if (!ether.dnsLookup(cosmURL))
+    printf_P(PSTR("DNS failed\n\r"));
+  ether.copyIp(cosmIP,ether.hisip);
+  ether.printIp("cosm ip: ", cosmIP);
+
+
   digitalWrite(LED_PIN,HIGH);
 }
-
+int turn= 0;
 void getData()
 {
   lightLevel = 1024 - analogRead( LIGHT_PIN ); //to invert it so higher number = more light
   getTemp(); //updates tempStr
 }
+static byte session;
+
 
 void loop () {
+  //poll ethernet
   ether.packetLoop(ether.packetReceive());
-
-  if (millis() > timer ) {
-    getData();
-    digitalWrite(LED_PIN,LOW);
-  
-    timer = millis() + 10000;
-
-    printf_P(PSTR("Sending...\n\r"));
-    
-    // generate two fake values as payload - by using a separate stash,
-    // we can determine the size of the generated message ahead of time
-    byte sd = stash.create();
-    stash.print("light,");
-    stash.println((word) lightLevel);
-    stash.print("temp,");
-    stash.println(tempStr );
-    stash.save();
-    
-    // generate the header with payload - note that the stash size is used,
-    // and that a "stash descriptor" is passed in as argument using "$H"
-    Stash::prepare(PSTR("PUT http://$F/v2/feeds/$F.csv HTTP/1.0" "\r\n"
-                        "Host: $F" "\r\n"
-                        "X-PachubeApiKey: $F" "\r\n"
-                        "Content-Length: $D" "\r\n"
-                        "\r\n"
-                        "$H"),
-            website, PSTR(FEED), website, PSTR(APIKEY), stash.size(), sd);
-
-    // send the packet - this also releases all stash buffers once done
-    ether.tcpSend();
+  //poll radio
+  doRadio();
 
 
-    //ether.browseUrl(PSTR("/foo/"), "bar", website, my_callback);
-    digitalWrite(LED_PIN,HIGH);
+#ifdef PARSE
+  if( commands )
+  {
+    if( gotAck == true )
+    {
+      if( commandIndex >= commands )
+      {
+        commands = 0;
+        commandIndex = 0;
+      }
+      else
+      {
+        readyToSend = true;
+      }
+    }
   }
-  
+#endif
+
+  if( getDataTimer.poll(10000) )
+  {
+
+#ifdef MEMTEST
+    Serial.print( "mem: " );
+    Serial.println( freeMemory() );
+#endif
+
+      if( turn ++ % 2 == 0 )
+      {
+        printf_P(PSTR("getting robot data\n"));
+
+        digitalWrite(LED_PIN,LOW);
+
+        timer = millis() + 2000;
+        ether.hisport = 10002;
+        ether.copyIp(ether.hisip,robotIP);
+      //  ether.printIp("robot ip: ", ether.hisip);
+
+        ether.browseUrl(PSTR("/"), "", robotURL, my_callback);
+        digitalWrite(LED_PIN,HIGH);
+      }
+      else
+      {
+        printf_P(PSTR("pushing to cosm\n"));
+
+        getData();
+
+        //http://blog.cuyahoga.co.uk/2012/05/theres-something-wrong-with-my-stash/
+        if (stash.freeCount() <= 52) 
+        {
+          Stash::initMap(56);
+        }
+        
+        byte sd = stash.create();
+        
+        stash.print("light,");
+        stash.println((word) lightLevel);
+        stash.print("temp,");
+        stash.println(tempStr );
+        stash.print("stash,");
+        stash.println( stash.freeCount() );
+        stash.save();
+        Serial.print( "stash mem:" ); Serial.println( stash.freeCount() );
+
+        // generate the header with payload - note that the stash size is used,
+        // and that a "stash descriptor" is passed in as argument using "$H"
+        ether.hisport = 80;
+        ether.copyIp(ether.hisip,cosmIP);
+      //  ether.printIp("cosm ip: ", ether.hisip);
+
+        Stash::prepare(PSTR("PUT http://$F/v2/feeds/$F.csv HTTP/1.0" "\r\n"
+          "Host: $F" "\r\n"
+          "X-PachubeApiKey: $F" "\r\n"
+          "Content-Length: $D" "\r\n"
+          "\r\n"
+          "$H"),
+        cosmURL, PSTR(FEED), cosmURL, PSTR(APIKEY), stash.size(), sd);
+
+        // send the packet - this also releases all stash buffers once done
+        session = ether.tcpSend();
+      }
+  }
+
+  const char * reply  = ether.tcpReply(session);
+  {
+    if( reply != 0)
+    {
+      Serial.print( "got cosm rep:" );
+      Serial.println( strlen( reply ));
+      //Serial.println( reply );
+    }
+  }
+
 }
 
 // called when the client request is complete
 static void my_callback (byte status, word off, word len) {
-  Serial.println(">>>");
-  Ethernet::buffer[off+300] = 0;
-  Serial.print((const char*) Ethernet::buffer + off);
-  Serial.println("...");
+  Serial.println("callback");
+  //  Serial.println( off );
+  //  Serial.println( len );
+  int offset = stripHeaders(off);
+  commands = parse(offset);
+  Serial.print( "parsed: ");
+  Serial.println( commands );
+  for( int i =0 ; i < commands ; i ++ )
+  {
+    Serial.print( i );
+    Serial.print( ":" );
+    Serial.print( payload[i].command );
+    Serial.print( payload[i].arg1 );
+    Serial.print( "," );
+    Serial.println( payload[i].arg2 );
+  }
 }
+
 
 
 int serial_putc( char c, FILE * ) 
@@ -215,19 +332,20 @@ inline bool unio_readBit()
 }
 
 void unio_standby() {
-  
+
   SCIO_OUTPUT;
   SCIO_HIGH;
   delayMicroseconds(UNIO_TSTBY_US);
 }
 
 void unio_sendByte(byte data) {
-  
+
   SCIO_OUTPUT;
   for (int i=0; i<8; i++) {
     if (data & 0x80) {
       BIT1;
-    } else {
+    } 
+    else {
       BIT0;
     }
     data <<= 1;
@@ -235,12 +353,12 @@ void unio_sendByte(byte data) {
   // MAK
   BIT1;
   // SAK?
-  /*bool sak =*/ unio_readBit();
+  /*bool sak =*/  unio_readBit();
 }
 
 void unio_readBytes(byte *addr, int length) {
   for (int i=0; i<length; i++) {
-    
+
     byte data = 0;
     for (int b=0; b<8; b++) {
       data = (data << 1) | (unio_readBit() ? 1 : 0);
@@ -248,10 +366,11 @@ void unio_readBytes(byte *addr, int length) {
     SCIO_OUTPUT;
     if (i==length-1) {
       BIT0; // NoMAK
-    } else {
+    } 
+    else {
       BIT1; // MAK
     }
-    /*bool sak =*/ unio_readBit();
+    /*bool sak =*/    unio_readBit();
     addr[i] = data;
   }
 }
@@ -269,21 +388,22 @@ void read_MAC(byte* mac_address) {
 
   // standby
   unio_standby();
-  
+
   // start header
   unio_start_header();
-  
+
   unio_sendByte(DEVICE_ADDRESS);
   unio_sendByte(READ_INSTRUCTION);
   unio_sendByte(CHIP_ADDRESS >> 8);
   unio_sendByte(CHIP_ADDRESS & 0xff);
-  
+
   // read 6 bytes
   unio_readBytes(mac_address, 6);
- 
+
   // back to standby
   unio_standby();
 
   // interrupts ok now
   sei();
 }
+
