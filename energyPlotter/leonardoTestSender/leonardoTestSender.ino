@@ -14,8 +14,7 @@ Payload;
 Payload payload;
 int testNum = 0;
 MilliTimer testTimer;
-char buffer[200];
-boolean gotOK = true;
+
 void setup()
 {
   pinMode(LED,OUTPUT);
@@ -26,58 +25,74 @@ void setup()
   delay(100);
   rf12_initialize(2, RF12_433MHZ,212);
   Serial.println( "rf12 setup done" );
- 
 }
-int offset = 0;
+byte pos = 0;
 void loop()
 {
-  boolean gotData = false;
-  int i = 0;
   if( Serial.available() )
   {
-    while( i <58)
-    {
-      if( Serial.available() )
-        buffer[i++] = Serial.read();
-    }
-    Serial.println( i );
-    gotData = true;
-    Serial.flush();
-    offset = stripHeaders();
+    //need to delay for serreadint to work
+    delay(100);
+    digitalWrite( LED, HIGH );
+    payload.command = Serial.read();
+    payload.arg1 = serReadInt();
+    payload.arg2 = serReadInt();
+    
+      readyToSend = true;
 
-  }
-
-  if( gotData && gotOK )
-  {
-   
-    if( offset != 0 )
-    {
-        offset = parse( offset );
-        if( offset != 0 )
-        {
-          Serial.println( payload.command );
-          Serial.println( payload.arg1 );
-          Serial.println( payload.arg2 );
-          readyToSend = true;
-        }
-        else
-        {
-          gotData = false;
-        }
-    }
-   
-  }
       
+      digitalWrite( LED, LOW );
+    
+  }
+ 
+  if(testTimer.poll(4000) )
+  {
+   Serial.println( "-----------" );
+    if(++testNum  > 2)
+      testNum = 0;
+    payload.arg1 = 0;
+    payload.arg2 = 0;
+    switch( testNum )
+    {
+      case 0:
+        Serial.println( "servo" );
+        payload.command = 's';
+        payload.arg1 = random(200,500);
+
+            readyToSend = true;
+
+        break;
+      case 1:
+        Serial.println( "stepper" );
+        payload.command = 'm';
+        payload.arg1 = 0; //random(100,300);
+        payload.arg2 = random(100,300);
+    readyToSend = true;
+
+        break;
+      case 2:
+        Serial.println( "SD" );
+        payload.command = 'w';
+        payload.arg1 = random(1000);
+    readyToSend = true;
+
+        break;
+        default:
+          Serial.print( "no test:" );
+          Serial.println( testNum );
+          break;
+    }
+  }
+  
   if (readyToSend && rf12_canSend())
   {
-    digitalWrite(LED,HIGH);
-    delay(100);
-    digitalWrite(LED,LOW);
-    readyToSend = false;
+digitalWrite(LED,HIGH);
+delay(100);
+digitalWrite(LED,LOW);
+readyToSend = false;
     //broadcast
     rf12_sendStart(0, &payload, sizeof payload);
     Serial.println("sent");
-    gotOK = false;
 
   }
   
@@ -91,10 +106,8 @@ void loop()
     Serial.println( p->command );
     Serial.println( p->arg1 );
     Serial.println( p->arg2 );
-    //not got the ok, but this will do for now
-    gotOK = true;
-    
   }
+
 
 }
 
