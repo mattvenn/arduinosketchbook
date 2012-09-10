@@ -8,11 +8,11 @@ todo
 #include "fuelcell.h"
 
 #define useSD
-//#define testMem 1
+#define testMem
 const int numPorts = 5;
-const int slaveDelay = 150;
-const int pollInterval = 4000; //ms
-const int slaveSignal[numPorts] = { 6,4,2,A2,A0 };
+const int slaveDelay = 500;
+const int pollInterval = 5000; //ms
+const int slaveSignal[numPorts] = { 6,4,2,A1,A3 };
 SoftwareSerial serialPorts[numPorts] =
     { 
       //can't use pins 10->13 as they are used for SD
@@ -21,8 +21,9 @@ SoftwareSerial serialPorts[numPorts] =
     SoftwareSerial(7,6), //slave 0
     SoftwareSerial(5,4), //slave 1
     SoftwareSerial(3,2), //slave 2
-    SoftwareSerial(A3,A2), //slave 3
-    SoftwareSerial(A1,A0), //slave 4
+    SoftwareSerial(A0,A1), //slave 4
+    SoftwareSerial(A2,A3), //slave 3
+
     };
 
 //pin defs
@@ -41,8 +42,9 @@ String fString;
 void setup()  
 {
   Serial.begin(9600);
-  Serial.println("master"); 
-  Serial.println("init ports");
+  Serial.println(F("master"));
+
+  Serial.println(F("init ports"));
   for( int port = 0; port < numPorts; port ++ )
   {
     serialPorts[port].begin(9600); //we'll use the software serial ports for reading, but not writing
@@ -52,19 +54,18 @@ void setup()
   pinMode(LED1,OUTPUT);
   pinMode(LED2,OUTPUT);
   msgSize = sizeof(Message);
-  Serial.println("rtc");
+  Serial.println(F("rtc"));
   setupRTC();
-  Serial.println("ok");
-  #ifdef USESD
-  Serial.println("sd");
+  Serial.println(F("ok"));
+  Serial.println(F("sd"));
+//  writeLogNumber(0); //init log number
   setupSD();
-  Serial.println("ok");
-  #endif
+  Serial.println(F("ok"));
   fString = "started";
   writeError( fString );
-  Serial.println("started");
+  Serial.println(fString);
 #ifdef testMem
-Serial.print( "mem: ");
+Serial.print( F("mem: "));
 Serial.println(freeMemory());
 #endif
 }
@@ -73,24 +74,7 @@ void loop()
 {
   if( statusLED.poll(500) )
     flash(LED1);
-    /*
-  if( Serial.available() )
-  {
-    char c = Serial.read();
-    switch(c)
-    {
-        case 'd':
-          readFile(DATAFILE);
-        break;
-        case 'e':
-          readFile(ERRORFILE);
-        break;
-        default:
-          Serial.println( "bad command" );
-        break;
-    }
-  }
-  */
+
   //wait till it's time to fetch data
   if( getData.poll(pollInterval))
   {
@@ -99,9 +83,10 @@ void loop()
     Serial.println(freeMemory());
     #endif
     printDate();
+    //int port = 0;
     for( int port = 0; port < numPorts; port ++ )
     {
-      Serial.print( "data req port:" );
+      Serial.print( F("data req port:") );
       Serial.println( port );
       serialPorts[port].listen();
       //send the signal
@@ -125,7 +110,7 @@ void loop()
           //check the data is OK
           if( validateCheckSum() )
           {
-            Serial.println("data ok" );
+            Serial.println(F("data ok" ));
             //printFuelCellStatus();
             writeData();
           }
@@ -147,6 +132,7 @@ void loop()
       }
       else
       {
+        
         fString = "no reply from ";
         fString += port;
         Serial.println(fString);
@@ -160,7 +146,7 @@ void loop()
 void flash(int LED)
 {
   digitalWrite(LED,HIGH);
-  delay(100);
+  delay(50);
   digitalWrite(LED,LOW);
 }
 

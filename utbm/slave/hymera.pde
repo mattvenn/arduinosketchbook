@@ -90,7 +90,7 @@ byte bcdToDec(byte val)
 void setupFuelcellSerial()
 {
   fuelcellSerial.begin(9600); 
-  Serial.println("ARCOLA ENERGY > HYMERA DIAGNOSTICS");
+  Serial.println("ARCOLA ENERGY");
 }
 
 void updateFuelCellStatus () 
@@ -98,12 +98,16 @@ void updateFuelCellStatus ()
   fuelcellSerial.listen();  
   fuelcellSerial.flush();  //  clear buffer 
   while (fuelcellSerial.available() > 0 ) {      // wait for a gap of over 100ms with no byte received
+   if( digitalRead(RX) == HIGH )
+     return;
    // debug( "read char\n" );
     fuelcellSerial.read();  //     
     delay (100); 
   }
   //debug("found gap\n" );
   while (fuelcellSerial.available() <8) {
+       if( digitalRead(RX) == HIGH )
+     return;
    //  Serial.println( fuelcellSerial.available() );    // wait for buffer to contain 8 bytes - maybe not necessary. i put it in to debug
   }
   //debug("buffer full\n" );

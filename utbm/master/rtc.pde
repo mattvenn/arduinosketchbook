@@ -7,6 +7,7 @@ RTC_DS1307 RTC;
 void setupRTC () {
     Wire.begin();
     RTC.begin();
+    RTC.adjust(DateTime(__DATE__, __TIME__));
 
   if (! RTC.isrunning()) {
 //    Serial.println("RTC is NOT running!");
@@ -21,20 +22,26 @@ unsigned long getUnixSecs()
     return now.unixtime();
 }
 
+void printSerialDigits(byte digits){
+  // utility function for digital clock display: prints colon and leading 0
+  if(digits < 10)
+    Serial.print('0');
+  Serial.print(digits,DEC);   
+}
 void printDate()
 {
     DateTime now = RTC.now();
     
     Serial.print(now.year(), DEC);
     Serial.print('/');
-    Serial.print(now.month(), DEC);
+    printSerialDigits(now.month());
     Serial.print('/');
-    Serial.print(now.day(), DEC);
+    printSerialDigits(now.day());
     Serial.print(' ');
-    Serial.print(now.hour(), DEC);
+    printSerialDigits(now.hour());
     Serial.print(':');
-    Serial.print(now.minute(), DEC);
+    printSerialDigits(now.minute());
     Serial.print(':');
-    Serial.print(now.second(), DEC);
+    printSerialDigits(now.second());
     Serial.println();
 }

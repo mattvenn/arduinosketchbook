@@ -12,6 +12,7 @@ SdFile myFile;
 //String dataFile;
 char dataFile[] = "dat00000.csv";
 char errorFile[]= "err00000.csv";
+
 void setupSD()
 {
   // Initialize SdFat or print a detailed error message and halt
@@ -20,8 +21,8 @@ void setupSD()
   if (!sd.begin(chipSelect, SPI_HALF_SPEED)) sd.initErrorHalt();
   Serial.println( "SD init");
 
-  //setLogNumber(12345);
   setupLogNames();
+  writeHeader();
 
 }
 
@@ -65,24 +66,31 @@ void writeDate()
   DateTime now = RTC.now();
   myFile.print(now.year(), DEC);
   myFile.print("/");
-  myFile.print(now.month(), DEC);
+  printFileDigits( now.month() );
   myFile.print("/");
-  myFile.print(now.day(), DEC);
+  printFileDigits(now.day());
   myFile.print(" ");
-  myFile.print(now.hour(), DEC);
+  printFileDigits(now.hour());
   myFile.print(":");
-  myFile.print(now.minute(), DEC);
+  printFileDigits(now.minute());
   myFile.print(":");
-  myFile.print(now.second(), DEC);
-  myFile.print(",");
+  printFileDigits(now.second());
+}
+
+void printFileDigits(byte digits){
+  // utility function for digital clock display: prints colon and leading 0
+  if(digits < 10)
+    myFile.print('0');
+  myFile.print(digits,DEC);   
 }
 void writeError(String errString)
 {
   if (!myFile.open(errorFile, O_RDWR | O_CREAT | O_AT_END)) {
-      Serial.println( "err opening file");
+      Serial.print(F("err opening: "));
+      Serial.println( errorFile );
       return;
   }
-  Serial.print( "write err to SD:");
+  Serial.println(F("writing err to SD"));
   // if the file opened okay, write to it:
   writeDate();
 
@@ -91,20 +99,35 @@ void writeError(String errString)
 
   // close the file:
   myFile.close();
-  Serial.println("ok");
+  Serial.println(F("OK"));
+}
+
+void writeHeader()
+{
+  if (!myFile.open(dataFile, O_RDWR | O_CREAT | O_AT_END)) {
+      Serial.print(F("err opening: "));
+      Serial.println( dataFile );
+      return;
+  }
+  //Serial.println( "writing header" );
+  Serial.println(F("writing header"));
+  myFile.println( F("date,status,ambient temp,stack V,stack I,stack temp,id,uptime") );
+  myFile.close();
 }
 
 void writeData()
 {
   if (!myFile.open(dataFile, O_RDWR | O_CREAT | O_AT_END)) {
-      Serial.println( "err opening file");
+      Serial.print(F("err opening: "));
+      Serial.println( dataFile );
       return;
   }
 
-  Serial.print("writing SD:");
+  Serial.println(F("writing data"));
 
   // if the file opened okay, write to it:
-  myFile.print( getUnixSecs() );
+  //myFile.print( getUnixSecs() );
+  writeDate();
   myFile.print( "," );
   myFile.print( message.fuelcellStatus );
   myFile.print( "," );
@@ -124,25 +147,11 @@ void writeData()
 
   // close the file:
   myFile.close();
-  Serial.println("ok");
+  Serial.println(F("OK"));
 }
 
-void readFile(const char * filename)
-{
-  // re-open the file for reading:
-  if (!myFile.open(filename, O_READ)) {
-      Serial.println( "err opening file");
-      return;
-  }
-
-  // read from the file until there's nothing else in it:
-  int data;
-  while ((data = myFile.read()) > 0) Serial.write(data);
-  // close the file:
-  myFile.close();
-}
 #else
-
+void setupSD(){};
 void writeData(){}
 void writeError(String errString){}
 #endif

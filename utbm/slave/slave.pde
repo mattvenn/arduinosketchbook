@@ -3,6 +3,7 @@ todo
 test!
 */
 //#include <JeeLib.h> //for MilliTimer
+
 #include <SoftwareSerial.h>
 #include <EEPROM.h>
 #include <LiquidCrystal.h>
@@ -30,12 +31,12 @@ const int currentPin = A1;
 const boolean DEBUG = true;
 const int idAddress = 0;
 byte id;
-//MilliTimer send;
 boolean ledState = false;
+long int timer;
 
 void setup()  
 {
-  //EEPROM.write(idAddress,3); //set address
+ // EEPROM.write(idAddress,2); //set address
   id = getId();
   initialiseMessage(); //blank all the data, stops the LCD showing junk
   Serial.begin(9600);
@@ -57,20 +58,19 @@ void setup()
 
 void loop()
 {
-  //update fuelcell serial, blocks till something comes in from the fuel cell
-  updateFuelCellStatus();
-
-  //update display and print data on serial
-  displayLCDFuelCellStatus();
-  printFuelCellStatus();
-
-  //this blocks till we receive a data request
-  if( digitalRead(RX) )
+  //update fuelcell serial
+ // if( millis() - timer > 2000 )
   {
-    //wait for line to go low
-    while( digitalRead(RX) ) {;;}
-    sendData();
+   // Serial.println( "update fuel cell data" );
+    timer = millis();
+    updateFuelCellStatus();
+    //update display and print data on serial
+    displayLCDFuelCellStatus();
+    printFuelCellStatus();
   }
+  //sends data to master, times out
+  sendData();  
+
 }
 
 void displayStartScreen()
@@ -124,8 +124,22 @@ void displayLCDFuelCellStatus()
 
 void sendData()
 {
+  int count = 0;
   //wait for master to ask for data
-  debug("sending data\n");
+  while( digitalRead(RX) == LOW )
+  {
+    if( count ++ > 10 )
+    {
+      Serial.println( "giving up on master sig" );
+      return;
+    }
+    delay(100);
+  }
+  
+  Serial.println( "got master sig" );
+  //wait for line to go low
+  while( digitalRead(RX) ) {;;}
+  
   message.id = id;
   message.uptime = millis();
   message.cksum = 0;
