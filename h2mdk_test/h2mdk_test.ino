@@ -47,7 +47,7 @@ void loop()
     char command = Serial.read();
     switch( command )
     {
-      case '2': //check op is 5v when we apply power
+      case '2': //check op is 5v when we apply power, and supply current is < 0.75
         Serial.println( "test 2" );
         digitalWrite( LOAD, HIGH );
         externalMosfet( connectSupply, true );
@@ -55,7 +55,7 @@ void loop()
         delay(500);
         for( int i = 0; i < 5 ; i ++)
         {
-          if( measureOutputVoltage() > 4500 )
+          if( measureOutputVoltage() > 4500 && measureSupplyCurrent() < 0.75)
           {
             Serial.println( "pass" );
           }
@@ -68,6 +68,7 @@ void loop()
         break;
       case '4': //check output current and voltage with a load attached
         Serial.println( "test 4" );
+        chargeCaps();
         digitalWrite( LOAD, HIGH );
         externalMosfet( connectSupply, true );
         externalMosfet( connectLoad1, true );
@@ -84,6 +85,58 @@ void loop()
           }
         }
         allOff();
+        break;
+      case '8': //solenoid
+        Serial.println( "solenoid" );
+        chargeCaps();
+        digitalWrite( LOAD, HIGH );
+        externalMosfet( connectSupply, true );
+        if( measureSupplyCurrent() > 0.2 )
+        {
+          Serial.println( "supply current too high" );
+          break;
+        }
+        for( int i = 0; i < 5 ; i ++ )
+        {
+          digitalWrite( PURGE, HIGH );
+          delay(50);
+          if( measureSupplyCurrent() > 0.5 )
+          {
+            Serial.println("pass");
+          }
+          else
+          {
+            Serial.println("fail");
+          }
+          digitalWrite( PURGE, LOW );
+          delay(50);
+        }
+        break;
+      case '9': //short
+        Serial.println( "solenoid" );
+        chargeCaps();
+        digitalWrite( LOAD, HIGH );
+        externalMosfet( connectSupply, true );
+        if( measureSupplyCurrent() > 0.2 )
+        {
+          Serial.println( "supply current too high" );
+          break;
+        }
+        for( int i = 0; i < 5 ; i ++ )
+        {
+          digitalWrite( SHORT, HIGH );
+          delay(50);
+          if( measureSupplyCurrent() > 1.4 )
+          {
+            Serial.println("pass");
+          }
+          else
+          {
+            Serial.println("fail");
+          }
+          digitalWrite( SHORT, LOW );
+          delay(50);
+        }
         break;
       case 'c':
         drainCaps();
@@ -104,6 +157,20 @@ void externalMosfet( int pin, boolean state )
 {
   digitalWrite( pin, ! state );
 }
+
+void chargeCaps()
+{
+  Serial.println( "charge caps" );
+  digitalWrite( LOAD, LOW );
+  externalMosfet( connectSupply, true );
+  externalMosfet( connectLoad1, false );
+  //externalMosfet( connectLoad2, false );
+  while( measureCapVoltage() < 4500 ) //todo
+  {
+    delay(100);
+  }
+}
+
 void drainCaps()
 {
   Serial.println( "drain caps" );
