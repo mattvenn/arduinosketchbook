@@ -1,6 +1,7 @@
 /* 
 add a higher load
 add a way of switching lower supply voltage
+3 hours on 17/9
 */
 #define AREF 3300.0
 /* h2mdk defs */
@@ -21,7 +22,17 @@ add a way of switching lower supply voltage
     
     static const int connectSupply = 7;
     static const int connectLoad1 = 8;
-    
+//elect defs
+static const float standbyCurrent = 0.5; //A
+static const float maxBootCurrent = 1.0; //A
+static const float minOutputVoltage = 4500; //mv
+static const float minBootCurrent = 0.3; //A check this
+//these both are wrong because of the old board I'm working against
+static const float drainedCapVoltage = 4000; //mv
+static const float chargedCapVoltage = 6000; //mv
+
+static const float shortCurrent = 1.7; //A depends on psu current limit setting
+static const float solenoidCurrent = 0.65; //A check this
     
 void setup()
 {
@@ -47,107 +58,33 @@ void loop()
     char command = Serial.read();
     switch( command )
     {
-      case '2': //check op is 5v when we apply power, and supply current is < 0.75
-        Serial.println( "test 2" );
-        digitalWrite( LOAD, HIGH );
-        externalMosfet( connectSupply, true );
-        externalMosfet( connectLoad1, false );
-        delay(500);
-        for( int i = 0; i < 5 ; i ++)
-        {
-          float v= measureOutputVoltage();
-          float i = measureSupplyCurrent();
-          if( v < 4500 )
-          {
-            Serial.println( F( "fail - voltage too low")  );
-          }
-          else if(i > 0.75)
-          {
-            Serial.println( F("fail - current too high") );
-          }
-          else if( i < 0)
-          {
-            Serial.println( F("fail - current too low, check ref voltage") );
-          }
-          else
-          {
-            Serial.println( F("pass" ) );
-          }
-
+      case 'r': //run all tests
+      {
+        Serial.println( F("running all tests...") );
+        int t2pass = test2();
+        int t4pass = test4();
+        int t8pass = test8();
+        int t9pass = test9();
+        //as CSV
+        Serial.println( "test2,test4,test8,test9" );
+        Serial.print( t2pass ); Serial.print(",");
+        Serial.print( t4pass ); Serial.print(",");
+        Serial.print( t8pass ); Serial.print(",");
+        Serial.print( t9pass ); Serial.print(",");
+        Serial.println();
+        break; 
         }
-      //  allOff();
+      case '2': //check op is 5v when we apply power, and supply current is < 0.75
+        test2();
         break;
       case '4': //check output current and voltage with a load attached
-        Serial.println( "test 4" );
-        chargeCaps();
-        digitalWrite( LOAD, HIGH );
-        externalMosfet( connectSupply, true );
-        externalMosfet( connectLoad1, true );
-        delay(500);
-        for( int i = 0; i < 5 ; i ++)
-        {
-          if( measureOutputVoltage() > 4500 && measureSupplyCurrent() > 0.6 )
-          {
-            Serial.println( "pass" );
-          }
-          else
-          {
-            Serial.println( "fail" );
-          }
-        }
-        allOff();
+        test4();
         break;
       case '8': //solenoid
-        Serial.println( "solenoid" );
-        chargeCaps();
-        digitalWrite( LOAD, HIGH );
-        externalMosfet( connectSupply, true );
-        if( measureSupplyCurrent() > 0.2 )
-        {
-          Serial.println( "supply current too high" );
-          break;
-        }
-        for( int i = 0; i < 5 ; i ++ )
-        {
-          digitalWrite( PURGE, HIGH );
-          delay(50);
-          if( measureSupplyCurrent() > 0.5 )
-          {
-            Serial.println("pass");
-          }
-          else
-          {
-            Serial.println("fail");
-          }
-          digitalWrite( PURGE, LOW );
-          delay(50);
-        }
+        test8();
         break;
       case '9': //short
-        Serial.println( "solenoid" );
-        chargeCaps();
-        digitalWrite( LOAD, HIGH );
-        externalMosfet( connectSupply, true );
-        if( measureSupplyCurrent() > 0.2 )
-        {
-          Serial.println( "supply current too high" );
-          break;
-        }
-        for( int i = 0; i < 5 ; i ++ )
-        {
-          digitalWrite( SHORT, HIGH );
-          delay(50);
-          if( measureSupplyCurrent() > 1.4 )
-          {
-            Serial.println("pass");
-          }
-          else
-          {
-            Serial.println("fail");
-          }
-          digitalWrite( SHORT, LOW );
-          delay(50);
-        }
+        test9();
         break;
       case 'c':
         drainCaps();
@@ -161,7 +98,7 @@ void loop()
 void allOff()
 {
   digitalWrite( LOAD, LOW );
-  externalMosfet( connectSupply, false );
+  digitalWrite( connectSupply, false );
   externalMosfet( connectLoad1, false );
 }
 void externalMosfet( int pin, boolean state )
@@ -173,11 +110,11 @@ void chargeCaps()
 {
   Serial.println( "charge caps" );
   digitalWrite( LOAD, LOW );
-  externalMosfet( connectSupply, true );
+  digitalWrite( connectSupply, true );
   externalMosfet( connectLoad1, false );
   //externalMosfet( connectLoad2, false );
   int count = 0;
-  while( measureCapVoltage() < 4500) //todo
+  while( measureCapVoltage() < chargedCapVoltage) //todo
   {
     delay(100);
     if( count ++ > 1000 )
@@ -189,20 +126,21 @@ void drainCaps()
 {
   Serial.println( "drain caps" );
   digitalWrite( LOAD, HIGH );
-  externalMosfet( connectSupply, false );
+  digitalWrite( connectSupply, false );
   externalMosfet( connectLoad1, true );
   //externalMosfet( connectLoad2, true );
-  while( measureCapVoltage() > 3000 ) //todo
+  while( measureCapVoltage() > drainedCapVoltage ) //todo
   {
     delay(100);
   }
+  allOff();
 }
 
 float measureCapVoltage()
 {
   float v = 2*AREF/1024.0*analogRead(CAP_V_SENSE) ;
-  Serial.print( "cap v: ");
-  Serial.println( v );
+//  Serial.print( "cap v: ");
+//  Serial.println( v );
   return v;
 }
 float measureOutputVoltage()
