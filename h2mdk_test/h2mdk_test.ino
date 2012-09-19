@@ -55,16 +55,27 @@ void loop()
         delay(500);
         for( int i = 0; i < 5 ; i ++)
         {
-          if( measureOutputVoltage() > 4500 && measureSupplyCurrent() < 0.75)
+          float v= measureOutputVoltage();
+          float i = measureSupplyCurrent();
+          if( v < 4500 )
           {
-            Serial.println( "pass" );
+            Serial.println( F( "fail - voltage too low")  );
+          }
+          else if(i > 0.75)
+          {
+            Serial.println( F("fail - current too high") );
+          }
+          else if( i < 0)
+          {
+            Serial.println( F("fail - current too low, check ref voltage") );
           }
           else
           {
-            Serial.println( "fail" );
+            Serial.println( F("pass" ) );
           }
+
         }
-        allOff();
+      //  allOff();
         break;
       case '4': //check output current and voltage with a load attached
         Serial.println( "test 4" );
@@ -165,9 +176,12 @@ void chargeCaps()
   externalMosfet( connectSupply, true );
   externalMosfet( connectLoad1, false );
   //externalMosfet( connectLoad2, false );
-  while( measureCapVoltage() < 4500 ) //todo
+  int count = 0;
+  while( measureCapVoltage() < 4500) //todo
   {
     delay(100);
+    if( count ++ > 1000 )
+      break;
   }
 }
 
