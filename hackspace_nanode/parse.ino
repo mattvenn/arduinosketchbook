@@ -58,6 +58,7 @@ int parse(int i)
     else if( gotCmd == false )
     {
       payload[line].command = cur;
+    //  payload[line].index = line;
 #ifdef VERBP
       Serial.print( "got cmd:" );
       Serial.println( cur );

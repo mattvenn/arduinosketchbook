@@ -24,7 +24,7 @@ static byte static_ip[] = {
 static byte static_gw[] = { 
   192,168,0,1 };
 static byte static_dns[] = { 
- 192,168,0,1 };
+  192,168,0,1 };
 
 char cosmURL[] PROGMEM = "api.pachube.com";
 char robotURL[] PROGMEM = "mattvenn.net";
@@ -47,6 +47,7 @@ char tempStr[20];
 boolean gotAck = true;
 //robot command def
 typedef struct {
+  // byte index;
   char command;
   unsigned int arg1;
   unsigned int arg2;
@@ -64,7 +65,7 @@ int commandIndex = 0; //which command we're on at the mo
 #define MEMTEST
 boolean uploadData = true;
 boolean updateRobot = true;
-
+unsigned long sentData;
 MilliTimer getDataTimer, uploadTimer;
 
 void setup () {
@@ -72,10 +73,10 @@ void setup () {
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN,LOW);
 
-  Serial.println( "initialising radio" );
+  Serial.println( F("initialising radio") );
   delay(100);
   rf12_initialize(2, RF12_433MHZ,212);
-  Serial.println( "rf12 setup done" );
+  Serial.println( F("rf12 setup done") );
 
   setupTherm();
   printf_begin();
@@ -140,12 +141,14 @@ void loop () {
 #ifdef PARSE
   if( commands )
   {
-    if( gotAck == true )
+    //wait for an ack, or timeout and resend after 500ms
+    if( gotAck == true  || ( millis() - sentData > 500 ))
     {
       if( commandIndex >= commands )
       {
         commands = 0;
         commandIndex = 0;
+        Serial.println( F( "finished stack" ) );
       }
       else
       {
@@ -163,60 +166,61 @@ void loop () {
     Serial.println( freeMemory() );
 #endif
 
-      if( turn ++ % 2 == 0 )
-      {
-        printf_P(PSTR("getting robot data\n"));
+    if( turn ++ % 2 == 0 )
+    {
+      printf_P(PSTR("getting robot data\n"));
 
-        digitalWrite(LED_PIN,LOW);
+      digitalWrite(LED_PIN,LOW);
 
-        timer = millis() + 2000;
-        ether.hisport = 10002;
-        ether.copyIp(ether.hisip,robotIP);
+      timer = millis() + 2000;
+      ether.hisport = 10002;
+      ether.copyIp(ether.hisip,robotIP);
       //  ether.printIp("robot ip: ", ether.hisip);
 
-        ether.browseUrl(PSTR("/"), "", robotURL, my_callback);
-        digitalWrite(LED_PIN,HIGH);
-      }
-      else
+      ether.browseUrl(PSTR("/"), "", robotURL, my_callback);
+      digitalWrite(LED_PIN,HIGH);
+    }
+    else
+    {
+      printf_P(PSTR("pushing to cosm\n"));
+
+      getData();
+
+      //http://blog.cuyahoga.co.uk/2012/05/theres-something-wrong-with-my-stash/
+      if (stash.freeCount() <= 52) 
       {
-        printf_P(PSTR("pushing to cosm\n"));
+        Stash::initMap(56);
+      }
 
-        getData();
+      byte sd = stash.create();
 
-        //http://blog.cuyahoga.co.uk/2012/05/theres-something-wrong-with-my-stash/
-        if (stash.freeCount() <= 52) 
-        {
-          Stash::initMap(56);
-        }
-        
-        byte sd = stash.create();
-        
-        stash.print("light,");
-        stash.println((word) lightLevel);
-        stash.print("temp,");
-        stash.println(tempStr );
-        stash.print("stash,");
-        stash.println( stash.freeCount() );
-        stash.save();
-        Serial.print( "stash mem:" ); Serial.println( stash.freeCount() );
+      stash.print("light,");
+      stash.println((word) lightLevel);
+      stash.print("temp,");
+      stash.println(tempStr );
+      stash.print("stash,");
+      stash.println( stash.freeCount() );
+      stash.save();
+      Serial.print( "stash mem:" ); 
+      Serial.println( stash.freeCount() );
 
-        // generate the header with payload - note that the stash size is used,
-        // and that a "stash descriptor" is passed in as argument using "$H"
-        ether.hisport = 80;
-        ether.copyIp(ether.hisip,cosmIP);
+      // generate the header with payload - note that the stash size is used,
+      // and that a "stash descriptor" is passed in as argument using "$H"
+      ether.hisport = 80;
+      ether.copyIp(ether.hisip,cosmIP);
       //  ether.printIp("cosm ip: ", ether.hisip);
 
-        Stash::prepare(PSTR("PUT http://$F/v2/feeds/$F.csv HTTP/1.0" "\r\n"
-          "Host: $F" "\r\n"
-          "X-PachubeApiKey: $F" "\r\n"
-          "Content-Length: $D" "\r\n"
-          "\r\n"
-          "$H"),
-        cosmURL, PSTR(FEED), cosmURL, PSTR(APIKEY), stash.size(), sd);
+      Stash::prepare(PSTR("PUT http://$F/v2/feeds/$F.csv HTTP/1.0" "\r\n"
+        "Host: $F" "\r\n"
+        "X-PachubeApiKey: $F" "\r\n"
+        "Content-Length: $D" "\r\n"
+        "\r\n"
+        "$H"),
+      cosmURL, PSTR(FEED), cosmURL, PSTR(APIKEY), stash.size(), sd);
 
-        // send the packet - this also releases all stash buffers once done
-        session = ether.tcpSend();
-      }
+      // send the packet - this also releases all stash buffers once done
+      session = ether.tcpSend();
+    }
   }
 
   const char * reply  = ether.tcpReply(session);
@@ -233,21 +237,28 @@ void loop () {
 
 // called when the client request is complete
 static void my_callback (byte status, word off, word len) {
-  Serial.println("callback");
+ // Serial.println("callback");
   //  Serial.println( off );
   //  Serial.println( len );
   int offset = stripHeaders(off);
   commands = parse(offset);
   Serial.print( "parsed: ");
   Serial.println( commands );
-  for( int i =0 ; i < commands ; i ++ )
+  if( commands )
   {
-    Serial.print( i );
-    Serial.print( ":" );
-    Serial.print( payload[i].command );
-    Serial.print( payload[i].arg1 );
-    Serial.print( "," );
-    Serial.println( payload[i].arg2 );
+    for( int i =0 ; i < commands ; i ++ )
+    {
+      Serial.print( i );
+      Serial.print( ":" );
+      Serial.print( payload[i].command );
+      Serial.print( payload[i].arg1 );
+      Serial.print( "," );
+      Serial.println( payload[i].arg2 );
+
+
+    }
+    Serial.println(F("trashing old commands"));
+    commandIndex = 0;
   }
 }
 
@@ -406,4 +417,5 @@ void read_MAC(byte* mac_address) {
   // interrupts ok now
   sei();
 }
+
 
