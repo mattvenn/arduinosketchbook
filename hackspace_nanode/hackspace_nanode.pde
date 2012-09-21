@@ -19,12 +19,12 @@ byte mymac[6];
 // Static IP configuration to use if no DHCP found
 // Change these to match your site setup
 static byte static_ip[] = { 
-  10,0,0,100 };
+  192,168,0,200 };
 // gateway ip address
 static byte static_gw[] = { 
-  10,0,0,1 };
+  192,168,0,1 };
 static byte static_dns[] = { 
-  10,0,0,1 };
+ 192,168,0,1 };
 
 char cosmURL[] PROGMEM = "api.pachube.com";
 char robotURL[] PROGMEM = "mattvenn.net";
@@ -96,8 +96,8 @@ void setup () {
   if (ether.begin(sizeof Ethernet::buffer, mymac) == 0) 
     printf_P(PSTR( "Failed to access Ethernet controller\n\r"));
 
-  //always fails, so setup static straight away.
-  //if (!ether.dhcpSetup("Nanode"))
+  //always failed on the netgear. works on the dlink
+  if (!ether.dhcpSetup("Nanode"))
   {
     printf_P(PSTR("DHCP failed, using static configuration\n\r"));
     ether.staticSetup(static_ip, static_gw);
