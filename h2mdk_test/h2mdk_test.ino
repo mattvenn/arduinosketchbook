@@ -1,7 +1,7 @@
 /* 
-add a higher load
-add a way of switching lower supply voltage
-3 hours on 17/9
+
+still major probs with reading current sensor DANG!!!
+
 */
 #define AREF 3300.0
 /* h2mdk defs */
@@ -17,11 +17,14 @@ add a way of switching lower supply voltage
 
 /* extra defs */
 
-    static const int supplyCurrent= A0;
-    static const int outputVoltage = A4;
+    static const int supplyCurrent= A4;
+    static const int outputVoltage = A0;
     
-    static const int connectSupply = 7;
-    static const int connectLoad1 = 8;
+    static const int connectSupply = 9;
+    static const int connectFC = 8;
+    static const int connectLoad1 = 10;
+    static const int connectLoad2 = 7;
+    static const int connectLoad3 = 11;
 //elect defs
 static const float standbyCurrent = 0.5; //A
 static const float maxBootCurrent = 1.0; //A
@@ -33,21 +36,29 @@ static const float chargedCapVoltage = 6000; //mv
 
 static const float shortCurrent = 1.7; //A depends on psu current limit setting
 static const float solenoidCurrent = 0.65; //A check this
-    
+   
+float currentOffsetV = 0;
+
 void setup()
 {
   Serial.begin(9600);
   Serial.println( "started" );
 
   pinMode( connectSupply, OUTPUT );
+  pinMode( connectFC, OUTPUT );
   pinMode( connectLoad1, OUTPUT );
+  pinMode( connectLoad2, OUTPUT );
+  pinMode( connectLoad3, OUTPUT );
+        
   pinMode(PURGE,OUTPUT);
   pinMode(LOAD,OUTPUT);
   pinMode(SHORT,OUTPUT);
   pinMode(STATUS_LED,OUTPUT);
 
   allOff();
+
   analogReference(EXTERNAL);
+  calibrateCurrentSensor();
 }
 
 
@@ -56,6 +67,10 @@ void loop()
   if( Serial.available() )
   {
     char command = Serial.read();
+    
+    delay(50);
+    
+    
     switch( command )
     {
       case 'r': //run all tests
@@ -74,18 +89,26 @@ void loop()
         Serial.println();
         break; 
         }
-      case '2': //check op is 5v when we apply power, and supply current is < 0.75
-        test2();
+      case 't':   //run a test
+      {
+        int testNum = serReadInt();
+        Serial.print( testNum );
+        if( testNum == 2 )
+          test2();
+        else if( testNum == 4)
+          test4();
+        else if( testNum == 5)
+          test5();
+        else if( testNum == 8)
+          test8();
+        else if( testNum == 9)
+          test9();
+        else if( testNum == 12)
+          test12();
+        else 
+          Serial.println(F("unknown test number"));
         break;
-      case '4': //check output current and voltage with a load attached
-        test4();
-        break;
-      case '8': //solenoid
-        test8();
-        break;
-      case '9': //short
-        test9();
-        break;
+      }
       case 'c':
         drainCaps();
       default:
@@ -98,21 +121,36 @@ void loop()
 void allOff()
 {
   digitalWrite( LOAD, LOW );
+ 
   digitalWrite( connectSupply, false );
-  externalMosfet( connectLoad1, false );
-}
-void externalMosfet( int pin, boolean state )
-{
-  digitalWrite( pin, ! state );
+  digitalWrite( connectFC, false );
+  digitalWrite( connectLoad1, false );
+  digitalWrite( connectLoad2, false );
+  digitalWrite( connectLoad3, false );
 }
 
+void calibrateCurrentSensor()
+{
+  allOff();
+  int avgNum = 10;
+  float avg = 0; 
+  Serial.println(F("calibrating current sensor"));
+  for( int i = 0; i < avgNum; i ++ )
+  {
+    avg += AREF/1024.0*analogRead(supplyCurrent) ;
+    delay(50);
+  }
+  avg /= avgNum;
+  Serial.println( avg );
+  currentOffsetV = avg;
+}
+  
 void chargeCaps()
 {
   Serial.println( "charge caps" );
-  digitalWrite( LOAD, LOW );
+  allOff();
   digitalWrite( connectSupply, true );
-  externalMosfet( connectLoad1, false );
-  //externalMosfet( connectLoad2, false );
+  
   int count = 0;
   while( measureCapVoltage() < chargedCapVoltage) //todo
   {
@@ -127,7 +165,9 @@ void drainCaps()
   Serial.println( "drain caps" );
   digitalWrite( LOAD, HIGH );
   digitalWrite( connectSupply, false );
-  externalMosfet( connectLoad1, true );
+  digitalWrite( connectLoad1, true );
+  digitalWrite( connectLoad2, true );
+  digitalWrite( connectLoad3, true );
   //externalMosfet( connectLoad2, true );
   while( measureCapVoltage() > drainedCapVoltage ) //todo
   {
@@ -145,15 +185,34 @@ float measureCapVoltage()
 }
 float measureOutputVoltage()
 {
-  float v = 2*AREF/1024.0*analogRead(outputVoltage) ;
+  float v = 2 * getAvgAnalogRead(outputVoltage) ;
   Serial.print( "output v: ");
   Serial.println( v );
   return v;
 }
+
+
+float getAvgAnalogRead(int pin)
+{
+  unsigned long int v = 0;
+  int samples = 100;
+  for( int i = 0; i < samples; i ++ )
+  {
+   v += analogRead(pin) ;
+  }
+  v /= samples;
+  return AREF/1024.0*v;
+}
+
 float measureSupplyCurrent()
 {
-  float v = AREF/1024.0*analogRead(supplyCurrent) ;
-  float i =( v - 5000 / 2 ) / 185; //185mv per amp
+  float v = getAvgAnalogRead(supplyCurrent); // AREF/1024.0*analogRead(supplyCurrent) ;
+  /*Serial.print( ">> v: " );
+  Serial.print( v );
+  Serial.print( " off: " );
+  Serial.println( v - currentOffsetV );
+  */
+  float i =( v - currentOffsetV ) / 160; // should be 185mv per amp but just ain't working
   Serial.print( "supply i: ");
   Serial.println( i );
   return i;
