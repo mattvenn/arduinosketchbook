@@ -1,3 +1,8 @@
+int test1()
+{
+  return -1;
+}
+
 int test2()
 {
   int pass = 0;
@@ -6,17 +11,13 @@ int test2()
   drainCaps();
   digitalWrite( LOAD, HIGH );
   digitalWrite( connectSupply, true );
-  digitalWrite( connectLoad1, false );
+  
   delay(500);
   for( int i = 0; i < 5 ; i ++)
   {
-    float v= measureOutputVoltage();
+
     float i = measureSupplyCurrent();
-    if( v < minOutputVoltage )
-    {
-      Serial.println( F( "fail - voltage too low")  );
-    }
-    else if(i > maxBootCurrent )
+    if(i > maxBootCurrent )
     {
       Serial.println( F("fail - current too high") );
     }
@@ -36,18 +37,18 @@ int test2()
   return pass;
 }
 
-int test4()
+
+int test3()
 {
   int pass=0;
-  Serial.println( "test 4" );
-  chargeCaps();
-  digitalWrite( LOAD, HIGH );
+  Serial.println( "test 3" );
   digitalWrite( connectSupply, true );
-  digitalWrite( connectLoad1, true );
+  digitalWrite( LOAD, HIGH );
+  chargeCaps();
   delay(500);
   for( int i = 0; i < 5 ; i ++)
   {
-    if( measureOutputVoltage() > minOutputVoltage && measureSupplyCurrent() > 0.6 )
+    if( measureOutputVoltage() > minOutputVoltage )
     {
       Serial.println( "pass" );
       pass++;
@@ -62,25 +63,55 @@ int test4()
   return pass;
 }
 
+int test4()
+{
+  int pass=0;
+  Serial.println( "test 4" );
+  digitalWrite( connectSupply, true );
+  digitalWrite( LOAD, HIGH );
+
+  chargeCaps();
+  connectLoad(Load1_25W);
+  delay(500);
+  for( int i = 0; i < 5 ; i ++)
+  {
+    if( measureOutputVoltage() > minOutputVoltage && measureSupplyCurrent() > 0.6 )
+    {
+      Serial.println( "pass" );
+      pass++;
+    }
+    else
+    {
+      Serial.println( "fail" );
+    }
+    delay(2000);
+  }
+  allOff();
+  return pass;
+}
+
 
 int test5()
 {
   int pass=0;
   Serial.println( "test 5" ); 
-   digitalWrite( LOAD, HIGH );
   digitalWrite( connectSupply, true );
-  digitalWrite( connectLoad1, true );
- /* digitalWrite( LOAD, HIGH );
-  digitalWrite( connectSupply, true );
-  digitalWrite( connectLoad1, true );
-  delay(500);
-  */
-  for( int i = 0; i < 50 ; i ++)
+  digitalWrite( LOAD, HIGH );
+  chargeCaps();
+
+  connectLoad( Load0_7A );
+ 
+  for( int i = 0; i < 5 ; i ++)
   {
-    
-measureSupplyCurrent();
- measureOutputVoltage();
-       delay(500);
+     if( measureOutputVoltage() < minOutputVoltage )
+     {
+       Serial.println( F( "op voltage too low" ));
+     }
+     else
+     {
+       pass ++;
+     }
+     delay(1000);
   }
   
   allOff();
@@ -88,13 +119,45 @@ measureSupplyCurrent();
 }
 
 
+int test6()
+{
+  int pass=0;
+  Serial.println( "test 6" ); 
+  digitalWrite( connectSupply, true );
+  digitalWrite( LOAD, HIGH );
+
+  chargeCaps();
+  connectLoad( Load2_75W );
+
+  for( int i = 0; i < 5 ; i ++)
+  {
+     if( measureOutputVoltage() < minOutputVoltage )
+     {
+       Serial.println( F( "op voltage too low" ));
+     }
+     else
+     {
+       pass ++;
+     }
+     delay(1000);
+  }
+  
+  allOff();
+  return pass;
+}
+//temp measure
+int test7()
+{
+  return -1;
+}
 int test8()
 {
   int pass = 0;
   Serial.println( "solenoid" );
-  chargeCaps();
-  digitalWrite( LOAD, HIGH );
   digitalWrite( connectSupply, true );
+  digitalWrite( LOAD, HIGH );
+  chargeCaps();
+
   delay(500);
   if( measureSupplyCurrent() > standbyCurrent )
   {
@@ -125,9 +188,9 @@ int test9()
 {
   int pass = 0;
   Serial.println( "short circuit" );
-  chargeCaps();
-  digitalWrite( LOAD, HIGH );
   digitalWrite( connectSupply, true );
+  digitalWrite( LOAD, HIGH );
+  chargeCaps();
   delay(500);
   if( measureSupplyCurrent() > standbyCurrent  )
   {
@@ -155,19 +218,23 @@ int test9()
   return pass;
 }
 
+//test 10 and 11 are about reading the voltag and current sensor
+int test10()
+{
+  return -1;
+}
+int test11()
+{
+  return -1;
+}
+//with fuel cells
 int test12()
 {
   int pass = 0;
+  prepFuelCell();
+  digitalWrite( LOAD, HIGH );
+  chargeCaps();
   //manage fuel cell (short and purge) better, for now:
-  digitalWrite(connectFC,HIGH);
-
-  digitalWrite( SHORT, HIGH );
-  delay(50);
-  digitalWrite( SHORT, LOW);
-  digitalWrite( PURGE, HIGH );
-  delay(50);
-  digitalWrite( PURGE, LOW );
-  delay(1000);  
   for( int i = 0; i < 5 ; i ++ )
   {
     measureSupplyCurrent();
@@ -187,3 +254,61 @@ int test12()
   return pass;
 }
 
+
+int test13()
+{
+  int pass = 0;
+  prepFuelCell();
+  digitalWrite( LOAD, HIGH );
+  chargeCaps();
+
+  connectLoad(Load1_25W);
+  for( int i = 0; i < 5 ; i ++ )
+  {
+    measureSupplyCurrent();
+    if( measureOutputVoltage() > minOutputVoltage )
+    {
+      Serial.println("pass");
+      pass ++;
+    }
+    else
+    {
+      Serial.println("fail");
+    }
+    delay(1000);
+  }
+
+  allOff();
+  return pass;
+}
+
+int test14()
+{
+  int pass = 0;
+  prepFuelCell();
+  digitalWrite( LOAD, HIGH );
+  chargeCaps();
+  connectLoad(Load1_25W);
+  for( int i = 0; i < 5 ; i ++ )
+  {
+    digitalWrite( SHORT, HIGH );
+  delay(50);
+
+    if( measureOutputVoltage() > minOutputVoltage )
+    {
+      Serial.println("pass");
+      pass ++;
+    }
+    else
+    {
+      Serial.println("fail");
+    }
+
+  digitalWrite( SHORT, LOW);
+
+    delay(1000);
+  }
+
+  allOff();
+  return pass;
+}
