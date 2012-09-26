@@ -28,14 +28,18 @@ static const int connectLoad3 = 11;
 //elect defs
 static const float standbyCurrent = 0.5; //A
 static const float maxBootCurrent = 1.0; //A
-static const float minOutputVoltage = 4500; //mv
+static const float minOutputVoltage = 4800; //mv
+static const float minOutputVoltageMaxLoad = 4200; //mv
 static const float minBootCurrent = 0.3; //A check this
 //these both are wrong because of the old board I'm working against
 static const float drainedCapVoltage = 500; //mv
-static const float chargedCapVoltage = 4200; //mv todo
+static const float chargedCapVoltage = 4500; //mv todo
 
 static const float shortCurrent = 1.7; //A depends on psu current limit setting
 static const float solenoidCurrent = 0.65; //A check this
+
+static const int minSupplyVoltage = 2000;
+static const int maxSupplyVoltage = 2100;
 
 //define loads for the main tests
 static const int Load1_25W = 2;
@@ -65,7 +69,7 @@ void setup()
   analogReference(EXTERNAL);
   delay(1500);
   calibrateCurrentSensor();
-//  test5();
+  calibrateSupplyVoltage();
 }
 
 
@@ -140,8 +144,6 @@ void loop()
           Serial.println(F("unknown test number"));
         break;
       }
-    case 'c':
-      drainCaps();
     default:
       Serial.println( "bad test" );
       break;
@@ -228,12 +230,14 @@ void chargeCaps()
   while( measureCapVoltage() < chargedCapVoltage) //todo
   {
     delay(100);
-    if( count ++ > 250 )
+    /*
+    if( count ++ > 500 )
     {
       Serial.print( "gave up at " );
       Serial.println( measureCapVoltage() );
       break;
     }
+    */
   }
 
 }
@@ -255,9 +259,9 @@ void drainCaps()
 
 float measureCapVoltage()
 {
-  float v = AREF/1024.0*analogRead(CAP_V_SENSE) ; //will need todo
- //   Serial.print( "cap v: ");
- //   Serial.println( v );
+  float v = 2 * AREF/1024.0*analogRead(CAP_V_SENSE) ; //will need todo
+    Serial.print( "cap v: ");
+    Serial.println( v );
   return v;
 }
 float measureOutputVoltage()
@@ -309,4 +313,28 @@ void prepFuelCell()
   digitalWrite( PURGE, LOW );
   delay(1000);  
   
+}
+
+void calibrateSupplyVoltage()
+{
+  Serial.println(F("calibrating supply voltage"));
+  digitalWrite(connectSupply,true);
+  while( true )
+  {
+    float v = 2 * getAvgAnalogRead(VOLTAGE_SENSE);
+    Serial.println( v );
+    if( v > maxSupplyVoltage )
+    {
+      Serial.println( "supply voltage too high" );
+    }
+    if( v < minSupplyVoltage )
+    {
+      Serial.println( "supply voltage too low" );
+    }
+    else
+      break;
+    delay(1000);
+    }
+
+    digitalWrite(connectSupply,false);
 }

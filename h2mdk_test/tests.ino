@@ -7,7 +7,8 @@ int test2()
 {
   int pass = 0;
 
-  Serial.println( "test 2" );
+  Serial.println( F("test 2") );
+  Serial.println( F("-----------------------------") );
   drainCaps();
   digitalWrite( LOAD, HIGH );
   digitalWrite( connectSupply, true );
@@ -41,7 +42,8 @@ int test2()
 int test3()
 {
   int pass=0;
-  Serial.println( "test 3" );
+  Serial.println( F("test 3") );
+  Serial.println( F("-----------------------------") );
   digitalWrite( connectSupply, true );
   digitalWrite( LOAD, HIGH );
   chargeCaps();
@@ -66,7 +68,8 @@ int test3()
 int test4()
 {
   int pass=0;
-  Serial.println( "test 4" );
+  Serial.println( F("test 4") );
+  Serial.println( F("-----------------------------") );
   digitalWrite( connectSupply, true );
   digitalWrite( LOAD, HIGH );
 
@@ -94,7 +97,8 @@ int test4()
 int test5()
 {
   int pass=0;
-  Serial.println( "test 5" ); 
+  Serial.println( F("test 5") ); 
+  Serial.println( F("-----------------------------") );
   digitalWrite( connectSupply, true );
   digitalWrite( LOAD, HIGH );
   chargeCaps();
@@ -103,13 +107,14 @@ int test5()
  
   for( int i = 0; i < 5 ; i ++)
   {
-     if( measureOutputVoltage() < minOutputVoltage )
+     if( measureOutputVoltage() < minOutputVoltageMaxLoad )
      {
        Serial.println( F( "op voltage too low" ));
      }
      else
      {
        pass ++;
+      Serial.println( "pass" );
      }
      delay(1000);
   }
@@ -122,7 +127,8 @@ int test5()
 int test6()
 {
   int pass=0;
-  Serial.println( "test 6" ); 
+  Serial.println( F("test 6") ); 
+  Serial.println( F("-----------------------------") );
   digitalWrite( connectSupply, true );
   digitalWrite( LOAD, HIGH );
 
@@ -131,13 +137,14 @@ int test6()
 
   for( int i = 0; i < 5 ; i ++)
   {
-     if( measureOutputVoltage() < minOutputVoltage )
+     if( measureOutputVoltage() < minOutputVoltageMaxLoad )
      {
        Serial.println( F( "op voltage too low" ));
      }
      else
      {
        pass ++;
+      Serial.println( "pass" );
      }
      delay(1000);
   }
@@ -148,10 +155,14 @@ int test6()
 //temp measure
 int test7()
 {
+  Serial.println( F("test 7") ); 
+  Serial.println( F("-----------------------------") );
   return -1;
 }
 int test8()
 {
+  Serial.println( F("test 8") ); 
+  Serial.println( F("-----------------------------") );
   int pass = 0;
   Serial.println( "solenoid" );
   digitalWrite( connectSupply, true );
@@ -186,6 +197,8 @@ int test8()
 }
 int test9()
 {
+  Serial.println( F("test 9") ); 
+  Serial.println( F("-----------------------------") );
   int pass = 0;
   Serial.println( "short circuit" );
   digitalWrite( connectSupply, true );
@@ -221,15 +234,21 @@ int test9()
 //test 10 and 11 are about reading the voltag and current sensor
 int test10()
 {
+  Serial.println( F("test 10") ); 
+  Serial.println( F("-----------------------------") );
   return -1;
 }
 int test11()
 {
+  Serial.println( F("test 11") ); 
+  Serial.println( F("-----------------------------") );
   return -1;
 }
 //with fuel cells
 int test12()
 {
+  Serial.println( F("test 12") ); 
+  Serial.println( F("-----------------------------") );
   int pass = 0;
   prepFuelCell();
   digitalWrite( LOAD, HIGH );
@@ -257,10 +276,13 @@ int test12()
 
 int test13()
 {
+  Serial.println( F("test 13") ); 
+  Serial.println( F("-----------------------------") );
   int pass = 0;
   prepFuelCell();
   digitalWrite( LOAD, HIGH );
   chargeCaps();
+  prepFuelCell();
 
   connectLoad(Load1_25W);
   for( int i = 0; i < 5 ; i ++ )
@@ -284,6 +306,8 @@ int test13()
 
 int test14()
 {
+  Serial.println( F("test 14") ); 
+  Serial.println( F("-----------------------------") );
   int pass = 0;
   prepFuelCell();
   digitalWrite( LOAD, HIGH );
