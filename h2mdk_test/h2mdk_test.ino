@@ -1,6 +1,10 @@
 /* 
+ todo
  
  still major probs with reading current sensor DANG!!!
+  -fixed with a fudge factor
+ test cap sense before relying on it to work?
+ 
  
  */
 #define AREF 3300.0
@@ -9,6 +13,7 @@ static const int PURGE = 3;
 static const int LOAD = 4;  // 3w can disconnect load
 static const int SHORT = 5;
 static const int STATUS_LED = 6;
+static const int buzzerPin = 12;
 
 //analog pins
 static const int VOLTAGE_SENSE = A1;
@@ -28,6 +33,7 @@ static const int connectLoad3 = 11;
 //elect defs
 static const float standbyCurrent = 0.5; //A
 static const float maxBootCurrent = 1.0; //A
+static const float maxCurrentDiff = 0.20; //A difference between our current sense and the boards
 static const float minOutputVoltage = 4800; //mv
 static const float minOutputVoltageMaxLoad = 4200; //mv
 static const float minBootCurrent = 0.3; //A check this
@@ -40,6 +46,7 @@ static const float solenoidCurrent = 0.65; //A check this
 
 static const int minSupplyVoltage = 2000;
 static const int maxSupplyVoltage = 2100;
+static const int maxTemp = 65;
 
 //define loads for the main tests
 static const int Load1_25W = 2;
@@ -70,6 +77,7 @@ void setup()
   delay(1500);
   calibrateCurrentSensor();
   calibrateSupplyVoltage();
+  Serial.println(F("ready..."));
 }
 
 
@@ -121,19 +129,28 @@ void loop()
       {
         int testNum = serReadInt();
         Serial.print( testNum );
-        if( testNum == 2 )
+        if( testNum == 1 )
+          test1();
+        else if( testNum == 2 )
           test2();
+        else if( testNum == 3 )
+          test3();
         else if( testNum == 4)
           test4();
         else if( testNum == 5)
           test5();
         else if( testNum == 6)
           test6();
-       
+        else if( testNum == 7)
+          test7();
         else if( testNum == 8)
           test8();
         else if( testNum == 9)
           test9();
+        else if( testNum == 10)
+          test10();
+        else if( testNum == 11)
+          Serial.println(test11());
         else if( testNum == 12)
           test12();
         else if( testNum == 13)
@@ -285,6 +302,15 @@ float getAvgAnalogRead(int pin)
   return AREF/1024.0*v;
 }
 
+float measureFCCurrent()
+{
+  float v = getAvgAnalogRead(CURRENT_SENSE);
+  float i =( v - 2500 ) / 185; // should be 185mv per amp but just ain't working
+  Serial.print( "fc i: ");
+  Serial.println( i );
+  return i;
+}
+
 float measureSupplyCurrent()
 {
   float v = getAvgAnalogRead(supplyCurrent); // AREF/1024.0*analogRead(supplyCurrent) ;
@@ -319,6 +345,7 @@ void calibrateSupplyVoltage()
 {
   Serial.println(F("calibrating supply voltage"));
   digitalWrite(connectSupply,true);
+  delay(200);
   while( true )
   {
     float v = 2 * getAvgAnalogRead(VOLTAGE_SENSE);
@@ -327,14 +354,38 @@ void calibrateSupplyVoltage()
     {
       Serial.println( "supply voltage too high" );
     }
-    if( v < minSupplyVoltage )
+    else if( v < minSupplyVoltage )
     {
       Serial.println( "supply voltage too low" );
     }
     else
+    {
       break;
-    delay(1000);
     }
+    delay(1000);
+  }
 
-    digitalWrite(connectSupply,false);
+  digitalWrite(connectSupply,false);
+}
+
+int readYN()
+{
+  while( Serial.available() == 0 ) 
+  {
+    ;;
+  }
+  char a = Serial.read();
+  Serial.flush();
+  if( a == 'y' )
+    return 1;
+  return 0;
+}
+
+void buzz()
+{
+  for( int i = 2000; i < 4000; i += 500 )
+  {
+    tone(buzzerPin, i, 500 );
+    delay(200);
+  }
 }

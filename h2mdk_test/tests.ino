@@ -1,7 +1,30 @@
 int test1()
 {
-  return -1;
+  Serial.println( F("test 1") ); 
+  Serial.println( F("-----------------------------") );
+  int pass =0;
+  allOff();
+
+  buzz();
+  digitalWrite(STATUS_LED,true);
+  Serial.println( F("is status led on? (y/n)"));
+  pass += readYN();
+  digitalWrite(STATUS_LED,false);
+
+  digitalWrite(PURGE,true);
+  Serial.println( F("is purge led on? (y/n)"));
+  pass += readYN();
+  digitalWrite(PURGE,false);
+
+  digitalWrite(SHORT,true);
+  Serial.println( F("is short led on? (y/n)"));
+  pass += readYN();
+  digitalWrite(SHORT,false);
+//  Serial.println (pass );
+  return pass;
 }
+
+
 
 int test2()
 {
@@ -157,7 +180,17 @@ int test7()
 {
   Serial.println( F("test 7") ); 
   Serial.println( F("-----------------------------") );
-  return -1;
+  buzz();
+  Serial.println( F("measure max temp on the board (enter integer)"));
+  while( Serial.available() == 0 )
+  {
+    ;;
+  }
+  int temp = serReadInt();
+  Serial.println( temp );
+  if( temp > maxTemp )
+    return 0;
+  return 1;
 }
 int test8()
 {
@@ -231,18 +264,65 @@ int test9()
   return pass;
 }
 
-//test 10 and 11 are about reading the voltag and current sensor
+//test 10 and 11 are about reading the voltage and current sensor
+//this one kind of pointless beacuse we've already forced the input to be 2v when calibrating
 int test10()
 {
   Serial.println( F("test 10") ); 
   Serial.println( F("-----------------------------") );
-  return -1;
+  digitalWrite( connectSupply, true );
+  delay(500);
+  int pass = 0;
+  float v = 2*getAvgAnalogRead(VOLTAGE_SENSE); 
+    if( v > maxSupplyVoltage )
+    {
+      Serial.println( "voltage too high" );
+    }
+    else if( v < minSupplyVoltage )
+    {
+      Serial.println( "voltage too low" );
+    }
+    else
+    {
+      pass ++;
+    }
+  digitalWrite( connectSupply, false );
+  return pass;
 }
+
 int test11()
 {
   Serial.println( F("test 11") ); 
   Serial.println( F("-----------------------------") );
-  return -1;
+
+  //on board current reader relies on getting supply from fuelcell
+  digitalWrite( connectSupply, true );
+  digitalWrite( LOAD, HIGH );
+
+  delay(500);
+
+  float us;
+  float them;
+  int pass =0;
+
+  for( int i = 0 ; i <= 6; i ++ )
+  {
+    connectLoad(i);
+    delay(1000);
+    us = measureSupplyCurrent();
+    them = measureFCCurrent();
+    if( abs(us - them) < maxCurrentDiff )
+    {
+      pass ++;
+      Serial.println("pass");
+    }
+    else
+    {
+      Serial.println("fail");
+    }
+  }
+  return pass;
+  allOff();
 }
 //with fuel cells
 int test12()
