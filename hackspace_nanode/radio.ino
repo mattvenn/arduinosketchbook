@@ -24,7 +24,7 @@
   {
     const Payload* p = (const Payload*) rf12_data;
     gotAck = true;
-    Serial.println( "< robot:" );
+    Serial.print( "< robot:" );
     Serial.print( p->command );
     Serial.print( p->arg1 );
     Serial.print(",");
