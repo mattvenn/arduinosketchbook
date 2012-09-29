@@ -8,10 +8,16 @@
 // Get it from http://jeelabs.net/projects/11/wiki/EtherCard
 #include <EtherCard.h>
 #include <JeeLib.h>
-
+#include <avr/interrupt.h>
+#include <avr/wdt.h>
 // change these settings to match your own setup
 #define FEED    "46756"
 #define APIKEY  "QHcIMwn4vsbSC3kgzClHrh_3XdiSAKw0b1dvY1VBV3JQRT0g"
+
+
+
+int TimeOutLoopsBeforeReboot = 5;  // will reboot after getting X times into the timeout loop
+
 
 // On Nanode, this will get the MAC from the 11AA02E48 chip
 byte mymac[6];
@@ -61,6 +67,7 @@ boolean readyToSend = false;
 MilliTimer testTimer;
 int commands = 0; // number of commands successfully parsed.
 int commandIndex = 0; //which command we're on at the mo
+long int sends = 0;
 
 #define MEMTEST
 boolean uploadData = true;
@@ -70,6 +77,10 @@ MilliTimer getDataTimer, uploadTimer;
 
 void setup () {
   Serial.begin(9600);
+  
+  //initialize watchdog
+  WatchdogSetup();
+
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN,LOW);
 
@@ -98,7 +109,7 @@ void setup () {
     printf_P(PSTR( "Failed to access Ethernet controller\n\r"));
 
   //always failed on the netgear. works on the dlink
-  if (!ether.dhcpSetup("Nanode"))
+  //if (!ether.dhcpSetup("Nanode"))
   {
     printf_P(PSTR("DHCP failed, using static configuration\n\r"));
     ether.staticSetup(static_ip, static_gw);
@@ -132,6 +143,7 @@ static byte session;
 
 
 void loop () {
+  wdt_reset(); //if this doesn't work then try in one of the receive loops 
   //poll ethernet
   ether.packetLoop(ether.packetReceive());
   //poll radio
@@ -200,6 +212,8 @@ void loop () {
       stash.println(tempStr );
       stash.print("stash,");
       stash.println( stash.freeCount() );
+      stash.print("sends,");
+      stash.println(sends++);
       stash.save();
       Serial.print( "stash mem:" ); 
       Serial.println( stash.freeCount() );
