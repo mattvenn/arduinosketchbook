@@ -7,46 +7,44 @@
  
  
  */
+
+//test specifications
+static const float standbyCurrent = 0.5; //A
+static const float maxBootCurrent = 1.0; //A
+static const float maxCurrentDiff = 0.20; //A max allowable difference between our current sense and the boards
+static const float minOutputVoltage = 4800; //mv
+static const float minOutputVoltageMaxLoad = 4200; //mv
+static const float minBootCurrent = 0.3; //A check this
+static const float drainedCapVoltage = 500; //mv
+static const float chargedCapVoltage = 4500; //mv 
+static const float shortCurrent = 1.7; //A depends on psu current limit setting
+static const float solenoidCurrent = 0.65; //A check this
+static const int minSupplyVoltage = 1950;
+static const int maxSupplyVoltage = 2050;
+static const int maxTemp = 65;
+
+
+/* h2mdk pin defs */
 #define AREF 3300.0
-/* h2mdk defs */
 static const int PURGE = 3;
 static const int LOAD = 4;  // 3w can disconnect load
 static const int SHORT = 5;
 static const int STATUS_LED = 6;
-static const int buzzerPin = 12;
 
-//analog pins
 static const int VOLTAGE_SENSE = A1;
 static const int CURRENT_SENSE = A2;
 static const int CAP_V_SENSE = A3;
 
-/* extra defs */
-
-static const int supplyCurrent= A4;
+//analog pins
 static const int outputVoltage = A0;
-
-static const int connectSupply = 9;
-static const int connectFC = 8;
-static const int connectLoad1 = 10;
+static const int supplyCurrent= A4;
+//pin defs
 static const int connectLoad2 = 7;
+static const int connectFC = 8;
+static const int connectSupply = 9;
+static const int connectLoad1 = 10;
 static const int connectLoad3 = 11;
-//elect defs
-static const float standbyCurrent = 0.5; //A
-static const float maxBootCurrent = 1.0; //A
-static const float maxCurrentDiff = 0.20; //A difference between our current sense and the boards
-static const float minOutputVoltage = 4800; //mv
-static const float minOutputVoltageMaxLoad = 4200; //mv
-static const float minBootCurrent = 0.3; //A check this
-//these both are wrong because of the old board I'm working against
-static const float drainedCapVoltage = 500; //mv
-static const float chargedCapVoltage = 4500; //mv todo
-
-static const float shortCurrent = 1.7; //A depends on psu current limit setting
-static const float solenoidCurrent = 0.65; //A check this
-
-static const int minSupplyVoltage = 2000;
-static const int maxSupplyVoltage = 2100;
-static const int maxTemp = 65;
+static const int buzzerPin = 12;
 
 //define loads for the main tests
 static const int Load1_25W = 2;
@@ -54,6 +52,7 @@ static const int Load2_75W = 6;
 static const int Load0_7A = 7;
 
 float currentOffsetV = 0;
+String serialStr = "";
 
 void setup()
 {
@@ -92,8 +91,10 @@ void loop()
 
     switch( command )
     {
-    case 'r': //run all tests
+    case 'a': //run all tests
       {
+        getSerial();
+        waitForBoard();
         Serial.println( F("running all tests...") );
         int t1 = test1();
         int t2 = test2();
@@ -108,7 +109,12 @@ void loop()
         int t11 = test11();
         int t12 = test12();        
         int t13 = test13();        
+        int t14 = test14();                
+        
+        buzz();
+        Serial.println( F("complete") );
 
+        Serial.print( serialStr ); Serial.print(",");
         Serial.print( t1 ); Serial.print(",");
         Serial.print( t2 ); Serial.print(",");
         Serial.print( t3 ); Serial.print(",");
@@ -122,6 +128,8 @@ void loop()
         Serial.print( t11 ); Serial.print(",");
         Serial.print( t12 ); Serial.print(",");        
         Serial.print( t13 ); Serial.print(",");                
+        Serial.print( t14 ); Serial.print(",");                
+
         Serial.println();
         break; 
       }
@@ -130,33 +138,33 @@ void loop()
         int testNum = serReadInt();
         Serial.print( testNum );
         if( testNum == 1 )
-          test1();
+          Serial.println( test1() );
         else if( testNum == 2 )
-          test2();
+          Serial.println( test2() );
         else if( testNum == 3 )
-          test3();
+          Serial.println( test3() );
         else if( testNum == 4)
-          test4();
+          Serial.println( test4() );
         else if( testNum == 5)
-          test5();
+          Serial.println( test5() );
         else if( testNum == 6)
-          test6();
+          Serial.println( test6() );
         else if( testNum == 7)
-          test7();
+          Serial.println( test7() );
         else if( testNum == 8)
-          test8();
+          Serial.println( test8() );
         else if( testNum == 9)
-          test9();
+          Serial.println( test9() );
         else if( testNum == 10)
-          test10();
+          Serial.println( test10() );
         else if( testNum == 11)
-          Serial.println(test11());
+          Serial.println( test11() );
         else if( testNum == 12)
-          test12();
+          Serial.println( test12() );
         else if( testNum == 13)
-          test13();
+          Serial.println( test13() );
         else if( testNum == 14)
-          test14();  
+          Serial.println( test14() );  
         else 
           Serial.println(F("unknown test number"));
         break;
@@ -314,12 +322,15 @@ float measureFCCurrent()
 float measureSupplyCurrent()
 {
   float v = getAvgAnalogRead(supplyCurrent); // AREF/1024.0*analogRead(supplyCurrent) ;
-  Serial.print( ">> v: " );
+  #ifdef CURRENTDEBUG
+   Serial.print( ">> v: " );
    Serial.print( v );
    Serial.print( " off: " );
    Serial.println( v - currentOffsetV );
+   #endif
    
-  float i =( v - currentOffsetV ) / 185; // should be 185mv per amp but just ain't working
+  float i =( v - currentOffsetV ) / 185; 
+  // should be 185mv per amp but just ain't working
   i *= 1.32; //fudge factor to deal with the above.
   Serial.print( "supply i: ");
   Serial.println( i );
@@ -343,9 +354,12 @@ void prepFuelCell()
 
 void calibrateSupplyVoltage()
 {
-  Serial.println(F("calibrating supply voltage"));
+  Serial.println(F("calibrating supply voltage, type y when supply is 2.0v"));
   digitalWrite(connectSupply,true);
+  readYN();
+/*
   delay(200);
+
   while( true )
   {
     float v = 2 * getAvgAnalogRead(VOLTAGE_SENSE);
@@ -364,28 +378,7 @@ void calibrateSupplyVoltage()
     }
     delay(1000);
   }
-
+*/
   digitalWrite(connectSupply,false);
 }
 
-int readYN()
-{
-  while( Serial.available() == 0 ) 
-  {
-    ;;
-  }
-  char a = Serial.read();
-  Serial.flush();
-  if( a == 'y' )
-    return 1;
-  return 0;
-}
-
-void buzz()
-{
-  for( int i = 2000; i < 4000; i += 500 )
-  {
-    tone(buzzerPin, i, 500 );
-    delay(200);
-  }
-}

@@ -1,8 +1,13 @@
-int test1()
+/*
+test desc:
+ test the 3 status leds turn on and off
+*/
+float test1()
 {
   Serial.println( F("test 1") ); 
   Serial.println( F("-----------------------------") );
   int pass =0;
+  int tests=3;
   allOff();
 
   buzz();
@@ -20,16 +25,18 @@ int test1()
   Serial.println( F("is short led on? (y/n)"));
   pass += readYN();
   digitalWrite(SHORT,false);
-//  Serial.println (pass );
-  return pass;
+  return float(pass)/tests*100;
 }
 
 
-
-int test2()
+/*
+test desc:
+  board starts up with drained caps and using an acceptable current
+*/
+float test2()
 {
   int pass = 0;
-
+  int tests = 5;
   Serial.println( F("test 2") );
   Serial.println( F("-----------------------------") );
   drainCaps();
@@ -37,7 +44,7 @@ int test2()
   digitalWrite( connectSupply, true );
   
   delay(500);
-  for( int i = 0; i < 5 ; i ++)
+  for( int i = 0; i < tests ; i ++)
   {
 
     float i = measureSupplyCurrent();
@@ -58,20 +65,25 @@ int test2()
 
   }
   allOff();
-  return pass;
+  return float(pass)/tests*100;
 }
 
 
+/*
+test desc:
+  output voltage is at 5000mv  
+*/
 int test3()
 {
   int pass=0;
+  int tests = 5;
   Serial.println( F("test 3") );
   Serial.println( F("-----------------------------") );
   digitalWrite( connectSupply, true );
   digitalWrite( LOAD, HIGH );
   chargeCaps();
   delay(500);
-  for( int i = 0; i < 5 ; i ++)
+  for( int i = 0; i < tests ; i ++)
   {
     if( measureOutputVoltage() > minOutputVoltage )
     {
@@ -85,12 +97,17 @@ int test3()
     delay(1000);
   }
   allOff();
-  return pass;
+  return float(pass)/tests*100;
 }
 
+/*
+test desc:
+  output voltage is ok with a 1.25W load for 5 seconds 
+*/
 int test4()
 {
   int pass=0;
+  int tests = 5;
   Serial.println( F("test 4") );
   Serial.println( F("-----------------------------") );
   digitalWrite( connectSupply, true );
@@ -99,7 +116,7 @@ int test4()
   chargeCaps();
   connectLoad(Load1_25W);
   delay(500);
-  for( int i = 0; i < 5 ; i ++)
+  for( int i = 0; i < tests ; i ++)
   {
     if( measureOutputVoltage() > minOutputVoltage && measureSupplyCurrent() > 0.6 )
     {
@@ -110,16 +127,21 @@ int test4()
     {
       Serial.println( "fail" );
     }
-    delay(2000);
+    delay(1000);
   }
   allOff();
-  return pass;
+  return float(pass)/tests*100;
 }
 
 
+/*
+test desc:
+  output voltage is above acceptable limit with a 0.7A load for 5 seconds
+*/
 int test5()
 {
   int pass=0;
+  int tests = 5;
   Serial.println( F("test 5") ); 
   Serial.println( F("-----------------------------") );
   digitalWrite( connectSupply, true );
@@ -128,7 +150,7 @@ int test5()
 
   connectLoad( Load0_7A );
  
-  for( int i = 0; i < 5 ; i ++)
+  for( int i = 0; i < tests ; i ++)
   {
      if( measureOutputVoltage() < minOutputVoltageMaxLoad )
      {
@@ -143,13 +165,18 @@ int test5()
   }
   
   allOff();
-  return pass;
+  return float(pass)/tests*100;
 }
 
 
+/*
+test desc:
+  output voltage is at acceptable level for a load of 2.75W for 5 minutes
+*/
 int test6()
 {
   int pass=0;
+  int tests = 5 * 60; //5 minutes
   Serial.println( F("test 6") ); 
   Serial.println( F("-----------------------------") );
   digitalWrite( connectSupply, true );
@@ -158,7 +185,7 @@ int test6()
   chargeCaps();
   connectLoad( Load2_75W );
 
-  for( int i = 0; i < 5 ; i ++)
+  for( int i = 0; i < tests ; i ++)
   {
      if( measureOutputVoltage() < minOutputVoltageMaxLoad )
      {
@@ -173,9 +200,12 @@ int test6()
   }
   
   allOff();
-  return pass;
+  return float(pass)/tests*100;
 }
-//temp measure
+/*
+test desc:
+  temperature is not above 65C anywhere on the board. requires user input
+*/
 int test7()
 {
   Serial.println( F("test 7") ); 
@@ -190,13 +220,18 @@ int test7()
   Serial.println( temp );
   if( temp > maxTemp )
     return 0;
-  return 1;
+  return 100;
 }
+/*
+test desc:
+  check solenoid is working by measuring current drawn while it's on
+*/
 int test8()
 {
   Serial.println( F("test 8") ); 
   Serial.println( F("-----------------------------") );
   int pass = 0;
+  int tests =5 ;
   Serial.println( "solenoid" );
   digitalWrite( connectSupply, true );
   digitalWrite( LOAD, HIGH );
@@ -209,7 +244,7 @@ int test8()
     allOff();
     return 0;
   }
-  for( int i = 0; i < 5 ; i ++ )
+  for( int i = 0; i < tests ; i ++ )
   {
     digitalWrite( PURGE, HIGH );
     delay(50);
@@ -226,13 +261,18 @@ int test8()
     delay(1000);
   }
   allOff();
-  return pass;
+  return float(pass)/tests*100;
 }
+/*
+test desc:
+  check short is working by measuring current drawn while it's on
+*/
 int test9()
 {
   Serial.println( F("test 9") ); 
   Serial.println( F("-----------------------------") );
   int pass = 0;
+  int tests = 5;
   Serial.println( "short circuit" );
   digitalWrite( connectSupply, true );
   digitalWrite( LOAD, HIGH );
@@ -244,7 +284,7 @@ int test9()
     allOff();
     return 0;
   }
-  for( int i = 0; i < 5 ; i ++ )
+  for( int i = 0; i < tests ; i ++ )
   {
     digitalWrite( SHORT, HIGH );
     delay(50);
@@ -261,19 +301,25 @@ int test9()
     delay(1000);
   }
   allOff();
-  return pass;
+  return float(pass)/tests*100;
 }
 
-//test 10 and 11 are about reading the voltage and current sensor
-//this one kind of pointless beacuse we've already forced the input to be 2v when calibrating
+/*
+test desc:
+  check we can read the voltage using the board's potential divider
+*/
 int test10()
 {
   Serial.println( F("test 10") ); 
   Serial.println( F("-----------------------------") );
   digitalWrite( connectSupply, true );
-  delay(500);
+  delay(1000);
   int pass = 0;
+  int tests = 5;
+   for( int i = 0; i < tests ; i ++ )
+   {
   float v = 2*getAvgAnalogRead(VOLTAGE_SENSE); 
+  Serial.println( v );
     if( v > maxSupplyVoltage )
     {
       Serial.println( "voltage too high" );
@@ -286,10 +332,17 @@ int test10()
     {
       pass ++;
     }
+    delay(1000);
+   }
   digitalWrite( connectSupply, false );
-  return pass;
+  return float(pass)/tests*100;
 }
 
+/*
+test desc:
+  check we can read the current using the board's current monitor
+  check we are not too far out with comparison to our own monitor on all the loads we have available
+*/
 int test11()
 {
   Serial.println( F("test 11") ); 
@@ -304,8 +357,8 @@ int test11()
   float us;
   float them;
   int pass =0;
-
-  for( int i = 0 ; i <= 6; i ++ )
+  int tests = 7;
+  for( int i = 0 ; i < tests; i ++ )
   {
     connectLoad(i);
     delay(1000);
@@ -321,20 +374,30 @@ int test11()
       Serial.println("fail");
     }
   }
-  return pass;
+  
   allOff();
+    return float(pass)/tests*100;
+
 }
-//with fuel cells
+/*
+test desc:
+  test board boots ok with fuel cell (and drained caps)
+  test output voltage is OK when powered with fuel cell
+*/
 int test12()
 {
   Serial.println( F("test 12") ); 
   Serial.println( F("-----------------------------") );
   int pass = 0;
+  int tests =5;
+  
+  drainCaps();
   prepFuelCell();
+
   digitalWrite( LOAD, HIGH );
   chargeCaps();
   //manage fuel cell (short and purge) better, for now:
-  for( int i = 0; i < 5 ; i ++ )
+  for( int i = 0; i < tests ; i ++ )
   {
     measureSupplyCurrent();
     if( measureOutputVoltage() > minOutputVoltage )
@@ -350,22 +413,27 @@ int test12()
   }
 
   allOff();
-  return pass;
+  return float(pass)/tests*100;
 }
 
 
+/*
+test desc:
+  test board output voltage is stable with a 1.25W load for 5 minutes
+*/
 int test13()
 {
   Serial.println( F("test 13") ); 
   Serial.println( F("-----------------------------") );
   int pass = 0;
+  int tests = 5 * 60;
   prepFuelCell();
   digitalWrite( LOAD, HIGH );
   chargeCaps();
   prepFuelCell();
 
   connectLoad(Load1_25W);
-  for( int i = 0; i < 5 ; i ++ )
+  for( int i = 0; i < tests ; i ++ )
   {
     measureSupplyCurrent();
     if( measureOutputVoltage() > minOutputVoltage )
@@ -381,19 +449,25 @@ int test13()
   }
 
   allOff();
-  return pass;
+  return float(pass)/tests*100;
 }
 
+/*
+test desc:
+  do a short while running on fuel cell with 1.25W load. check output voltage doesn't drop too low
+*/
 int test14()
 {
   Serial.println( F("test 14") ); 
+  
   Serial.println( F("-----------------------------") );
   int pass = 0;
+  int tests = 5;
   prepFuelCell();
   digitalWrite( LOAD, HIGH );
   chargeCaps();
   connectLoad(Load1_25W);
-  for( int i = 0; i < 5 ; i ++ )
+  for( int i = 0; i < tests ; i ++ )
   {
     digitalWrite( SHORT, HIGH );
   delay(50);
@@ -414,5 +488,5 @@ int test14()
   }
 
   allOff();
-  return pass;
+  return float(pass)/tests*100;
 }

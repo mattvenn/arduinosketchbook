@@ -23,3 +23,55 @@ int serReadInt()
     return -1;                           // Return -1 if there is no input
 }
 
+void getSerial()
+{
+  Serial.println( F("type serial of the board, then press enter"));
+  while( Serial.available() == 0 ) 
+  {
+    ;;
+  }
+  delay(100);
+  Serial.println( Serial.available() );
+  while (Serial.available() > 0) 
+  {
+    int inChar = Serial.read();
+    if (inChar == '\n') 
+    {
+      break;
+    }
+    else
+    {
+       serialStr += (char)inChar; 
+    }
+  }
+  Serial.print( F("got: "));
+  Serial.println( serialStr );
+}
+
+void waitForBoard()
+{
+  Serial.println( F("type y when board is plugged in"));
+  readYN();
+}
+
+int readYN()
+{
+  while( Serial.available() == 0 ) 
+  {
+    ;;
+  }
+  char a = Serial.read();
+  Serial.flush();
+  if( a == 'y' )
+    return 1;
+  return 0;
+}
+
+void buzz()
+{
+  for( int i = 2000; i < 4000; i += 500 )
+  {
+    tone(buzzerPin, i, 500 );
+    delay(200);
+  }
+}
