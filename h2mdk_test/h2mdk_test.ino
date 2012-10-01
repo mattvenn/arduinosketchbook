@@ -1,10 +1,7 @@
 /* 
- todo
- 
- still major probs with reading current sensor DANG!!!
-  -fixed with a fudge factor
- test cap sense before relying on it to work?
- 
+
+auto test for h2mdk 3w board. Documentation is here:
+https://docs.google.com/document/d/1T9boEtXFTYrRJU7beGyJj1SRzqUCwK1HrtQF3aPEG40/edit#
  
  */
 
