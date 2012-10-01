@@ -31,7 +31,6 @@ void getSerial()
     ;;
   }
   delay(100);
-  Serial.println( Serial.available() );
   while (Serial.available() > 0) 
   {
     int inChar = Serial.read();
