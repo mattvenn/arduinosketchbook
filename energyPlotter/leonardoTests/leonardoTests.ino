@@ -86,12 +86,15 @@ int b1= sqrt(pow((w-x1),2)+pow(y1,2));
 
 //payload def
 typedef struct {
+ // byte index;
   char command;
   int arg1;
   int arg2;
 
 } Payload;
 Payload payload;
+
+boolean penState = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -144,6 +147,8 @@ void setup() {
   initRadio();
   checkRadio = true;    
   #endif
+  pulsePower( PULSELEN, PENUP ); 
+  //calibrate();
 }
 
 // the loop routine runs over and over again forever:
@@ -162,11 +167,11 @@ void loop() {
     Serial.println(freeMemory());
     #endif
     //try to cope with lost packets. Send an ack if enough time has elapsed since we last completed a command.
-    if( millis() - lastCommandTime > 10000 ) 
+  /*  if( millis() - lastCommandTime > 10000 ) 
     {
       sendAck = 1;
       Serial.println( millis() );
-    }
+    }*/
   }
 
   if( testSD && sdTimer.poll(5000) )
@@ -196,10 +201,21 @@ void loop() {
         Serial.print( "line tset: " ); Serial.println( servoTest );
         break;
       case 'd':
-        pulsePower( PULSELEN, payload.arg1 ? PENDOWN : PENUP );
-        Serial.println( payload.arg1 ? "pen down" : "pen up" );
-        Serial.println( "ok");
+     
+        if( payload.arg1 != penState )
+        {
+          pulsePower( PULSELEN, payload.arg1 ? PENDOWN : PENUP );
+          Serial.println( payload.arg1 ? "pen down" : "pen up" );
+          Serial.println( "ok");
+          penState = payload.arg1;
+        }  
+        else
+        {
+           Serial.print( "pen already: ");
+          Serial.println( penState ? "down" : "up" );
+        }
         break;
+      
       case 's':
         pulsePower( payload.arg2, payload.arg1 );
         Serial.println("ok");
@@ -207,6 +223,9 @@ void loop() {
       case 'c':
         pulsePower( PULSELEN, PENUP ); 
         calibrate();
+        //then need to move 60,-80
+        stepLeft(60);
+        stepRight(-80);
         Serial.println("ok");
         break;
       case 'a':
