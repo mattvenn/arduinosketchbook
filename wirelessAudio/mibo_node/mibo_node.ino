@@ -27,7 +27,11 @@ void setup()
   xbeeSerial.begin(9600);
   Serial.print( "started xbee node id:" );
 
-  //EEPROM.write(idAddress,0); //set address
+  /*set address: uncomment line below and change the 0 to the node's id (0-9).
+  Then compile and upload. 
+  Then recomment out line, compile and upload
+  */
+  //EEPROM.write(idAddress,0); 
   ID = getId();
 
   pinMode( radioStatusLED, OUTPUT );
@@ -73,6 +77,8 @@ void loop()
     if( command == 'c' ) // a broadcast message from master to all clients
     {
       Serial.println( "got message from master" );
+      lastPollRX = millis();
+
       command = xbeeSerial.read();
       switch(command)
       {
@@ -85,12 +91,6 @@ void loop()
             Serial.println( volume );
             setVolume(volume);
           }
-          break;
-        }
-      case 'i':
-        {
-          Serial.println( "got poll" );
-          lastPollRX = millis();
           break;
         }
       case 's':
