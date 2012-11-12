@@ -5,7 +5,8 @@
 #include <SoftwareSerial.h>
 LiquidCrystal lcd(12, 11, 5, 4, 7, 6);
 
-const int waitForNodePoll = 200;
+const int switchDebounceTime = 500;
+
 const int numNodes = 10;
 const int playButton = 8;
 const int stopButton = 10;
@@ -61,15 +62,12 @@ void loop()
     stopNodes();
   }
 
-  volume = map( analogRead( volumeKnob ), 0 , 1024, 100, 0 );
   
-  lcd.setCursor(8,1);
-  lcd.print( "vol:    ");
-  lcd.setCursor(13,1);
-  lcd.print( volume );
   
   if( millis() - lastKnobTime > 200 )
   {
+    volume = map( analogRead( volumeKnob ), 0 , 1024, 100, 0 );
+  
     lastKnobTime = millis();
     if( lastVolume != volume ) // knob has changed
     {
@@ -92,24 +90,32 @@ void sendVolume()
   xbeeSerial.write( volume );
   Serial.print( "sending vol:" );
   Serial.println( volume );
+  lcd.setCursor(8,1);
+  lcd.print( "vol:    ");
+  lcd.setCursor(13,1);
+  lcd.print( volume );
   
-  delay(100);
+  delay(200);
 }
 void startNodes()
 {
   xbeeSerial.print( "cs" );
+  delay(200);
+  xbeeSerial.print( "cs" );
   Serial.println( "starting" );
   lcd.setCursor(0,1);
   lcd.print( "playing");
-  delay(100);
+  delay(switchDebounceTime);
 }
 void stopNodes()
 {
   xbeeSerial.print( "ce" );
+  delay(200);
+  xbeeSerial.print( "ce" );
   Serial.println( "ending" );
   lcd.setCursor(0,1);
   lcd.print( "stopped");
-  delay(100);
+  delay(switchDebounceTime);
 }
 
 
