@@ -17,7 +17,7 @@ double lastPollRX;
 double lastPollTX;
 SoftwareSerial xbeeSerial(XBEE_RX,XBEE_TX);
 SFEMP3Shield MP3player;
-
+boolean isplaying = false;
 const int radioStatusLED = A2;
 
 
@@ -40,6 +40,13 @@ void setup()
 }
 void loop()
 {
+  if( isplaying && ! MP3player.isPlaying() )
+  {
+    //we need to restart it
+    MP3player.playTrack(1);
+  }
+
+
   //update radio status LED
   if( millis() - lastPollRX > 5000 )
   {
@@ -88,10 +95,12 @@ void loop()
         }
       case 's':
         Serial.println( "starting" );
+        isplaying = true;
         MP3player.playTrack(1);
         break;
       case 'e':
         Serial.println( "ending" );
+        isplaying = false;
         MP3player.stopTrack();
         break;
       default:
