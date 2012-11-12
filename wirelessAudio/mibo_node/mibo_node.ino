@@ -47,6 +47,14 @@ void loop()
       command = xbeeSerial.read();
       switch(command)
       {
+      case 'v':
+      {
+        int volume = serReadInt();
+        setVolume(volume);
+        Serial.print( "got vol: " );
+        Serial.println( volume );
+        break;
+      }
       case 'i':
         {
           //we've got an id command, read it
@@ -86,6 +94,12 @@ void loop()
 
   }    
 
+}
+
+//Set VS10xx Volume Register
+void setVolume(unsigned char volume)
+{
+  Mp3WriteRegister(SCI_VOL, 100 - volume, 100 - volume);
 }
 
 byte getId()

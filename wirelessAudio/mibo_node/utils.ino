@@ -1,5 +1,6 @@
 int serReadInt()
 {
+  delay(50);
   int i, serAva;                           // i is a counter, serAva hold number of serial available
   char inputBytes [7];                 // Array hold input bytes
   char * inputBytesPtr = &inputBytes[0];  // Pointer to the first element of the array
