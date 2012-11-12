@@ -132,7 +132,7 @@ double getTemp()
   }
 
   Tc_100 = TReading;
-  Tc_100 *= 50;
+  Tc_100 *= 62.5; //thanks nathan!
 
   return Tc_100;
 }
