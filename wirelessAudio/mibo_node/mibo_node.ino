@@ -13,10 +13,12 @@
 
 const int idAddress = 0;
 byte ID;
-
+double lastPollRX;
+double lastPollTX;
 SoftwareSerial xbeeSerial(XBEE_RX,XBEE_TX);
 SFEMP3Shield MP3player;
 
+const int radioStatusLED = A2;
 
 
 void setup()
@@ -28,6 +30,8 @@ void setup()
   //EEPROM.write(idAddress,0); //set address
   ID = getId();
 
+  pinMode( radioStatusLED, OUTPUT );
+  digitalWrite( radioStatusLED, LOW );
   Serial.println( ID );
 
   //start the shield
@@ -36,41 +40,50 @@ void setup()
 }
 void loop()
 {
+  //update radio status LED
+  if( millis() - lastPollRX > 5000 )
+  {
+    //comms problem
+    digitalWrite( radioStatusLED, false );
+  }
+  else
+  {
+    digitalWrite( radioStatusLED, true );
+  }
+  //send a poll to master
+  if( millis() - lastPollTX > 1000 )
+  {
+    lastPollTX = millis();
+    Serial.println( "send poll" );
+    xbeeSerial.print( "m" );
+    xbeeSerial.write( ID );
+  }
   if( xbeeSerial.available() >= 2)
   {
     char command = xbeeSerial.read();
-    Serial.print( "got: " );
-    Serial.println( command );
+   // Serial.print( "got: " );
+    //Serial.println( command );
     if( command == 'c' ) // a broadcast message from master to all clients
     {
-      Serial.println( "got message from master: " );
+      Serial.println( "got message from master" );
       command = xbeeSerial.read();
       switch(command)
       {
       case 'v':
-      {
-        int volume = serReadInt();
-        setVolume(volume);
-        Serial.print( "got vol: " );
-        Serial.println( volume );
-        break;
-      }
+        {
+          int volume = xbeeSerial.read();
+          if( volume > 0 )
+          {
+            Serial.print( "got vol: " );
+            Serial.println( volume );
+            setVolume(volume);
+          }
+          break;
+        }
       case 'i':
         {
-          //we've got an id command, read it
-          int id = serReadInt();
-          //        Serial.print( "id: " );
-          //       Serial.println( id );
-          if( id == ID )
-          {
-            Serial.println( "our id called" );
-            xbeeSerial.print( "mok" );
-          }  
-          else
-          {
-            //not for us so flush buffer
-            xbeeSerial.flush();
-          }          
+          Serial.println( "got poll" );
+          lastPollRX = millis();
           break;
         }
       case 's':
@@ -106,5 +119,6 @@ byte getId()
 {
   return EEPROM.read(idAddress);
 }
+
 
 

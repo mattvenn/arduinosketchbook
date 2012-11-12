@@ -11,7 +11,7 @@ const int playButton = 8;
 const int stopButton = 10;
 const int volumeKnob = A0;
 double lastKnobTime, lastPollTime;
-
+double nodeStatus [numNodes];
 int volume, lastVolume;
 
 SoftwareSerial xbeeSerial(XBEE_RX,XBEE_TX);
@@ -68,7 +68,7 @@ void loop()
   lcd.setCursor(13,1);
   lcd.print( volume );
   
-  if( millis() - lastKnobTime > 500 )
+  if( millis() - lastKnobTime > 200 )
   {
     lastKnobTime = millis();
     if( lastVolume != volume ) // knob has changed
@@ -89,7 +89,7 @@ void loop()
 void sendVolume()
 {
   xbeeSerial.print( "cv" );
-  xbeeSerial.print( volume );
+  xbeeSerial.write( volume );
   Serial.print( "sending vol:" );
   Serial.println( volume );
   
@@ -116,29 +116,25 @@ void stopNodes()
 void pollNodes()
 {
   Serial.println( "checking for online nodes..." );
-  for( int i = 0; i < numNodes ; i ++ )
+  xbeeSerial.print( "ci" );
+  
+  while( xbeeSerial.available() )
   {
-    Serial.print( "node: " );
-    Serial.print( i );
-    xbeeSerial.print( "ci" );
-    xbeeSerial.print( i );
-    
-    delay(waitForNodePoll); //transmission delay
-    
-    lcd.setCursor(i,0);
-    if( xbeeSerial.available() )
+    if( xbeeSerial.read() == 'm' )
     {
-      Serial.println( " OK" );
-      //don't care what the answer is
-      xbeeSerial.flush();
-      lcd.print( '*' );
-      
+      int node = xbeeSerial.read();
+      Serial.print( "got poll from: " );
+      Serial.println( node );
+      nodeStatus[node] = millis();
     }
+  }
+  lcd.setCursor(0,0);
+  for( int node = 0; node < numNodes ; node ++ )
+  {
+    if( millis() - nodeStatus[node] > 5000 )
+      lcd.print(".");
     else
-    {
-      Serial.println( " not online" );
-      lcd.print( '.' );
-    }
+      lcd.print("*");
   }
 }
 
