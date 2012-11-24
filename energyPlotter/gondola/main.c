@@ -1,16 +1,23 @@
 /*
-do I actually need a microcontroller to do this?
+todo:
+
+move to an always on mode. needs to have a listening mode and a moving mode. After timing out the moving mode, go back to listening again. 
+also, don't accept timing info from master, use hardcoded numbers for moving the servo
+
 more example code:http://metku.net/index.html?path=articles/microcontroller-part-2/index_eng5
 */
 #include "common.h"
 //#include <avr/eeprom.h>
+
+#define F_CPU 1250000UL  // 1 MHz, what is it really?
+#include <util/delay.h>
 
 //uint8_t  EEMEM startServoLoc; 
 //uint8_t startServoPos;
 //used for the 2 wire comms
 volatile uint8_t counter = 0; 
 volatile bool counting = true;
-
+volatile bool moveServo = false;
 //pins
 #define INT_PIN PB1
 #define SERVO_PIN PB0 //OC0A
@@ -59,6 +66,25 @@ int main()
     while(1)
     {
         //interrupts do all the work
+        //turn on PWM servo output
+        // Clear OC0A/OC0B Pin on Compare Match
+        // Set OC0A/OC0B at BOTTOM (non-inverting mode)
+        /*
+        if( moveServo )
+        {
+          //wait for cap to recharge
+          _delay_ms(5);
+          TCCR0A |= (1<<COM0A1);
+        }
+        */
+        //1ms is 0degrees 2ms is max
+        //35 in the registers is about 2ms
+          OCR0A = 16;
+          TCCR0A |= (1<<COM0A1);
+
+      clearbit(PORTB,LED_PIN); //turn off led
+          OCR0A = 34;
+          //TCCR0A |= (0<<COM0A1);
     }
 }
 
@@ -74,28 +100,17 @@ ISR(INT0_vect)
         OCR0A = counter;
         //save servo pos to eeprom
         //eeprom_write_byte(&startServoLoc,counter);
-
-        //turn on PWM servo output
-        // Clear OC0A/OC0B Pin on Compare Match
-        // Set OC0A/OC0B at BOTTOM (non-inverting mode)
         TCCR0A |= (1<<COM0A1);
+
     }
     sei();
 }
 
-//timer 1 is used for servo waveform generation
+//timer 0 is used to measure amount of time between power on and pulse over power line
 ISR(TIM0_OVF_vect)
 {
-    //servo pin goes high
-    //setbit(PORTB,SERVO_PIN);
     //comms counter
     if(counting)
         counter ++;
-}
-
-ISR(TIM0_COMPA_vect)
-{
-    //servo pin goes low
-    //clearbit(PORTB,SERVO_PIN);
 }
 
