@@ -9,7 +9,6 @@ more example code:http://metku.net/index.html?path=articles/microcontroller-part
 #include "common.h"
 //#include <avr/eeprom.h>
 
-#define F_CPU 150000  // 1 MHz, what is it really?
 #include <util/delay.h>
 
 //uint8_t  EEMEM startServoLoc; 
@@ -61,14 +60,13 @@ int main()
     setbit(GIMSK,INT0); //enable external int0 
     
     setbit(PORTB,LED_PIN);
-    _delay_ms(60);
     //flash led on powerup
-    for( int i = 0; i < 2; i++ )
+    for( int i = 0; i < 4; i++ )
     {
     clearbit(PORTB,LED_PIN); //turn off led
-    _delay_ms(10);
+    _delay_ms(100);
     setbit(PORTB,LED_PIN);
-    _delay_ms(10);
+    _delay_ms(100);
     }
     clearbit(PORTB,LED_PIN); //turn off led
 
@@ -77,7 +75,6 @@ int main()
     OCR0A = PENUP;
     TCCR0A |= (1<<COM0A1);
 
-    _delay_ms(5);
     //enable interrupts
     sei();
 
@@ -85,6 +82,14 @@ int main()
     {
       //interrupts do everything
       _delay_ms(1);
+
+      //if we've been waiting too long then reset back to listen mode
+      if( counting == true && counter > 20 )
+      {
+        counting = false;
+        clearbit(PORTB,LED_PIN); //turn off led
+      }
+
     }
 }
 
@@ -93,43 +98,42 @@ ISR(INT0_vect)
 {
     cli();
 
+    //count mode
     if(counting == false)
     {
       counting = true;
       setbit(PORTB,LED_PIN); //led on
       counter = 0;
     }
+    //listen mode
     else
     {
+      clearbit(PORTB,LED_PIN); //turn off led
       if( counter > 2 && counter < 5 )
       {
-          OCR0A = PENUP;
-      for( int i = 0; i < 2; i ++ )
-      {
-      clearbit(PORTB,LED_PIN); //turn off led
-      _delay_ms(10);
-      setbit(PORTB,LED_PIN);
-      _delay_ms(10);
-      }
-      clearbit(PORTB,LED_PIN); //turn off led
+        OCR0A = PENUP;
+        for( int i = 0; i < 2; i ++ )
+        {
+          clearbit(PORTB,LED_PIN); //turn off led
+          _delay_ms(100);
+          setbit(PORTB,LED_PIN);
+          _delay_ms(100);
+        }
       }
       else if( counter > 5 && counter < 8)
       {
-          OCR0A = PENDOWN;
-      for( int i = 0; i < 4; i ++ )
-      {
-      clearbit(PORTB,LED_PIN); //turn off led
-      _delay_ms(10);
-      setbit(PORTB,LED_PIN);
-      _delay_ms(10);
+        OCR0A = PENDOWN;
+        for( int i = 0; i < 4; i ++ )
+        {
+          clearbit(PORTB,LED_PIN); //turn off led
+          _delay_ms(100);
+          setbit(PORTB,LED_PIN);
+          _delay_ms(100);
+        }
       }
       clearbit(PORTB,LED_PIN); //turn off led
-      }
-
-        //load counter value into the timer compare reg
-//        else if(counter > 5 && counter < 140 )
-        counter = 0;
-        counting = false;
+      counter = 0;
+      counting = false;
     }
     sei();
 }
