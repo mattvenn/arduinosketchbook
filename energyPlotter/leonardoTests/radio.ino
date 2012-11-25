@@ -53,7 +53,7 @@ void doRadio()
   {
     sendAck = false;
     rf12_sendStart(0, &payload, sizeof payload);
-    Serial.println("sent ack"); 
+ //   Serial.println("sent ack"); 
   }
 
 }
