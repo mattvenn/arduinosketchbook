@@ -12,6 +12,10 @@ check with a scope
 
 jeelib/rf12.cpp needs adjusting to set rf12 chip select to portf bit 0
 
+todo:
+  needs radio and sd card interferance fixing
+  needs to resolve the possibility of gondola and pen state getting mixed up. This happens in the gondola code. it needs a timeout to set it back to listening mode not timing mode.
+
 */
 #define testSteppers
 //#define useSD //uses 10k
@@ -138,6 +142,7 @@ void setup() {
 
   //config steppers
   initSteppers();
+  initServo();
   //leave some time in case this doesn't work. Makes it easier to reprogram!  
   //delay(4000);
   #ifdef useSD
@@ -147,7 +152,7 @@ void setup() {
   initRadio();
   checkRadio = true;    
   #endif
-  pulsePower( PULSELEN, PENUP ); 
+  
   //calibrate();
 }
 
@@ -200,28 +205,29 @@ void loop() {
         servoTest = payload.arg1; 
         Serial.print( "line tset: " ); Serial.println( servoTest );
         break;
+      case 'y':
+       digitalWrite( SERVO, payload.arg1 ? PENDOWN : PENUP );
+        Serial.println("ok");
+         break;   
       case 'd':
      
-        if( payload.arg1 != penState )
+       // if( payload.arg1 != penState )
         {
-          pulsePower( PULSELEN, payload.arg1 ? PENDOWN : PENUP );
+          payload.arg1 ? penUp() : penDown();
           Serial.println( payload.arg1 ? "pen down" : "pen up" );
           Serial.println( "ok");
           penState = payload.arg1;
         }  
-        else
+       /* else
         {
            Serial.print( "pen already: ");
           Serial.println( penState ? "down" : "up" );
-        }
+        }*/
         break;
       
-      case 's':
-        pulsePower( payload.arg2, payload.arg1 );
-        Serial.println("ok");
-        break;
+   
       case 'c':
-        pulsePower( PULSELEN, PENUP ); 
+        penUp();
         calibrate();
         //then need to move 60,-80
         stepLeft(60);
@@ -242,10 +248,17 @@ void loop() {
         break;
       case 'q':
          Serial.println( "pos" );
-         Serial.print( "x: " );
+         Serial.print( "x(cm): " );
          Serial.print( x1 / StepUnit );
-         Serial.print( " y: " );
+         Serial.print( " y(cm): " );
          Serial.println( y1 / StepUnit);
+
+         Serial.print( "x: " );
+         Serial.print( x1  );
+         Serial.print( " y): " );
+         Serial.println( y1 );
+
+
          Serial.print( " a1: " );
          Serial.print( a1 / StepUnit);
          Serial.print( " b1: " );
@@ -270,7 +283,7 @@ void loop() {
       #ifdef useSD
       case 'w':
         writeSD(payload.arg1);
-        
+        readSD();
         //#ifdef useRadio
         //initRadio(); //need this after a write/read some combo?
         //#endif
@@ -296,8 +309,8 @@ void loop() {
 //    initRadio();
      sendAck = true;   
      lastCommandTime = millis();
-     Serial.print( "command finished at: " );
-     Serial.println( lastCommandTime );
+   //  Serial.print( "command finished at: " ); // putting these in will break the feeder 
+ //    Serial.println( lastCommandTime ); //putting these in will break the feeder
   }
 #ifdef useRadio        
 if( checkRadio)
