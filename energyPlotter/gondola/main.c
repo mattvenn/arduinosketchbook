@@ -9,19 +9,22 @@ more example code:http://metku.net/index.html?path=articles/microcontroller-part
 #include "common.h"
 //#include <avr/eeprom.h>
 
-#define F_CPU 1250000UL  // 1 MHz, what is it really?
+#define F_CPU 150000  // 1 MHz, what is it really?
 #include <util/delay.h>
 
 //uint8_t  EEMEM startServoLoc; 
 //uint8_t startServoPos;
 //used for the 2 wire comms
 volatile uint8_t counter = 0; 
-volatile bool counting = true;
+volatile bool counting = false;
 volatile bool moveServo = false;
 //pins
 #define INT_PIN PB1
 #define SERVO_PIN PB0 //OC0A
 #define LED_PIN PB4
+
+#define PENUP 16
+#define PENDOWN 34
 
 int main()
 {
@@ -43,7 +46,7 @@ int main()
 	setbit(TCCR0B,CS00); //prescalar
 
 	setbit(TIMSK0,TOIE0); //overflow interrupt enable
-    setbit(TIMSK0,OCIE0A); //compare A interrupt enable
+//    setbit(TIMSK0,OCIE0A); //compare A interrupt enable
 
     // Fast PWM
     TCCR0A |= (1<<WGM01) | (1<<WGM00);
@@ -57,34 +60,31 @@ int main()
     setbit(MCUCR,ISC01); //rising edge of int0
     setbit(GIMSK,INT0); //enable external int0 
     
+    setbit(PORTB,LED_PIN);
+    _delay_ms(60);
     //flash led on powerup
-    setbit(PORTB,LED_PIN); //turn on led
+    for( int i = 0; i < 2; i++ )
+    {
+    clearbit(PORTB,LED_PIN); //turn off led
+    _delay_ms(10);
+    setbit(PORTB,LED_PIN);
+    _delay_ms(10);
+    }
+    clearbit(PORTB,LED_PIN); //turn off led
 
+
+    //turn on servo pwm generation 
+    OCR0A = PENUP;
+    TCCR0A |= (1<<COM0A1);
+
+    _delay_ms(5);
     //enable interrupts
     sei();
 
     while(1)
     {
-        //interrupts do all the work
-        //turn on PWM servo output
-        // Clear OC0A/OC0B Pin on Compare Match
-        // Set OC0A/OC0B at BOTTOM (non-inverting mode)
-        /*
-        if( moveServo )
-        {
-          //wait for cap to recharge
-          _delay_ms(5);
-          TCCR0A |= (1<<COM0A1);
-        }
-        */
-        //1ms is 0degrees 2ms is max
-        //35 in the registers is about 2ms
-          OCR0A = 16;
-          TCCR0A |= (1<<COM0A1);
-
-      clearbit(PORTB,LED_PIN); //turn off led
-          OCR0A = 34;
-          //TCCR0A |= (0<<COM0A1);
+      //interrupts do everything
+      _delay_ms(1);
     }
 }
 
@@ -92,16 +92,44 @@ int main()
 ISR(INT0_vect)
 {
     cli();
-    if( counting )
-    {
-        clearbit(PORTB,LED_PIN); //led off
-        counting = false;
-        //load counter value into the timer compare reg
-        OCR0A = counter;
-        //save servo pos to eeprom
-        //eeprom_write_byte(&startServoLoc,counter);
-        TCCR0A |= (1<<COM0A1);
 
+    if(counting == false)
+    {
+      counting = true;
+      setbit(PORTB,LED_PIN); //led on
+      counter = 0;
+    }
+    else
+    {
+      if( counter > 2 && counter < 5 )
+      {
+          OCR0A = PENUP;
+      for( int i = 0; i < 2; i ++ )
+      {
+      clearbit(PORTB,LED_PIN); //turn off led
+      _delay_ms(10);
+      setbit(PORTB,LED_PIN);
+      _delay_ms(10);
+      }
+      clearbit(PORTB,LED_PIN); //turn off led
+      }
+      else if( counter > 5 && counter < 8)
+      {
+          OCR0A = PENDOWN;
+      for( int i = 0; i < 4; i ++ )
+      {
+      clearbit(PORTB,LED_PIN); //turn off led
+      _delay_ms(10);
+      setbit(PORTB,LED_PIN);
+      _delay_ms(10);
+      }
+      clearbit(PORTB,LED_PIN); //turn off led
+      }
+
+        //load counter value into the timer compare reg
+//        else if(counter > 5 && counter < 140 )
+        counter = 0;
+        counting = false;
     }
     sei();
 }
@@ -110,7 +138,6 @@ ISR(INT0_vect)
 ISR(TIM0_OVF_vect)
 {
     //comms counter
-    if(counting)
-        counter ++;
+    counter ++;
 }
 
