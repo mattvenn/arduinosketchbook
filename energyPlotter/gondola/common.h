@@ -1,7 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#define F_CPU 9600000UL  // 1 MHz
+#define F_CPU 1000000  // 1 MHz, what is it really?
 
 // AVR includes
 #include <avr/interrupt.h>
