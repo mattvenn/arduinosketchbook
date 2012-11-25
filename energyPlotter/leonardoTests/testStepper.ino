@@ -9,7 +9,7 @@
 #endif
 #define BIT_TST(REG, bit, val) ( ( (REG & (1UL << (bit) ) ) == ( (val) << (bit) ) ) )
 
-const int HOME_PWM_HIGH = 70;
+const int HOME_PWM_HIGH = 100;
 const int HOME_PWM_LOW = 10;
 const int HOME_SPEED = 4;
 const int maxSpeed = 3; //800;
