@@ -23,6 +23,19 @@ int serReadInt()
     return -1;                           // Return -1 if there is no input
 }
 
+void printPayload( Payload * p)
+{
+    Serial.print("id:");
+    Serial.print( p->id,DEC );
+    Serial.print(",");
+    
+    Serial.print( p->command ); 
+    Serial.print(":");
+    Serial.print( p->arg1 );
+    Serial.print(":");
+    Serial.println( p->arg2 );
+}
+
 byte getId()
 {
   return EEPROM.read(idAddress);
@@ -45,5 +58,53 @@ int free_memory;
         free_memory = ((int)&free_memory) - ((int)__brkval);
     return free_memory;
 };
+#endif
+
+#ifdef testIO
+  Serial.print( "ints: " );
+  Serial.println( b );
+  Serial.print( "gpio1:" );
+
+  Serial.println( analogRead( GPIO1_IN ) );
+  Serial.print( "gpio2:" );
+  Serial.println( analogRead( GPIO2_IN ) );
+  myServo.write( 0 );
+  digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
+  digitalWrite(MS1, HIGH );
+  digitalWrite(MS2, HIGH );
+  //  digitalWrite( GPIO1, HIGH);
+  //  digitalWrite(GPIO2, HIGH );
+  digitalWrite( SD_SEL, HIGH );
+  digitalWrite( RFM_SEL, HIGH );
+
+  digitalWrite( STEPL, HIGH );
+  digitalWrite( STEPR, HIGH );
+  digitalWrite( DIRL, HIGH );
+  digitalWrite( DIRR, HIGH );
+
+  Serial.println( digitalRead(LIMITL) ? "LIMITL 1" : "LIMITL 0" );
+  Serial.println( digitalRead(LIMITR) ? "LIMITR 1" : "LIMITR 0" );  
+  analogWrite(PWML, 100 );
+  analogWrite(PWMR, 100 );
+
+  delay(1000);       
+
+  digitalWrite( STEPL, LOW );
+  digitalWrite( STEPR, LOW );
+  digitalWrite( DIRL, LOW );
+  digitalWrite( DIRR, LOW );
+
+  // wait for a second
+  digitalWrite(led, LOW);
+  digitalWrite(MS1, LOW );
+  digitalWrite(MS2, LOW );
+  //  digitalWrite( GPIO1, LOW);
+  //  digitalWrite(GPIO2, LOW );
+  digitalWrite( SD_SEL, LOW );
+  digitalWrite( RFM_SEL, LOW );
+  analogWrite(PWML, 10 );
+  analogWrite(PWMR, 10 );
+  // turn the LED off by making the voltage LOW
+
 #endif
 

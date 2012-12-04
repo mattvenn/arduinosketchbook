@@ -1,24 +1,29 @@
 /* 
-total program size is 19k with sd and radio, 9k without sd
-grbl is about 17k. Available is 28k with bootloader.
-
-strange spi problems where radio stopped sending after an sd write has stopped.
-Just discovered this is because the spi programmer was still plugged in. 
-Doesn't need to be on, just attached. 
-So must be an electrical characteristic of the spi bus is wrong 
-eg pullup/down resistors required. a pulldown of 1k on miso seems to solve the problem.
-setting miso to pullup prevents radio from working but sd still works.
-check with a scope
-
-jeelib/rf12.cpp needs adjusting to set rf12 chip select to portf bit 0
-
-todo:
-  needs radio and sd card interferance fixing
-  needs to resolve the possibility of gondola and pen state getting mixed up. This happens in the gondola code. it needs a timeout to set it back to listening mode not timing mode.
-
-*/
+ total program size is 19k with sd and radio, 9k without sd
+ grbl is about 17k. Available is 28k with bootloader.
+ 
+ strange spi problems where radio stopped sending after an sd write has stopped.
+ Just discovered this is because the spi programmer was still plugged in. 
+ Doesn't need to be on, just attached. 
+ So must be an electrical characteristic of the spi bus is wrong 
+ eg pullup/down resistors required. a pulldown of 1k on miso seems to solve the problem.
+ setting miso to pullup prevents radio from working but sd still works.
+ check with a scope
+ 
+ jeelib/rf12.cpp needs adjusting to set rf12 chip select to portf bit 0
+ 
+ todo:
+ sw:
+ needs radio and sd card interferance fixing
+ needs to resolve the possibility of gondola and pen state getting mixed up. This happens in the gondola code. it needs a timeout to set it back to listening mode not timing mode.
+ hw:
+ better calibration
+ more spike testing for gondola power
+ gondola string length will be an issue as we'll need higher and higher voltages for longer lengths.
+ 
+ */
 #define testSteppers
-//#define useSD //uses 10k
+#define useSD //uses 10k
 #define useRadio //uses 180bytes?!
 #define testLED
 #define testServo
@@ -27,7 +32,7 @@ todo:
 #include <EEPROM.h>
 #include <SPI.h>
 #include <JeeLib.h>
-
+#include "datatype.h"
 MilliTimer statusTimer,sdTimer;
 
 #include <AccelStepper.h>
@@ -77,7 +82,7 @@ long int lastCommandTime = 0;
 #define stepsPerRevolution 200
 const float DIAMETER = 1.05; //for thin green wire 1.01; //for thin stainless
 const float circumference = 3.1415 * DIAMETER;
- float StepUnit = stepsPerRevolution / circumference;   
+float StepUnit = stepsPerRevolution / circumference;   
 float MOTOR_DIST_CM = 64;
 float w= MOTOR_DIST_CM*StepUnit;
 float h= MOTOR_DIST_CM*StepUnit; 
@@ -90,23 +95,18 @@ int b1= sqrt(pow((w-x1),2)+pow(y1,2));
 int idAddress = 0;
 byte id;
 
-//payload def
-typedef struct {
- // byte index;
-  char id;
-  char command;
-  int arg1;
-  int arg2;
 
-} Payload;
 Payload payload;
 
+boolean storeCommands = false;
+unsigned int expectedCommands = 0;
+unsigned int storedCommands = 0;
 boolean penState = 0;
 
 void setup() {
-  Serial.begin(9600);
-  
-   EEPROM.write(idAddress,1); //set address
+  Serial.begin(57600);
+
+  //  EEPROM.write(idAddress,1); //set address
   id = getId();
   Serial.print("started, robot id:");
   Serial.println(id);
@@ -139,7 +139,7 @@ void setup() {
   pinMode( RFM_SEL, OUTPUT );
   digitalWrite( SD_SEL, HIGH );
   digitalWrite(RFM_SEL, HIGH); 
-  
+
   //limits
   pinMode( LIMITL, INPUT );
   digitalWrite( LIMITL, HIGH );
@@ -151,14 +151,14 @@ void setup() {
   initServo();
   //leave some time in case this doesn't work. Makes it easier to reprogram!  
   //delay(4000);
-  #ifdef useSD
-    initSD();
-  #endif
-  #ifdef useRadio
+#ifdef useSD
+  initSD();
+#endif
+#ifdef useRadio
   initRadio();
   checkRadio = true;    
-  #endif
-  
+#endif
+
   //calibrate();
 }
 
@@ -168,29 +168,29 @@ void loop() {
 
   if( statusTimer.poll(500) )
   {
-    #ifdef testLED
+#ifdef testLED
     //Serial.println( "led");
     ledState = ! ledState;
     digitalWrite(led,ledState);
-    #endif
-    #ifdef testMem
+#endif
+#ifdef testMem
     Serial.print("mem:");
     Serial.println(freeMemory());
-    #endif
+#endif
     //try to cope with lost packets. Send an ack if enough time has elapsed since we last completed a command.
-  /*  if( millis() - lastCommandTime > 10000 ) 
-    {
-      sendAck = 1;
-      Serial.println( millis() );
-    }*/
+    /*  if( millis() - lastCommandTime > 10000 ) 
+     {
+     sendAck = 1;
+     Serial.println( millis() );
+     }*/
   }
 
   if( testSD && sdTimer.poll(5000) )
   {
- //   readSD();
-  //  writeSD(i++);
+    //   readSD();
+    //  writeSD(i++);
   }
-   
+
 
   if(Serial.available() > 0 )
   {
@@ -203,35 +203,53 @@ void loop() {
 
   if( commandWaiting )
   {
- //   stopRadio();
+    //   stopRadio();
     commandWaiting = false;
-    switch( payload.command )
+    if(storeCommands)
     {
-      case 't':
-        servoTest = payload.arg1; 
-        Serial.print( "line tset: " ); Serial.println( servoTest );
-        break;
-      case 'y':
-       digitalWrite( SERVO, payload.arg1 ? PENDOWN : PENUP );
+      if(payload.command == 's')
+      {
+        storeCommands = false;
+        Serial.println("finished storing");
+        printStoredCommands(false);
         Serial.println("ok");
-         break;   
-      case 'd':
-     
-       // if( payload.arg1 != penState )
-        {
-          payload.arg1 ? penUp() : penDown();
-          Serial.println( payload.arg1 ? "pen down" : "pen up" );
-          Serial.println( "ok");
-          penState = payload.arg1;
-        }  
-       /* else
-        {
-           Serial.print( "pen already: ");
-          Serial.println( penState ? "down" : "up" );
-        }*/
+        Serial.println(storedCommands-expectedCommands);
+        expectedCommands = 0;
+
+      }
+      else
+      {
+        storeCommand();
+        Serial.print("storing command:");
+        Serial.println(storedCommands++);
+        Serial.println("ok");
+      }
+    }
+    else
+    {
+      runCommand(&payload);
+    }
+    //    startRadio();
+    //    initRadio();
+    sendAck = true;   
+    lastCommandTime = millis();
+    //  Serial.print( "command finished at: " ); // putting these in will break the feeder 
+    //    Serial.println( lastCommandTime ); //putting these in will break the feeder
+  }
+#ifdef useRadio        
+  if( checkRadio)
+    doRadio();
+#endif
+
+}
+
+void runCommand( Payload * p)
+{
+      switch( p->command )
+      {
+      case 'a':
+        setAccel(p->arg1);
         break;
-      
-   
       case 'c':
         penUp();
         calibrate();
@@ -240,134 +258,104 @@ void loop() {
         stepRight(-80);
         Serial.println("ok");
         break;
-      case 'a':
-        setAccel(payload.arg1);
+      case 'd':
+        // if( p->arg1 != penState )
+        {
+          p->arg1 ? penUp() : penDown();
+          Serial.println( p->arg1 ? "pen down" : "pen up" );
+          Serial.println( "ok");
+          penState = p->arg1;
+        }  
+        /* else
+         {
+         Serial.print( "pen already: ");
+         Serial.println( penState ? "down" : "up" );
+         }*/
+        break;
+      case 'e': //execute stored commands
+        printStoredCommands(true);
+        Serial.println("ok");
+      case 'g':
+        drawLine(x1,y1,p->arg1,p->arg2);
+        Serial.println( "ok" );
+        break;
+      case 'h':
+        printStoredCommands(false);
+        Serial.println("ok");
+        break;
+      case 'i':
+        setMS(p->arg1,p->arg2);
+        Serial.println("ok");
         break;
       case 'm':
-        stepLeft(payload.arg1);
-        stepRight(payload.arg2);
-        
+        stepLeft(p->arg1);
+        stepRight(p->arg2);
+        Serial.println("ok");
         break;
-      case 'g':
-          drawLine(x1,y1,payload.arg1,payload.arg2);
-          Serial.println( "ok" );
+      case 'p':
+        setSpeed(p->arg1);
+        setPWM(p->arg2);
+        Serial.println("ok");
         break;
       case 'q':
-         Serial.println( "pos" );
-         Serial.print( "x(cm): " );
-         Serial.print( x1 / StepUnit );
-         Serial.print( " y(cm): " );
-         Serial.println( y1 / StepUnit);
+        Serial.println( "pos" );
+        Serial.print( "x(cm): " );
+        Serial.print( x1 / StepUnit );
+        Serial.print( " y(cm): " );
+        Serial.println( y1 / StepUnit);
 
-         Serial.print( "x: " );
-         Serial.print( x1  );
-         Serial.print( " y): " );
-         Serial.println( y1 );
+        Serial.print( "x: " );
+        Serial.print( x1  );
+        Serial.print( " y): " );
+        Serial.println( y1 );
 
-
-         Serial.print( " a1: " );
-         Serial.print( a1 / StepUnit);
-         Serial.print( " b1: " );
-         Serial.println( b1 / StepUnit);
-         Serial.print( "stepunit: " );
-         Serial.println( StepUnit );
-         Serial.print( "motordist: " );
-         Serial.println( MOTOR_DIST_CM);
-         Serial.println("ok");
-         payload.arg1 = x1 / StepUnit;
-         payload.arg2 = y1 / StepUnit;
-         break;
-      case 'p':
-        setSpeed(payload.arg1);
-        setPWM(payload.arg2);
+        Serial.print( " a1: " );
+        Serial.print( a1 / StepUnit);
+        Serial.print( " b1: " );
+        Serial.println( b1 / StepUnit);
+        Serial.print( "stepunit: " );
+        Serial.println( StepUnit );
+        Serial.print( "motordist: " );
+        Serial.println( MOTOR_DIST_CM);
         Serial.println("ok");
-      break;
-      case 'i':
-        setMS(payload.arg1,payload.arg2);
+        p->arg1 = x1 / StepUnit;
+        p->arg2 = y1 / StepUnit;
+        break;
+      case 'r':
+        initRadio();
+        Serial.println( "useradio" );
+        //   readSD();
+        break;
+      case 's': //store commands for later
+        storeCommands = true;
+        storedCommands=0;
+        expectedCommands = p->arg1;
+        Serial.println("storing subsequent commands");
         Serial.println("ok");
-      break;
-      #ifdef useSD
+        break;
+      case 't':
+        servoTest = p->arg1; 
+        Serial.print( "line tset: " ); 
+        Serial.println( servoTest );
+        break;
       case 'w':
-        writeSD(payload.arg1);
+        writeSD(p->arg1);
         readSD();
         //#ifdef useRadio
         //initRadio(); //need this after a write/read some combo?
         //#endif
         break;  
-      #endif
-      #ifdef useRadio
-      case 'r':
-        initRadio();
-        Serial.println( "useradio" );
-     //   readSD();
-        break;
       case 'x':
         detachInterrupt(0);
         Serial.println( "detach inter" );
         SPI.end();
         break;
-      #endif
+      case 'y':
+        digitalWrite( SERVO, p->arg1 ? PENDOWN : PENUP );
+        Serial.println("ok");
+        break;   
       default:
         Serial.println( "bad command");
         break;
-    }
-//    startRadio();
-//    initRadio();
-     sendAck = true;   
-     lastCommandTime = millis();
-   //  Serial.print( "command finished at: " ); // putting these in will break the feeder 
- //    Serial.println( lastCommandTime ); //putting these in will break the feeder
-  }
-#ifdef useRadio        
-if( checkRadio)
-  doRadio();
-#endif
-
-#ifdef testIO
-  Serial.print( "ints: " );
-  Serial.println( b );
-  Serial.print( "gpio1:" );
-
-  Serial.println( analogRead( GPIO1_IN ) );
-  Serial.print( "gpio2:" );
-  Serial.println( analogRead( GPIO2_IN ) );
-  myServo.write( 0 );
-  digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
-  digitalWrite(MS1, HIGH );
-  digitalWrite(MS2, HIGH );
-  //  digitalWrite( GPIO1, HIGH);
-  //  digitalWrite(GPIO2, HIGH );
-  digitalWrite( SD_SEL, HIGH );
-  digitalWrite( RFM_SEL, HIGH );
-
-  digitalWrite( STEPL, HIGH );
-  digitalWrite( STEPR, HIGH );
-  digitalWrite( DIRL, HIGH );
-  digitalWrite( DIRR, HIGH );
-
-  Serial.println( digitalRead(LIMITL) ? "LIMITL 1" : "LIMITL 0" );
-  Serial.println( digitalRead(LIMITR) ? "LIMITR 1" : "LIMITR 0" );  
-  analogWrite(PWML, 100 );
-  analogWrite(PWMR, 100 );
-
-  delay(1000);       
-
-  digitalWrite( STEPL, LOW );
-  digitalWrite( STEPR, LOW );
-  digitalWrite( DIRL, LOW );
-  digitalWrite( DIRR, LOW );
-
-  // wait for a second
-  digitalWrite(led, LOW);
-  digitalWrite(MS1, LOW );
-  digitalWrite(MS2, LOW );
-  //  digitalWrite( GPIO1, LOW);
-  //  digitalWrite(GPIO2, LOW );
-  digitalWrite( SD_SEL, LOW );
-  digitalWrite( RFM_SEL, LOW );
-  analogWrite(PWML, 10 );
-  analogWrite(PWMR, 10 );
-  // turn the LED off by making the voltage LOW
-
-#endif
+      }
 }

@@ -25,6 +25,7 @@ void test_SD()
 SdFat sd;
 SdFile myFile;
 #define FILENAME "test1.txt"
+#define CFILENAME "commands.txt"
 void initSD()
 {
   //moving the prints outside the interrupts made a difference. Check on what John was saying.
@@ -48,6 +49,66 @@ void initSD()
   Serial.println("done");
 }
 
+void storeCommand()
+{
+  cli();
+  //truncate to beginning
+  if(storedCommands==0)
+  {
+  if (!myFile.open(CFILENAME, O_RDWR | O_CREAT | O_TRUNC)) {
+    Serial.println( "open for write failed" );
+    sei();
+    return; //sd.errorHalt("opening test.txt for write failed");
+  }
+  }
+  else
+  {
+    if (!myFile.open(CFILENAME, O_RDWR | O_CREAT | O_AT_END)) {
+    Serial.println( "open for write failed" );
+    sei();
+    return; //sd.errorHalt("opening test.txt for write failed");
+    }
+  }
+  myFile.write(&payload,sizeof(Payload));
+  myFile.close();
+  sei();
+  cleanSPIBus();
+  Serial.println("done");
+}
+
+void printStoredCommands(boolean execute)
+{
+  cli();
+  // re-open the file for reading:
+  if (!myFile.open(CFILENAME, O_READ)) {
+    Serial.println( "open for read failed" );
+    sei();
+    return;
+  }
+
+  // read from the file until there's nothing else in it:
+
+  Payload tmpData;
+  unsigned long int lines=0;
+  while ((myFile.read(&tmpData,sizeof(tmpData))) > 0) 
+  {
+    lines ++;
+    printPayload(&tmpData);
+    //execute if necessary - will this cause problems with interrupts as they are turned off?
+    if(execute)
+    {
+      Serial.println("run.."); 
+      runCommand(&tmpData);
+    }
+  }
+  payload.arg1 = lines & 0xFFFF;
+  payload.arg2 = lines >> 16;
+  Serial.print( "read commands: ") ; Serial.println( lines );
+   myFile.close();
+  sei();
+  cleanSPIBus();
+  
+}
 void writeSD(int number)
 {
 

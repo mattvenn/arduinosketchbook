@@ -30,20 +30,14 @@ void doRadio()
 {
  if (rf12_recvDone() && rf12_crc == 0 and rf12_len == sizeof(Payload))
   {
-    const Payload* p = (const Payload*) rf12_data;
+    
+    Payload* p = (Payload*) rf12_data;
    /* digitalWrite(led,HIGH);
     delay(100);
     digitalWrite(led,LOW);*/
     Serial.print( "got data: " );
-    Serial.print("id:");
-    Serial.print( p->id,DEC );
-    Serial.print(",");
+    printPayload(p);
     
-    Serial.print( p->command ); 
-    Serial.print(":");
-    Serial.print( p->arg1 );
-    Serial.print(":");
-    Serial.println( p->arg2 );
     
     if( p->id == id ) //for us
     {
@@ -57,7 +51,7 @@ void doRadio()
     else
     {
       Serial.print( "ignoring packet for: ");
-      Serial.println(p->id);
+      Serial.println(p->id,DEC);
     }
   }
  
