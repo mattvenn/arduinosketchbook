@@ -4,7 +4,9 @@ MilliTimer sendTimer;
 #define LED 6
 boolean readyToSend = false;
 //payload def
+byte id = 2;
 typedef struct {
+  byte id;
   char command;
   unsigned int arg1;
   unsigned int arg2;
@@ -35,6 +37,7 @@ void loop()
     delay(100);
     digitalWrite( LED, HIGH );
     payload.command = Serial.read();
+    payload.id = id;
     payload.arg1 = serReadInt();
     payload.arg2 = serReadInt();
     

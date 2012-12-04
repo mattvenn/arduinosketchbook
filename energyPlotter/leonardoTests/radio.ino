@@ -35,17 +35,30 @@ void doRadio()
     delay(100);
     digitalWrite(led,LOW);*/
     Serial.print( "got data: " );
+    Serial.print("id:");
+    Serial.print( p->id );
+    Serial.print(",");
+    
     Serial.print( p->command ); 
     Serial.print(":");
     Serial.print( p->arg1 );
     Serial.print(":");
     Serial.println( p->arg2 );
-    //terrid - fixme
-    payload.command = p->command;
-    payload.arg1 = p->arg1;
-    payload.arg2 = p->arg2;
     
-    commandWaiting = true;
+    if( p->id == id ) //for us
+    {
+      //terrid - fixme
+      payload.command = p->command;
+      payload.arg1 = p->arg1;
+      payload.arg2 = p->arg2;
+      payload.id = p->id;
+      commandWaiting = true;
+    }
+    else
+    {
+      Serial.print( "ignoring packet for: ");
+      Serial.println(p->id);
+    }
   }
  
 

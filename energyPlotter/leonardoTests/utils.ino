@@ -23,6 +23,11 @@ int serReadInt()
     return -1;                           // Return -1 if there is no input
 }
 
+byte getId()
+{
+  return EEPROM.read(idAddress);
+}
+
 #ifdef testMem
 extern unsigned int __data_start;
 extern unsigned int __data_end;

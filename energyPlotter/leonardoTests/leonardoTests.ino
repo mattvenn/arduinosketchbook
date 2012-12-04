@@ -24,7 +24,7 @@ todo:
 #define testServo
 //#define testIO
 //#define testMem
-
+#include <EEPROM.h>
 #include <SPI.h>
 #include <JeeLib.h>
 
@@ -87,10 +87,13 @@ int y1 = 20 * MOTOR_DIST_CM;
 // Approximate length of strings from marker to staple
 int a1= sqrt(pow(x1,2)+pow(y1,2));
 int b1= sqrt(pow((w-x1),2)+pow(y1,2));
+int idAddress = 0;
+byte id;
 
 //payload def
 typedef struct {
  // byte index;
+  char id;
   char command;
   int arg1;
   int arg2;
@@ -102,8 +105,11 @@ boolean penState = 0;
 
 void setup() {
   Serial.begin(9600);
-  Serial.println("started");
   
+  // EEPROM.write(idAddress,2); //set address
+  id = getId();
+  Serial.print("started, robot id:");
+  Serial.println(id));
   pinMode(led, OUTPUT);   
   digitalWrite(led,HIGH);
 
