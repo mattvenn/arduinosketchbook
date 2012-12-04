@@ -106,10 +106,10 @@ boolean penState = 0;
 void setup() {
   Serial.begin(9600);
   
-  // EEPROM.write(idAddress,2); //set address
+   EEPROM.write(idAddress,1); //set address
   id = getId();
   Serial.print("started, robot id:");
-  Serial.println(id));
+  Serial.println(id);
   pinMode(led, OUTPUT);   
   digitalWrite(led,HIGH);
 

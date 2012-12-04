@@ -36,7 +36,7 @@ void doRadio()
     digitalWrite(led,LOW);*/
     Serial.print( "got data: " );
     Serial.print("id:");
-    Serial.print( p->id );
+    Serial.print( p->id,DEC );
     Serial.print(",");
     
     Serial.print( p->command ); 
