@@ -58,21 +58,47 @@ void setPWMR(int pwm)
 
 void calibrate()
 {
+  penUp();
+
   setMS(LOW,LOW);
+  
+  //setup pwm so can pull the right hand side
+  //set pwmL to high
+  setPWML(HOME_PWM_HIGH);
+  //set pwmR to low
+  setPWMR(HOME_PWM_LOW);
+  
+  //get to left limit
   setSpeed( HOME_SPEED );
   findLeftLimit();
-  //for now, pay out left side
-//  stepLeft(1000);
+  
+  //default pwm
+  setPWM(DEFAULT_PWM);
 
-  int steps = findRightLimit();
-  Serial.print( "steps to right: " ); Serial.println( steps );
-  const int GONDOLAWIDTH = 14;
+  //center point in this case is sqrt(motor_dist^2+motor_dist^2)  = 36.7cm
+//  float midPointStringLength=36.7;
+//  stepLeft(StepUnit*midPointStringLength);    
+
+  int tensionRelease = 5*StepUnit;
+  stepLeft(tensionRelease); //release tension
+  int steps=findRightLimit();
+  const int PULLEYRADIUS = 0 * StepUnit;
+  const int GONDOLAWIDTH = 14 * StepUnit;
+  //so now a1 =
+  b1=(GONDOLAWIDTH/2)+PULLEYRADIUS;
+  a1=steps+tensionRelease+GONDOLAWIDTH/2+PULLEYRADIUS;
+  
+  
+  FK(a1,b1);
+  Serial.println(a1/StepUnit);
+  Serial.println(b1/StepUnit);
+  Serial.println(x1/StepUnit);
+  Serial.println(y1/StepUnit);
+  
+  
+//  drawLine(x1,y1,w/2,w/2);
+
   /*
-  MOTOR_DIST_CM = steps / StepUnit;
-  MOTOR_DIST_CM += GONDOLAWIDTH ;
-  */
-  MOTOR_DIST_CM - 64;
-  Serial.print( "width (cm): " ); Serial.println( MOTOR_DIST_CM);
   w= MOTOR_DIST_CM*StepUnit;
   h= 0;
   Serial.print( "w = ");
@@ -84,20 +110,27 @@ void calibrate()
   Serial.print( "a1:" ); Serial.println( a1);
   Serial.print( "b1:" ); Serial.println( b1 );
   Serial.println( "about to move to midpoint" );
-  setPWM(DEFAULT_PWM);
+  
 
+  */
+  
+  setPWM(DEFAULT_PWM);
   drawLine(x1,y1,w/2,w/2);
+
+  setSpeed(maxSpeed);
+  calibrated=true;
+
 }
 
 int findRightLimit()
 {
   int steps = 0;
-
+/*
   //set pwmR to high
   setPWMR(HOME_PWM_HIGH);
   //set pwmR to low
   setPWML(HOME_PWM_HIGH);
-
+*/
   //while limit l is high, wind l motor
   while( digitalRead( LIMITR ) == HIGH )
 //  while( bit_is_set( PORTC, 7 ) )  //reg bit val
@@ -114,10 +147,7 @@ int findLeftLimit()
 {
   int steps = 0;
 
-  //set pwmL to high
-  setPWML(HOME_PWM_HIGH);
-  //set pwmR to low
-  setPWMR(HOME_PWM_LOW);
+  
 
   //while limit l is high, wind l motor
   while( digitalRead( LIMITL ) == HIGH )
