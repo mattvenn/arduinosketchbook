@@ -1,3 +1,15 @@
+void printPayload( Payload * p)
+{
+    Serial.print("id:");
+    Serial.print( p->id,DEC );
+    Serial.print(",");
+    
+    Serial.print( p->command ); 
+    Serial.print(":");
+    Serial.print( p->arg1 );
+    Serial.print(":");
+    Serial.println( p->arg2 );
+}
 
 
 int serReadInt()
