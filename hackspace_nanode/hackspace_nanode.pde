@@ -1,3 +1,9 @@
+/*
+ problems:
+- drops ip connection to router every hour to 6 hours. "fixed" with watchdog
+- while still posting to cosm, sometimes doesn't fetch from my server
+
+*/
 // Simple demo for feeding some random data to Pachube.
 // Based on pachube.pde 2011-07-08 <jcw@equi4.com> http://opensource.org/licenses/mit-license.php
 // Created by <maniacbug@ymail.com>
@@ -33,10 +39,17 @@ static byte static_dns[] = {
   192,168,0,1 };
 
 char cosmURL[] PROGMEM = "api.pachube.com";
+
+#define REMOTE
+#ifdef REMOTE
 char robotURL[] PROGMEM = "mattvenn.net";
+byte robotIP[4];
+#else
+char robotURL[] PROGMEM = "192.168.0.100";
+byte robotIP[] = {192,168,0,100 };
+#endif
 
 byte cosmIP[4];
-byte robotIP[4];
 
 byte Ethernet::buffer[500];
 uint32_t timer;
@@ -51,9 +64,11 @@ int lightLevel = 10;
 int temp = 10;
 char tempStr[20];
 boolean gotAck = true;
+const byte robotId = 1;
 //robot command def
 typedef struct {
   // byte index;
+  byte id;
   char command;
   unsigned int arg1;
   unsigned int arg2;
@@ -61,7 +76,7 @@ typedef struct {
 }
 Payload;
 #define PARSE
-#define MAXCOMMANDQUEUE 10
+#define MAXCOMMANDQUEUE 15
 Payload payload[MAXCOMMANDQUEUE];
 boolean readyToSend = false;
 MilliTimer testTimer;
@@ -76,7 +91,7 @@ unsigned long sentData;
 MilliTimer getDataTimer, uploadTimer;
 
 void setup () {
-  Serial.begin(9600);
+  Serial.begin(57600);
   
   //initialize watchdog
   WatchdogSetup();
@@ -121,10 +136,13 @@ void setup () {
   ether.printIp("DNS: ", ether.dnsip);  
 
   //do the lookups
+  #ifdef REMOTE
   if (!ether.dnsLookup(robotURL))
     printf_P(PSTR("DNS failed\n\r"));
   ether.copyIp(robotIP,ether.hisip);
   ether.printIp("robot ip: ", robotIP);
+  #endif
+  
   if (!ether.dnsLookup(cosmURL))
     printf_P(PSTR("DNS failed\n\r"));
   ether.copyIp(cosmIP,ether.hisip);
@@ -151,7 +169,9 @@ void loop () {
 
 
 #ifdef PARSE
-  if( commands )
+ 
+ 
+ if( commands )
   {
     //wait for an ack, or timeout and resend after 500ms
     if( gotAck == true  || ( millis() - sentData > 500 ))
@@ -168,6 +188,7 @@ void loop () {
       }
     }
   }
+ 
 #endif
 
   if( getDataTimer.poll(10000) )
@@ -251,11 +272,12 @@ void loop () {
 
 // called when the client request is complete
 static void my_callback (byte status, word off, word len) {
- // Serial.println("callback");
-  //  Serial.println( off );
-  //  Serial.println( len );
+  Serial.println("callback");
+    Serial.println( off );
+    Serial.println( len );
   int offset = stripHeaders(off);
   commands = parse(offset);
+  
   Serial.print( "parsed: ");
   Serial.println( commands );
   if( commands )
