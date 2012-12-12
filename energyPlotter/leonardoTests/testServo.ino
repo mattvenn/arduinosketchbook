@@ -2,7 +2,7 @@ void initServo()
 {
   setPowerPin(HIGH);
 }
-void penDown()
+void penUp()
 {
   pulsePower(2);
 delay(50);
@@ -10,7 +10,7 @@ delay(50);
   delay(1000); //these could be made shorter if the gondola code is better
 }
 
-void penUp()
+void penDown()
 {
   pulsePower(2);
   delay(100);
