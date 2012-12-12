@@ -5,11 +5,13 @@
 
     readyToSend = false;
     //broadcast
-  
+    payload[commandIndex].id = robotId;
     rf12_sendStart(0, &payload[commandIndex], sizeof payload[commandIndex]);
    
     gotAck = false;
-    Serial.print("> sent ");
+    Serial.print("> sent to");
+    Serial.print( robotId );
+    Serial.print( "." );
     Serial.print( commandIndex ); //payload[commandIndex].index );
     Serial.print( ":" );
     Serial.print( payload[commandIndex].command );
