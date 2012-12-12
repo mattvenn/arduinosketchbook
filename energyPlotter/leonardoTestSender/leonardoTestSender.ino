@@ -1,18 +1,12 @@
 #include <JeeLib.h>
+#include "datatype.h"
 MilliTimer sendTimer;
 
 #define LED 6
 boolean readyToSend = false;
 //payload def
-byte id = 2;
-typedef struct {
-  byte id;
-  char command;
-  unsigned int arg1;
-  unsigned int arg2;
+byte id = 1;
 
-}
-Payload;
 Payload payload;
 int testNum = 0;
 MilliTimer testTimer;
@@ -20,7 +14,7 @@ boolean autoTest = false;
 void setup()
 {
   pinMode(LED,OUTPUT);
-  Serial.begin(9600);
+  Serial.begin(57600);
   Serial.println( "sender" );
 
   Serial.println( "initialising radio" );
@@ -95,6 +89,7 @@ digitalWrite(LED,LOW);
 readyToSend = false;
     //broadcast
     rf12_sendStart(0, &payload, sizeof payload);
+    printPayload(&payload);
     Serial.println("sent");
 
   }
