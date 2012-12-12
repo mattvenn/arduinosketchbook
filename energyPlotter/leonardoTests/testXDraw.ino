@@ -1,3 +1,23 @@
+
+static void FK(int l1, int l2) {
+  int limit_left = 0;
+  int limit_top= 0;
+  int limit_right=MOTOR_DIST_CM;
+  float a = l1 / StepUnit;
+  float b = (limit_right-limit_left);
+  float c = l2 /StepUnit;
+
+  // slow, uses trig
+  //float theta = acos((a*a+b*b-c*c)/(2.0*a*b));
+  //x = cos(theta)*l1 + limit_left;
+  //y = sin(theta)*l1 + limit_top;
+  // but we know that cos(acos(i)) = i
+  // and we know that sin(acos(i)) = sqrt(1-i*i)
+  float i=(a*a+b*b-c*c)/(2.0*a*b);
+  x1 = i * l1 + limit_left;
+  y1 = sqrt(1.0 - i*i)*l1 + limit_top;
+  
+}
 void moveTo(int x2, int y2) {
 
   // Turn the stepper motors to move the marker from the current point (x1,
