@@ -1,3 +1,8 @@
+/*
+
+the use of cli and sei in this file are to protect the sd read/write operations from being interrupted by the radio. If that happens then the radio can pollute the spi bus
+
+*/
 
 /*
 void test_SD()
@@ -94,19 +99,23 @@ void printStoredCommands(boolean execute)
   {
     lines ++;
     printPayload(&tmpData);
-    //execute if necessary - will this cause problems with interrupts as they are turned off?
+    //execute if necessary - will this cause problems with interrupts as they are turned off? YES!
     if(execute)
     {
       Serial.println("run.."); 
+      //interrupts needed for stuff to run right (delays etc)
+      sei();
       runCommand(&tmpData);
+      cli();
     }
   }
   payload.arg1 = lines & 0xFFFF;
   payload.arg2 = lines >> 16;
-  Serial.print( "read commands: ") ; Serial.println( lines );
    myFile.close();
   sei();
   cleanSPIBus();
+
+  Serial.print( "read commands: ") ; Serial.println( lines );
   
 }
 void writeSD(int number)
