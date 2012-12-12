@@ -1,3 +1,5 @@
+//#define VERBP
+
 #ifdef PARSE
 int stripHeaders(int pos)
 {
@@ -51,6 +53,11 @@ int parse(int i)
       Serial.println( line );
 #endif
       line ++;
+      if(line>=MAXCOMMANDQUEUE)
+      {
+         Serial.println("queue too long to process!!");
+         return line;
+      }
       nums = 0;
       gotCmd = false;
 
@@ -83,7 +90,8 @@ int parse(int i)
     {
 #ifdef VERBP
       if( numi == 0 )
-        Serial.print( "reading arg:" );
+        Serial.print( "reading arg for line" );
+       
 #endif
       //Serial.println( "next char is " ); Serial.println( nextChar );
       //Serial.println( numi );
@@ -110,6 +118,7 @@ int parse(int i)
   Serial.print( "finished with:" );
   Serial.println( line );
 #endif
+ 
   return line;
 }
 
