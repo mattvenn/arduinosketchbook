@@ -15,6 +15,7 @@
  todo:
  sw:
  needs radio and sd card interferance fixing
+ needs to have a software limit for drawing codes, shouldn't accept a command that can't be drawn.
  needs to resolve the possibility of gondola and pen state getting mixed up. This happens in the gondola code. it needs a timeout to set it back to listening mode not timing mode.
  hw:
  better calibration
@@ -76,18 +77,18 @@ boolean checkRadio = false;
 boolean servoTest = false;
 int i = 0;
 long int lastCommandTime = 0;
-
+boolean calibrated = false;
 //drawing globals
 // Approximate dimensions (in steps) of the total drawing area
 #define stepsPerRevolution 200
-const float DIAMETER = 1.05; //for thin green wire 1.01; //for thin stainless
+const float DIAMETER = 1.01; //1.05 for thin green wire 1.01; //for thin stainless
 const float circumference = 3.1415 * DIAMETER;
 float StepUnit = stepsPerRevolution / circumference;   
-float MOTOR_DIST_CM = 64;
+float MOTOR_DIST_CM = 52;
 float w= MOTOR_DIST_CM*StepUnit;
 float h= MOTOR_DIST_CM*StepUnit; 
 int x1 = w/2;
-int y1 = 20 * MOTOR_DIST_CM;
+int y1 = w/2;
 //int x2,y2; 
 // Approximate length of strings from marker to staple
 int a1= sqrt(pow(x1,2)+pow(y1,2));
@@ -105,7 +106,6 @@ boolean penState = 0;
 
 void setup() {
   Serial.begin(57600);
-
   //  EEPROM.write(idAddress,1); //set address
   id = getId();
   Serial.print("started, robot id:");
@@ -130,7 +130,8 @@ void setup() {
 
   //pinMode( GPIO1, OUTPUT);
   //pinMode(GPIO2, OUTPUT );
-  //  pinMode( GPIO1, INPUT );
+   pinMode( GPIO1, INPUT );
+   digitalWrite(GPIO1,HIGH);
   //  pinMode( GPIO2, INPUT );
 
   //spi setup
@@ -165,7 +166,8 @@ void setup() {
 // the loop routine runs over and over again forever:
 void loop() {
 
-
+  if(digitalRead(GPIO1)==LOW)
+    calibrate();
   if( statusTimer.poll(500) )
   {
 #ifdef testLED
@@ -200,11 +202,13 @@ void loop() {
     commandWaiting = true;
     Serial.flush();
   }
-
+  
   if( commandWaiting )
   {
-    //   stopRadio();
     commandWaiting = false;
+  
+    //   stopRadio();
+
     if(storeCommands)
     {
       if(payload.command == 's')
@@ -212,8 +216,8 @@ void loop() {
         storeCommands = false;
         Serial.println("finished storing");
         printStoredCommands(false);
-        Serial.println("ok");
         Serial.println(storedCommands-expectedCommands);
+        Serial.println("ok");
         expectedCommands = 0;
 
       }
@@ -234,7 +238,7 @@ void loop() {
     sendAck = true;   
     lastCommandTime = millis();
     //  Serial.print( "command finished at: " ); // putting these in will break the feeder 
-    //    Serial.println( lastCommandTime ); //putting these in will break the feeder
+     // Serial.println( lastCommandTime ); //putting these in will break the feeder
   }
 #ifdef useRadio        
   if( checkRadio)
@@ -245,24 +249,29 @@ void loop() {
 
 void runCommand( Payload * p)
 {
-      switch( p->command )
+  if( ! calibrated && p->command != 'c' )
+    {
+      Serial.println( "not doing anything till calibrated");
+      return;
+    }
+  Serial.println("run command called:");
+  printPayload(p);
+  switch( p->command )
       {
       case 'a':
         setAccel(p->arg1);
         break;
       case 'c':
-        penUp();
         calibrate();
-        //then need to move 60,-80
-        stepLeft(60);
-        stepRight(-80);
+      
         Serial.println("ok");
         break;
       case 'd':
         // if( p->arg1 != penState )
         {
-          p->arg1 ? penUp() : penDown();
           Serial.println( p->arg1 ? "pen down" : "pen up" );
+          p->arg1 ? penDown() : penUp();
+
           Serial.println( "ok");
           penState = p->arg1;
         }  
@@ -275,6 +284,7 @@ void runCommand( Payload * p)
       case 'e': //execute stored commands
         printStoredCommands(true);
         Serial.println("ok");
+        break;
       case 'g':
         drawLine(x1,y1,p->arg1,p->arg2);
         Serial.println( "ok" );
