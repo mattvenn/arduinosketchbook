@@ -1,6 +1,7 @@
 #ifdef useRadio
 byte needToSend;
 
+
 void cleanSPIBus()
 {
    //don't understand this, but necessary for radio to work after an SD write
