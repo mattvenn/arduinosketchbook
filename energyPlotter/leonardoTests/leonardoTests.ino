@@ -255,8 +255,8 @@ void runCommand( Payload * p)
       Serial.println( "not calibrated");
       return;
     }
-  Serial.println("run command called:");
-  printPayload(p);
+//  Serial.println("run command called:");
+//  printPayload(p);
   switch( p->command )
       {
       case 'a':
@@ -289,8 +289,9 @@ void runCommand( Payload * p)
       case 'f':
         a1 = p->arg1;
         b1 = p->arg2;
-        Serial.print("a1 and b1 updated");
+        Serial.println("a1 and b1 updated");
         FK(a1,b1);
+        calibrated=true;
         Serial.println("ok");
         break;
       case 'g':
@@ -317,15 +318,27 @@ void runCommand( Payload * p)
         break;
       case 'q':
         //rectangular coords
-        Serial.print( "x(cm): ");
-        Serial.println(x1 / StepUnit);
-        Serial.print( "y(cm): ");
-        Serial.println(y1 / StepUnit);
+        Serial.print( "x: ");
+        Serial.print(x1 / StepUnit);
+        Serial.print( "cm, ");
+        Serial.println(x1);
+        
+        Serial.print( "y: ");
+        Serial.print(y1 / StepUnit);
+        Serial.print( "cm, ");
+        Serial.println(y1);
+        
         //string lengths
-        Serial.print( "a1(cm): ");
-        Serial.println(a1 / StepUnit);
-        Serial.print( "b1(cm): ");
-        Serial.println(b1 / StepUnit);
+        Serial.print( "a1: ");
+        Serial.print(a1 / StepUnit);
+        Serial.print( "cm, ");
+        Serial.println(a1);
+
+        Serial.print( "b1: ");
+        Serial.print(b1 / StepUnit);
+        Serial.print( "cm, ");
+        Serial.println(b1);
+        
         //pen status
         Serial.println( penState ? "pen: down" : "pen: up" );
         
