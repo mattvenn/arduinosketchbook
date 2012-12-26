@@ -14,13 +14,14 @@
  
  todo:
  sw:
- needs radio and sd card interferance fixing
- needs to have a software limit for drawing codes, shouldn't accept a command that can't be drawn.
- needs to resolve the possibility of gondola and pen state getting mixed up. This happens in the gondola code. it needs a timeout to set it back to listening mode not timing mode.
+ - all commands should be get (with no args), set (with args)
+ + needs radio and sd card interferance fixing - seems to be done.
+ - needs to have a software limit for drawing codes, shouldn't accept a command that can't be drawn.
+ - needs to resolve the possibility of gondola and pen state getting mixed up. This happens in the gondola code. it needs a timeout to set it back to listening mode not timing mode.
  hw:
- better calibration
- more spike testing for gondola power
- gondola string length will be an issue as we'll need higher and higher voltages for longer lengths.
+ - better calibration
+ - more spike testing for gondola power
+ - gondola string length will be an issue as we'll need higher and higher voltages for longer lengths.
  
  */
 #define testSteppers
@@ -249,9 +250,9 @@ void loop() {
 
 void runCommand( Payload * p)
 {
-  if( ! calibrated && p->command != 'c' )
+  if(!calibrated && !(p->command == 'c'||p->command == 'f'))
     {
-      Serial.println( "not doing anything till calibrated");
+      Serial.println( "not calibrated");
       return;
     }
   Serial.println("run command called:");
@@ -285,6 +286,13 @@ void runCommand( Payload * p)
         printStoredCommands(true);
         Serial.println("ok");
         break;
+      case 'f':
+        a1 = p->arg1;
+        b1 = p->arg2;
+        Serial.print("a1 and b1 updated");
+        FK(a1,b1);
+        Serial.println("ok");
+        break;
       case 'g':
         drawLine(x1,y1,p->arg1,p->arg2);
         Serial.println( "ok" );
@@ -308,28 +316,22 @@ void runCommand( Payload * p)
         Serial.println("ok");
         break;
       case 'q':
-        Serial.println( "pos" );
-        Serial.print( "x(cm): " );
-        Serial.print( x1 / StepUnit );
-        Serial.print( " y(cm): " );
-        Serial.println( y1 / StepUnit);
-
-        Serial.print( "x: " );
-        Serial.print( x1  );
-        Serial.print( " y): " );
-        Serial.println( y1 );
-
-        Serial.print( " a1: " );
-        Serial.print( a1 / StepUnit);
-        Serial.print( " b1: " );
-        Serial.println( b1 / StepUnit);
-        Serial.print( "stepunit: " );
-        Serial.println( StepUnit );
-        Serial.print( "motordist: " );
-        Serial.println( MOTOR_DIST_CM);
-        Serial.println("ok");
+        //rectangular coords
+        Serial.print( "x(cm): ");
+        Serial.println(x1 / StepUnit);
+        Serial.print( "y(cm): ");
+        Serial.println(y1 / StepUnit);
+        //string lengths
+        Serial.print( "a1(cm): ");
+        Serial.println(a1 / StepUnit);
+        Serial.print( "b1(cm): ");
+        Serial.println(b1 / StepUnit);
+        //pen status
+        Serial.println( penState ? "pen: down" : "pen: up" );
+        
         p->arg1 = x1 / StepUnit;
         p->arg2 = y1 / StepUnit;
+        Serial.println("ok");
         break;
       case 'r':
         initRadio();
@@ -347,6 +349,18 @@ void runCommand( Payload * p)
         servoTest = p->arg1; 
         Serial.print( "line tset: " ); 
         Serial.println( servoTest );
+        break;
+     case 'u':
+        Serial.print("stepunit: ");
+        Serial.println(StepUnit);
+        Serial.print("motor dist(cm): ");
+        Serial.println(MOTOR_DIST_CM);
+        
+        Serial.print("w: ");
+        Serial.println(w);
+        Serial.print("h: ");
+        Serial.println(h);
+        Serial.println("ok");
         break;
       case 'w':
         writeSD(p->arg1);

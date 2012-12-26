@@ -20,7 +20,7 @@ const int SUPERFAST_ACCELERATION = 6000;
 AccelStepper leftStepper(fsL,bsL);
 AccelStepper rightStepper(fsR,bsR);
 
-#include <digitalWriteFast.h>
+//#include <digitalWriteFast.h>
 
 void initSteppers()
 {
