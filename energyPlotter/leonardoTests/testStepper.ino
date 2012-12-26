@@ -79,43 +79,28 @@ void calibrate()
 //  float midPointStringLength=36.7;
 //  stepLeft(StepUnit*midPointStringLength);    
 
-  int tensionRelease = 5*StepUnit;
+  int tensionRelease = 50*StepUnit;
   stepLeft(tensionRelease); //release tension
   int steps=findRightLimit();
   const int PULLEYRADIUS = 0 * StepUnit;
-  const int GONDOLAWIDTH = 14 * StepUnit;
+  const int GONDOLAWIDTH = 140 * StepUnit;
   //so now a1 =
   b1=(GONDOLAWIDTH/2)+PULLEYRADIUS;
   a1=steps+tensionRelease+GONDOLAWIDTH/2+PULLEYRADIUS;
   
   
-  FK(a1,b1);
+  FK(a1,b1); //this updates x and y
+  
   Serial.println(a1/StepUnit);
   Serial.println(b1/StepUnit);
   Serial.println(x1/StepUnit);
   Serial.println(y1/StepUnit);
   
-  
-//  drawLine(x1,y1,w/2,w/2);
 
-  /*
-  w= MOTOR_DIST_CM*StepUnit;
-  h= 0;
-  Serial.print( "w = ");
-  Serial.println( w );
-  x1 = w - (GONDOLAWIDTH/2) * StepUnit;
-  y1 = 1 * StepUnit; //FIXME;
-  a1= sqrt(pow(x1,2)+pow(y1,2));
-  b1= sqrt(pow((w-x1),2)+pow(y1,2));
-  Serial.print( "a1:" ); Serial.println( a1);
-  Serial.print( "b1:" ); Serial.println( b1 );
-  Serial.println( "about to move to midpoint" );
-  
-
-  */
-  
   setPWM(DEFAULT_PWM);
-  drawLine(x1,y1,w/2,w/2);
+  
+  //move to center point
+  drawLine(w/2,w/2);
 
   setSpeed(maxSpeed);
   calibrated=true;
@@ -166,9 +151,9 @@ void setMS(int ms1, int ms2)
 {
   digitalWrite(MS1, ms1 ); //both low is no microstep 
   digitalWrite(MS2, ms2);
-  Serial.print( "ms1 set to" );
+  Serial.print( "set ms1: ");
   Serial.println(ms1);
-  Serial.print( "ms2 set to" );
+  Serial.print( "set ms2: ");
   Serial.println(ms2);
 }
 
@@ -177,14 +162,14 @@ void setSpeed(int speed)
   //leftStepper.setMaxSpeed(speed);
   //rightStepper.setMaxSpeed(speed);
   stepTime = speed;
-  Serial.print( "speed set to" );
+  Serial.print("set speed:");
   Serial.println(speed);
 }
 void setAccel(int accel)
 {
   leftStepper.setAcceleration(accel);
   rightStepper.setAcceleration(accel);
-  Serial.print( "accel set to" );
+  Serial.print( "set accel: " );
   Serial.println(accel);
 }
 

@@ -15,6 +15,8 @@
  todo:
  sw:
  - all commands should be get (with no args), set (with args)
+ - switch to mm for movement. Needs to be able to read floats! half done
+ - after calibration, with strings equal length, x and y aren't quite right I think. problem with FK?
  + needs radio and sd card interferance fixing - seems to be done.
  - needs to have a software limit for drawing codes, shouldn't accept a command that can't be drawn.
  - needs to resolve the possibility of gondola and pen state getting mixed up. This happens in the gondola code. it needs a timeout to set it back to listening mode not timing mode.
@@ -82,12 +84,16 @@ boolean calibrated = false;
 //drawing globals
 // Approximate dimensions (in steps) of the total drawing area
 #define stepsPerRevolution 200
-const float DIAMETER = 1.01; //1.05 for thin green wire 1.01; //for thin stainless
+const float DIAMETER = 10.01; //1.05 for thin green wire 1.01; //for thin stainless
 const float circumference = 3.1415 * DIAMETER;
 float StepUnit = stepsPerRevolution / circumference;   
-float MOTOR_DIST_CM = 52;
-float w= MOTOR_DIST_CM*StepUnit;
-float h= MOTOR_DIST_CM*StepUnit; 
+float MOTOR_DIST_MM = 520;
+float w= MOTOR_DIST_MM*StepUnit;
+float h= 300*StepUnit;  //300mm tall
+const int top_margin = h/5;
+const int side_margin = w/5;
+
+
 int x1 = w/2;
 int y1 = w/2;
 //int x2,y2; 
@@ -295,7 +301,7 @@ void runCommand( Payload * p)
         Serial.println("ok");
         break;
       case 'g':
-        drawLine(x1,y1,p->arg1,p->arg2);
+        drawLine(p->arg1*StepUnit,p->arg2*StepUnit);
         Serial.println( "ok" );
         break;
       case 'h':
@@ -320,23 +326,23 @@ void runCommand( Payload * p)
         //rectangular coords
         Serial.print( "x: ");
         Serial.print(x1 / StepUnit);
-        Serial.print( "cm, ");
+        Serial.print( "mm, ");
         Serial.println(x1);
         
         Serial.print( "y: ");
         Serial.print(y1 / StepUnit);
-        Serial.print( "cm, ");
+        Serial.print( "mm, ");
         Serial.println(y1);
         
         //string lengths
         Serial.print( "a1: ");
         Serial.print(a1 / StepUnit);
-        Serial.print( "cm, ");
+        Serial.print( "mm, ");
         Serial.println(a1);
 
         Serial.print( "b1: ");
         Serial.print(b1 / StepUnit);
-        Serial.print( "cm, ");
+        Serial.print( "mm, ");
         Serial.println(b1);
         
         //pen status
@@ -366,13 +372,27 @@ void runCommand( Payload * p)
      case 'u':
         Serial.print("stepunit: ");
         Serial.println(StepUnit);
-        Serial.print("motor dist(cm): ");
-        Serial.println(MOTOR_DIST_CM);
+        Serial.print("motor dist(mm): ");
+        Serial.println(MOTOR_DIST_MM);
         
         Serial.print("w: ");
+        Serial.print(w/StepUnit);
+        Serial.print("mm, ");
         Serial.println(w);
+        
         Serial.print("h: ");
+        Serial.print(h/StepUnit);
+        Serial.print("mm, ");
         Serial.println(h);
+
+
+        Serial.print("top margin: ");
+        Serial.print(top_margin/StepUnit);
+        Serial.println("mm");
+        Serial.print("side margin: ");
+        Serial.print(side_margin/StepUnit);
+        Serial.println("mm");
+
         Serial.println("ok");
         break;
       case 'w':

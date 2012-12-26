@@ -2,7 +2,7 @@
 static void FK(int l1, int l2) {
   int limit_left = 0;
   int limit_top= 0;
-  int limit_right=MOTOR_DIST_CM;
+  int limit_right=MOTOR_DIST_MM;
   float a = l1 / StepUnit;
   float b = (limit_right-limit_left);
   float c = l2 /StepUnit;
@@ -18,31 +18,33 @@ static void FK(int l1, int l2) {
   y1 = sqrt(1.0 - i*i)*l1 + limit_top;
   
 }
-void moveTo(int x2, int y2) {
 
-  // Turn the stepper motors to move the marker from the current point (x1,
-  // y1) to (x2, y2)
-  // Note: This only moves in a perfectly straight line if 
-  // the distance is the same in both dimensions; this should be fixed, but it
-  // works well
-  
-  /*
-  if( x2 == x1 && y2 == y1 )
+//don't try to move the pen to a point that is unreachable
+boolean validate(int x, int y)
+{
+  if(x < side_margin)
+    return false;
+  if(x > w - side_margin)
+    return false;
+  if(y < top_margin)
+    return false;
+  if(y > h)
+    return false;
+  return true;
+}
+void moveTo(int x2, int y2) 
+{
+  if(!validate(x2,y2))
   {
+    Serial.println("shouldn't see this...");
+    Serial.println(x2);
+    Serial.println(y2);
     return;
   }
-  else
-  {
-    Serial.println( "moving" );
-    Serial.println( x2 ); 
-    Serial.println( y2 );
-  }
-  */
   // a2 and b2 are the final lengths of the left and right strings
   int a2 = sqrt(pow(x2,2)+pow(y2,2));
   int b2 = sqrt(pow((w-x2),2)+pow(y2,2));
-  //Serial.print( "a2="); Serial.println(a2);
-  //Serial.print( "b2="); Serial.println(b2);
+
   int stepA;
   int stepB;
   if (a2>a1) { 
@@ -69,31 +71,30 @@ void moveTo(int x2, int y2) {
     if (a1!=a2) { 
       a1 += stepA;
       stepLeft( stepA );
-    //leftStepper.moveTo( leftStepper.currentPosition() + stepA );
     }
     if (b1!=b2) { 
       b1 += stepB;
-    //rightStepper.moveTo( rightStepper.currentPosition() + stepB );
      stepRight(stepB);
     }
-    //move them
-/*
-    while( leftStepper.distanceToGo() || rightStepper.distanceToGo() )
-    {
-      leftStepper.run();
-      rightStepper.run();
-    }*/
+
   }
  
-  x1 = x2;
+  x1=x2;
   y1=y2;
 
 }
-void drawLine(float x, float y, float fx, float fy )
+void drawLine(float fx, float fy )
 {
-  float cx = x + ( (fx - x) / 2 );
-  float cy = y + ( (fy - y )/2 );
-  drawCurve( x, y, fx, fy, cx, cy );
+  if(!validate(fx,fy))
+  {
+    Serial.println("not moving there");
+    return;
+  }
+
+  //control point is on the mid point of delta x and delta y 
+  float cx = x1 + ( (fx - x1) / 2 );
+  float cy = y1 + ( (fy - y1 )/2 );
+  drawCurve( x1, y1, fx, fy, cx, cy );
 }
 
 void drawCurve(float x, float y, float fx, float fy, float cx, float cy) {
