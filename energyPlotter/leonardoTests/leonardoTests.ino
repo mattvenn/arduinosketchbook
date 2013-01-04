@@ -258,7 +258,8 @@ void runCommand( Payload * p)
 {
   if(!calibrated && !(p->command == 'c'||p->command == 'f'))
     {
-      Serial.println( "not calibrated");
+      Serial.println("not calibrated");
+      Serial.println("ok");
       return;
     }
 //  Serial.println("run command called:");
