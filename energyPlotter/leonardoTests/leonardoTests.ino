@@ -15,7 +15,7 @@
  todo:
  sw:
  - all commands should be get (with no args), set (with args)
- - switch to mm for movement. Needs to be able to read floats! half done
+ + switch to mm for movement. Needs to be able to read floats! half done
  - after calibration, with strings equal length, x and y aren't quite right I think. problem with FK?
  + needs radio and sd card interferance fixing - seems to be done.
  - needs to have a software limit for drawing codes, shouldn't accept a command that can't be drawn.
@@ -39,7 +39,7 @@
 #include "datatype.h"
 MilliTimer statusTimer,sdTimer;
 
-#include <AccelStepper.h>
+//#include <AccelStepper.h>
 
 //servo constants
 #define PENDOWN 300
@@ -84,22 +84,19 @@ boolean calibrated = false;
 //drawing globals
 // Approximate dimensions (in steps) of the total drawing area
 #define stepsPerRevolution 200
-const float DIAMETER = 10.01; //1.05 for thin green wire 1.01; //for thin stainless
-const float circumference = 3.1415 * DIAMETER;
-float StepUnit = stepsPerRevolution / circumference;   
-float MOTOR_DIST_MM = 520;
-float w= MOTOR_DIST_MM*StepUnit;
-float h= 300*StepUnit;  //300mm tall
-const int top_margin = h/5;
+float stepsPerMM = 6.33; //measured rather than calculated. stepsPerRevolution / circumference;   
+float MOTOR_DIST_MM = 510;
+float w= MOTOR_DIST_MM*stepsPerMM;
+float h= 330*stepsPerMM;  //300mm tall
+const int top_margin = 50*stepsPerMM; //gondola design causes too much distortion above here.
 const int side_margin = w/5;
+float gw = 30 * stepsPerMM;  //gondola bolt width
 
+int x1;
+int y1;
 
-int x1 = w/2;
-int y1 = w/2;
-//int x2,y2; 
-// Approximate length of strings from marker to staple
-int a1= sqrt(pow(x1,2)+pow(y1,2));
-int b1= sqrt(pow((w-x1),2)+pow(y1,2));
+int a1;
+int b1;
 int idAddress = 0;
 byte id;
 
@@ -174,7 +171,7 @@ void setup() {
 void loop() {
 
   if(digitalRead(GPIO1)==LOW)
-    calibrate();
+    home();
   if( statusTimer.poll(500) )
   {
 #ifdef testLED
@@ -204,8 +201,8 @@ void loop() {
   if(Serial.available() > 0 )
   {
     payload.command = Serial.read();
-    payload.arg1 = serReadInt();
-    payload.arg2 = serReadInt();
+    payload.arg1 = serReadFloat();
+    payload.arg2 = serReadFloat();
     commandWaiting = true;
     Serial.flush();
   }
@@ -269,9 +266,11 @@ void runCommand( Payload * p)
       case 'a':
         setAccel(p->arg1);
         break;
+      case 'b':
+        calibrate(p->arg1);
+        break;
       case 'c':
-        calibrate();
-      
+        home();
         Serial.println("ok");
         break;
       case 'd':
@@ -302,7 +301,7 @@ void runCommand( Payload * p)
         Serial.println("ok");
         break;
       case 'g':
-        drawLine(p->arg1*StepUnit,p->arg2*StepUnit);
+        drawLine(p->arg1*stepsPerMM,p->arg2*stepsPerMM);
         Serial.println( "ok" );
         break;
       case 'h':
@@ -314,8 +313,8 @@ void runCommand( Payload * p)
         Serial.println("ok");
         break;
       case 'm':
-        stepLeft(p->arg1);
-        stepRight(p->arg2);
+        stepLeft(p->arg1*stepsPerMM);
+        stepRight(p->arg2*stepsPerMM);
         Serial.println("ok");
         break;
       case 'p':
@@ -326,31 +325,31 @@ void runCommand( Payload * p)
       case 'q':
         //rectangular coords
         Serial.print( "x: ");
-        Serial.print(x1 / StepUnit);
+        Serial.print(x1 / stepsPerMM);
         Serial.print( "mm, ");
         Serial.println(x1);
         
         Serial.print( "y: ");
-        Serial.print(y1 / StepUnit);
+        Serial.print(y1 / stepsPerMM);
         Serial.print( "mm, ");
         Serial.println(y1);
         
         //string lengths
         Serial.print( "a1: ");
-        Serial.print(a1 / StepUnit);
+        Serial.print(a1 / stepsPerMM);
         Serial.print( "mm, ");
         Serial.println(a1);
 
         Serial.print( "b1: ");
-        Serial.print(b1 / StepUnit);
+        Serial.print(b1 / stepsPerMM);
         Serial.print( "mm, ");
         Serial.println(b1);
         
         //pen status
         Serial.println( penState ? "pen: down" : "pen: up" );
         
-        p->arg1 = x1 / StepUnit;
-        p->arg2 = y1 / StepUnit;
+        p->arg1 = x1 / stepsPerMM;
+        p->arg2 = y1 / stepsPerMM;
         Serial.println("ok");
         break;
       case 'r':
@@ -371,27 +370,29 @@ void runCommand( Payload * p)
         Serial.println( servoTest );
         break;
      case 'u':
-        Serial.print("stepunit: ");
-        Serial.println(StepUnit);
+        if( p->arg1 > 0)
+          stepsPerMM = p->arg1;
+        Serial.print("stepsPerMM: ");
+        Serial.println(stepsPerMM);
         Serial.print("motor dist(mm): ");
         Serial.println(MOTOR_DIST_MM);
         
         Serial.print("w: ");
-        Serial.print(w/StepUnit);
+        Serial.print(w/stepsPerMM);
         Serial.print("mm, ");
         Serial.println(w);
         
         Serial.print("h: ");
-        Serial.print(h/StepUnit);
+        Serial.print(h/stepsPerMM);
         Serial.print("mm, ");
         Serial.println(h);
 
 
         Serial.print("top margin: ");
-        Serial.print(top_margin/StepUnit);
+        Serial.print(top_margin/stepsPerMM);
         Serial.println("mm");
         Serial.print("side margin: ");
-        Serial.print(side_margin/StepUnit);
+        Serial.print(side_margin/stepsPerMM);
         Serial.println("mm");
 
         Serial.println("ok");
