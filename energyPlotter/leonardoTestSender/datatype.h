@@ -1,8 +1,8 @@
 typedef struct {
   byte id;
   char command;
-  unsigned int arg1;
-  unsigned int arg2;
+  float arg1;
+  float arg2;
 
 }
 Payload;
