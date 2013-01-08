@@ -11,14 +11,14 @@
 
 const int HOME_PWM_HIGH = 100;
 const int HOME_PWM_LOW = 10;
-const int HOME_SPEED = 4;
-const int maxSpeed = 3; //800;
+const int HOME_SPEED = 4000;
+const int maxSpeed = 3000; //800;
 const int DEFAULT_PWM = 60;
 //const int steps = 200;
 int stepTime = 2;
 const int SUPERFAST_ACCELERATION = 6000;
-AccelStepper leftStepper(fsL,bsL);
-AccelStepper rightStepper(fsR,bsR);
+//AccelStepper leftStepper(fsL,bsL);
+//AccelStepper rightStepper(fsR,bsR);
 
 //#include <digitalWriteFast.h>
 
@@ -55,8 +55,19 @@ void setPWMR(int pwm)
   Serial.print( "pwmR = ");
   Serial.println( pwm);
 }
-
-void calibrate()
+void calibrate(int steps)
+{
+  stepLeft(steps);
+  Serial.print("moved ");Serial.print(steps);Serial.println("steps. How many mm?");
+  while(Serial.available()==0)
+  {
+    delay(100);
+  }
+  float mm = serReadFloat();
+  Serial.println(steps/mm);
+}
+  
+void home()
 {
   penUp();
 
@@ -71,30 +82,28 @@ void calibrate()
   //get to left limit
   setSpeed( HOME_SPEED );
   findLeftLimit();
-  
   //default pwm
   setPWM(DEFAULT_PWM);
 
-  //center point in this case is sqrt(motor_dist^2+motor_dist^2)  = 36.7cm
-//  float midPointStringLength=36.7;
-//  stepLeft(StepUnit*midPointStringLength);    
-
-  int tensionRelease = 50*StepUnit;
+  int tensionRelease = 20*stepsPerMM;
   stepLeft(tensionRelease); //release tension
   int steps=findRightLimit();
-  const int PULLEYRADIUS = 0 * StepUnit;
-  const int GONDOLAWIDTH = 140 * StepUnit;
-  //so now a1 =
-  b1=(GONDOLAWIDTH/2)+PULLEYRADIUS;
-  a1=steps+tensionRelease+GONDOLAWIDTH/2+PULLEYRADIUS;
+  Serial.println( steps + tensionRelease );
+  const int PULLEYRADIUS = 0 * stepsPerMM;
+  const int GONDOLAWIDTH = 140 * stepsPerMM;
+  float boltToSpring = 60 * stepsPerMM; //has to be a bit shorter? because the spring makes contact lower down.
+  int gondolaLevelAmount = 200 * stepsPerMM;
+  stepRight(gondolaLevelAmount); //get gondola roughly level
+  b1=boltToSpring+gondolaLevelAmount; //measured (GONDOLAWIDTH/2)+PULLEYRADIUS-gw/2;
+  a1=steps+tensionRelease+boltToSpring; //GONDOLAWIDTH/2+PULLEYRADIUS-gw/2;
   
   
   FK(a1,b1); //this updates x and y
   
-  Serial.println(a1/StepUnit);
-  Serial.println(b1/StepUnit);
-  Serial.println(x1/StepUnit);
-  Serial.println(y1/StepUnit);
+  Serial.println(a1/stepsPerMM);
+  Serial.println(b1/stepsPerMM);
+  Serial.println(x1/stepsPerMM);
+  Serial.println(y1/stepsPerMM);
   
 
   setPWM(DEFAULT_PWM);
@@ -167,8 +176,8 @@ void setSpeed(int speed)
 }
 void setAccel(int accel)
 {
-  leftStepper.setAcceleration(accel);
-  rightStepper.setAcceleration(accel);
+  //leftStepper.setAcceleration(accel);
+  //rightStepper.setAcceleration(accel);
   Serial.print( "set accel: " );
   Serial.println(accel);
 }
@@ -198,7 +207,7 @@ void stepLeft(int steps)
     else
       bsL();
       
-    delay(stepTime);
+    delayMicroseconds(stepTime);
   }
 }
 void stepRight(int steps)
@@ -210,7 +219,7 @@ void stepRight(int steps)
     else
       bsR();
    
-     delay(stepTime);
+     delayMicroseconds(stepTime);
   }
 }
  
