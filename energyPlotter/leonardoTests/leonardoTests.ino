@@ -184,19 +184,12 @@ void loop() {
     Serial.println(freeMemory());
 #endif
     //try to cope with lost packets. Send an ack if enough time has elapsed since we last completed a command.
-    /*  if( millis() - lastCommandTime > 10000 ) 
+ /*     if( millis() - lastCommandTime > 10000 ) 
      {
      sendAck = 1;
      Serial.println( millis() );
      }*/
   }
-
-  if( testSD && sdTimer.poll(5000) )
-  {
-    //   readSD();
-    //  writeSD(i++);
-  }
-
 
   if(Serial.available() > 0 )
   {
@@ -413,6 +406,9 @@ void runCommand( Payload * p)
         digitalWrite( SERVO, p->arg1 ? PENDOWN : PENUP );
         Serial.println("ok");
         break;   
+      case 'z':
+        initSD();
+        break;
       default:
         Serial.println( "bad command");
         break;
