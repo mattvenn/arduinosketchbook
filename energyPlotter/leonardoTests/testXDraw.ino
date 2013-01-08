@@ -1,11 +1,9 @@
-
+//update this to take into account the gondola width
 static void FK(int l1, int l2) {
-  int limit_left = 0;
-  int limit_top= 0;
-  int limit_right=MOTOR_DIST_MM;
-  float a = l1 / StepUnit;
-  float b = (limit_right-limit_left);
-  float c = l2 /StepUnit;
+
+  float a = l1 / stepsPerMM;
+  float b = MOTOR_DIST_MM - gw/stepsPerMM;
+  float c = l2 /stepsPerMM;
 
   // slow, uses trig
   //float theta = acos((a*a+b*b-c*c)/(2.0*a*b));
@@ -14,8 +12,8 @@ static void FK(int l1, int l2) {
   // but we know that cos(acos(i)) = i
   // and we know that sin(acos(i)) = sqrt(1-i*i)
   float i=(a*a+b*b-c*c)/(2.0*a*b);
-  x1 = i * l1 + limit_left;
-  y1 = sqrt(1.0 - i*i)*l1 + limit_top;
+  x1 = i * l1 + gw / 2;
+  y1 = sqrt(1.0 - i*i)*l1;
   
 }
 
@@ -32,18 +30,23 @@ boolean validate(int x, int y)
     return false;
   return true;
 }
-void moveTo(int x2, int y2) 
+void moveTo(float x2, float y2) 
 {
-  if(!validate(x2,y2))
+/*  if(!validate(x2,y2))
   {
     Serial.println("shouldn't see this...");
     Serial.println(x2);
     Serial.println(y2);
     return;
   }
+  */
   // a2 and b2 are the final lengths of the left and right strings
-  int a2 = sqrt(pow(x2,2)+pow(y2,2));
-  int b2 = sqrt(pow((w-x2),2)+pow(y2,2));
+ /* int a2 = sqrt(pow(x2,2)+pow(y2,2));
+  int b2 = sqrt(pow((w-x2),2)+pow(y2,2));*/
+ //take into account the gondola width
+
+  int a2 = sqrt(pow(x2-gw/2,2)+pow(y2,2));
+  int b2 = sqrt(pow((w-x2-gw/2),2)+pow(y2,2));
 
   int stepA;
   int stepB;
@@ -78,7 +81,8 @@ void moveTo(int x2, int y2)
     }
 
   }
- 
+ //calculate the new x, y instead of assuming we're there.
+//  FK(a1,b1);
   x1=x2;
   y1=y2;
 
