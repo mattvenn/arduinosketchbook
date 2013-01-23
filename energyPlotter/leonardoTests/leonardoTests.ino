@@ -28,7 +28,7 @@
  */
 #define testSteppers
 #define useSD //uses 10k
-#define useRadio //uses 180bytes?!
+//#define useRadio //uses 180bytes?!
 #define testLED
 #define testServo
 //#define testIO
@@ -84,19 +84,27 @@ boolean calibrated = false;
 //drawing globals
 // Approximate dimensions (in steps) of the total drawing area
 #define stepsPerRevolution 200
-float stepsPerMM = 6.33; //measured rather than calculated. stepsPerRevolution / circumference;   
-float MOTOR_DIST_MM = 510;
+//float stepsPerMM = 6.33; //measured rather than calculated. stepsPerRevolution / circumference;   
+float circumference = 3.1415 * 12.4;
+float stepsPerMM = stepsPerRevolution / circumference;
+float MOTOR_DIST_MM = 680; //510;
 float w= MOTOR_DIST_MM*stepsPerMM;
 float h= 330*stepsPerMM;  //300mm tall
 const int top_margin = 50*stepsPerMM; //gondola design causes too much distortion above here.
 const int side_margin = w/5;
-float gw = 30 * stepsPerMM;  //gondola bolt width
-
+float gw = 0; //30 * stepsPerMM;  //gondola bolt width
 int x1;
 int y1;
-
 int a1;
 int b1;
+
+
+//pwm power stuff
+int default_pwm = 60;
+int lowpower_pwm = 10;
+boolean lowpower = false;
+const int low_power_time = 2000; //pwm low after 2 seconds of not doing anything.
+
 int idAddress = 0;
 byte id;
 
@@ -112,6 +120,7 @@ void setup() {
   Serial.begin(57600);
   //  EEPROM.write(idAddress,1); //set address
   id = getId();
+  delay(5000);
   Serial.print("started, robot id:");
   Serial.println(id);
   pinMode(led, OUTPUT);   
@@ -242,6 +251,9 @@ void loop() {
     doRadio();
 #endif
 
+  if(millis() - lastCommandTime > low_power_time && lowpower == false)
+      powerSave(true);
+    
 }
 
 void runCommand( Payload * p)
@@ -313,6 +325,7 @@ void runCommand( Payload * p)
       case 'p':
         setSpeed(p->arg1);
         setPWM(p->arg2);
+        default_pwm = p->arg2;
         Serial.println("ok");
         break;
       case 'q':
@@ -346,7 +359,7 @@ void runCommand( Payload * p)
         Serial.println("ok");
         break;
       case 'r':
-        initRadio();
+        //initRadio();
         Serial.println( "useradio" );
         //   readSD();
         break;

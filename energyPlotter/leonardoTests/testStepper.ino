@@ -13,7 +13,8 @@ const int HOME_PWM_HIGH = 100;
 const int HOME_PWM_LOW = 10;
 const int HOME_SPEED = 4000;
 const int maxSpeed = 3000; //800;
-const int DEFAULT_PWM = 60;
+
+
 //const int steps = 200;
 int stepTime = 2;
 const int SUPERFAST_ACCELERATION = 6000;
@@ -24,7 +25,7 @@ const int SUPERFAST_ACCELERATION = 6000;
 
 void initSteppers()
 {
-  setPWM(DEFAULT_PWM);
+  setPWM(default_pwm);
   setSpeed(maxSpeed);
   setAccel(SUPERFAST_ACCELERATION);
 
@@ -55,6 +56,23 @@ void setPWMR(int pwm)
   Serial.print( "pwmR = ");
   Serial.println( pwm);
 }
+
+void powerSave(boolean save)
+{
+  if(save==true)
+  {
+    lowpower = true;
+    setPWM(lowpower_pwm);
+    Serial.println("low power mode");
+  }
+  else
+  {
+    lowpower = false;
+    setPWM(default_pwm);
+    Serial.println("default power mode");
+  }
+}
+
 void calibrate(int steps)
 {
   stepLeft(steps);
@@ -83,7 +101,7 @@ void home()
   setSpeed( HOME_SPEED );
   findLeftLimit();
   //default pwm
-  setPWM(DEFAULT_PWM);
+  setPWM(default_pwm);
 
   int tensionRelease = 20*stepsPerMM;
   stepLeft(tensionRelease); //release tension
@@ -106,7 +124,7 @@ void home()
   Serial.println(y1/stepsPerMM);
   
 
-  setPWM(DEFAULT_PWM);
+  setPWM(default_pwm);
   
   //move to center point
   drawLine(w/2,w/2);
@@ -200,6 +218,8 @@ void setAccel(int accel)
 */
 void stepLeft(int steps)
 {
+  if(lowpower)
+    powerSave(false);
   for( int i = 0; i < abs( steps) ; i ++ )
   {
     if(steps > 0 )
@@ -212,6 +232,8 @@ void stepLeft(int steps)
 }
 void stepRight(int steps)
 {
+  if(lowpower)
+    powerSave(false);
   for( int i = 0; i < abs( steps) ; i ++ )
   {
     if(steps > 0 )
