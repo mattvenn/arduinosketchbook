@@ -1,18 +1,20 @@
 /* 
 
- - test all pins
+ + test all pins
  + multisample pots
  + 2 hour release starts one hour before time
  + if a later release interrupts it takes precedence
  + 0 time means off
- - daylight savings calc?
+ + daylight savings calc? needs testing
  + heater/fan cycles while heater on
- - el light on for cycle
- - pc connection for monitoring
+ + el light on for cycle
+ + pc connection for monitoring
 
 firmware updates by MV
  + if pot set to 0, will also turn off that heater if it's on
  - let Colin know about RTC errors
+ + pot and heater physical position
+ + pot positions for angles
 
 */
 //pin defs
@@ -56,7 +58,7 @@ void setup()
     Serial.println("-------------------------------");
     Serial.println("started");
     setupRTC();
-    updateTime(6,59);
+    //updateTime(6,59);
     //pin setup
     for(int i=0; i<heaters; i++)
     {
@@ -82,9 +84,7 @@ void loop()
     if(Serial.available())
     {
         delay(100);
-        int hour = serReadInt();
-        int min = serReadInt();
-        updateTime(hour,min); 
+        updateTime(serReadInt(),serReadInt(),serReadInt(),serReadInt(),serReadInt(),serReadInt()); 
     }
 
     struct time now = getTime();
