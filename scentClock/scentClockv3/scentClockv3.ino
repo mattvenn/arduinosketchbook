@@ -20,10 +20,10 @@ firmware updates by MV
 //pin defs
 const int heaters = 3;
 const int pots = 3;
-const int heater_pins[heaters] = {5,6,10};
+const int heater_pins[heaters] = {10,6,5};
 const int pot_pins[pots] = {A0,A1,A2};
 const int el_pin = 9;
-const int fan_pin = 7;
+const int fan_pin = 11; //Pb3 == pin 15 on 168
 const int switch_pin = 2;
 
 //structs
@@ -45,8 +45,8 @@ const int samples = 5; //multisample
 struct heater heater_on;
 
 //definitions for the heat/fan cycle
-const int heat_val = 200;
-const int fan_val = 100;
+const int heat_val = 100;
+const int fan_val = 140;
 const int cycle_length = 10;
 const int heat_length = 3;
 const int fan_delay = 3; //fan starts and continues until cycle repeats
@@ -57,23 +57,19 @@ void setup()
     Serial.begin(57600);
     Serial.println("-------------------------------");
     Serial.println("started");
+
     setupRTC();
-    //updateTime(6,59);
+
     //pin setup
-    for(int i=0; i<heaters; i++)
-    {
-        pinMode(heater_pins[i],OUTPUT);
-        digitalWrite(heater_pins[i],LOW);
-    }
-    pinMode(fan_pin,OUTPUT);
-    digitalWrite(fan_pin,LOW);
     pinMode(switch_pin,INPUT);
     digitalWrite(switch_pin,HIGH); 
+
+    //turn all outputs off
+    allOff();
 
     //globals
     heater_on.heating = false;
 }
-
 
 void loop()
 {
@@ -172,15 +168,12 @@ void loop()
         {
             Serial.print("fan on at:");
             Serial.println(fan_val);
-            digitalWrite(fan_pin,HIGH);
-            //analogWrite(fan_pin,fan_val);
+            analogWrite(fan_pin,fan_val);
         }
         else
         {
             Serial.println("fan off");
             fanOff();
-            digitalWrite(fan_pin,LOW);
-            //analogWrite(fan_pin,0);
         }
     }
     else
@@ -195,7 +188,7 @@ void loop()
 
 void fanOff()
 {
-    digitalWrite(fan_pin,LOW);
+    analogWrite(fan_pin,0);
 }
 void heatersOff()
 {
