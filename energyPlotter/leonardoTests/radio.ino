@@ -1,5 +1,4 @@
-#ifdef useRadio
-byte needToSend;
+
 
 
 void cleanSPIBus()
@@ -9,6 +8,8 @@ void cleanSPIBus()
   SPI.transfer(0x00);
   digitalWrite(RFM_SEL,HIGH);
 }
+#ifdef useRadio
+byte needToSend;
 void initRadio()
 {
   rf12_initialize(1, RF12_433MHZ,212);
