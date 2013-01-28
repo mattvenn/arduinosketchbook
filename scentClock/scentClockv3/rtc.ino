@@ -23,10 +23,13 @@ void updateTime(int hour,int min)
 struct time getTime()
 {
     DateTime now = RTC.now();
+    struct time t;
     if( now.hour() == 165)    
     {
         Serial.println("RTC error!");
-        return {-1,-1};
+        t.min = -1;
+        t.hour = -1;
+        return t;
     }
     Serial.print(now.year(), DEC);
     Serial.print('/');
@@ -41,5 +44,8 @@ struct time getTime()
     Serial.print(now.second(), DEC);
     Serial.println();
 
-    return {now.hour(),now.minute()};
+    t.min = now.minute();
+    t.hour = now.hour();
+
+    return t;
 }
