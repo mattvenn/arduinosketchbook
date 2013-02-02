@@ -14,6 +14,7 @@
  
  todo:
  sw:
+ - the limits returned by the u command should be slightly bigger than the actual robot's limits
  - all commands should be get (with no args), set (with args)
  + switch to mm for movement. Needs to be able to read floats! half done
  - after calibration, with strings equal length, x and y aren't quite right I think. problem with FK?
@@ -89,7 +90,7 @@ float circumference = 3.1415 * 12.4;
 float stepsPerMM = stepsPerRevolution / circumference;
 float MOTOR_DIST_MM = 680; //510;
 float w= MOTOR_DIST_MM*stepsPerMM;
-float h= 330*stepsPerMM;  //300mm tall
+float h= MOTOR_DIST_MM*stepsPerMM; //330*stepsPerMM;  //300mm tall
 const int top_margin = 50*stepsPerMM; //gondola design causes too much distortion above here.
 const int side_margin = w/5;
 float gw = 0; //30 * stepsPerMM;  //gondola bolt width
@@ -120,7 +121,7 @@ void setup() {
   Serial.begin(57600);
   //  EEPROM.write(idAddress,1); //set address
   id = getId();
-  delay(5000);
+  //delay(5000);
   Serial.print("started, robot id:");
   Serial.println(id);
   pinMode(led, OUTPUT);   
