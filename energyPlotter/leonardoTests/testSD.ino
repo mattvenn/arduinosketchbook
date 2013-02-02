@@ -39,7 +39,7 @@ void initSD()
  // delay(500);
   //cli();
 
-   if (!sd.begin(SD_SEL, SPI_HALF_SPEED)) 
+   if (!sd.begin(SD_SEL, SPI_SIXTEENTH_SPEED)) 
      {
    //    sei();
        Serial.println( "sd init failed" );

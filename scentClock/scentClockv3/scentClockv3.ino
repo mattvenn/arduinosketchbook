@@ -1,28 +1,30 @@
 /* 
 
- - test all pins
+ + test all pins
  + multisample pots
  + 2 hour release starts one hour before time
  + if a later release interrupts it takes precedence
  + 0 time means off
- - daylight savings calc?
+ + daylight savings calc? needs testing
  + heater/fan cycles while heater on
- - el light on for cycle
- - pc connection for monitoring
+ + el light on for cycle
+ + pc connection for monitoring
 
 firmware updates by MV
  + if pot set to 0, will also turn off that heater if it's on
  - let Colin know about RTC errors
+ + pot and heater physical position
+ + pot positions for angles
 
 */
 //pin defs
 const int heaters = 3;
 const int pots = 3;
-const int heater_pins[heaters] = {6,7,8};
+const int heater_pins[heaters] = {10,6,5};
 const int pot_pins[pots] = {A0,A1,A2};
-const int switch_pin = 10;
-const int fan_pin = 11;
-const int el_pin = 12;
+const int el_pin = 9;
+const int fan_pin = 11; //Pb3 == pin 15 on 168
+const int switch_pin = 2;
 
 //structs
 struct time
@@ -43,8 +45,8 @@ const int samples = 5; //multisample
 struct heater heater_on;
 
 //definitions for the heat/fan cycle
-const int heat_val = 200;
-const int fan_val = 100;
+const int heat_val = 100;
+const int fan_val = 140;
 const int cycle_length = 10;
 const int heat_length = 3;
 const int fan_delay = 3; //fan starts and continues until cycle repeats
@@ -53,33 +55,32 @@ const int fan_delay = 3; //fan starts and continues until cycle repeats
 void setup()
 {
     Serial.begin(57600);
+    Serial.println("-------------------------------");
     Serial.println("started");
+
     setupRTC();
-    updateTime(6,59);
+
     //pin setup
-    for(int i=0; i<heaters; i++)
-    {
-        pinMode(heater_pins[i],OUTPUT);
-        digitalWrite(heater_pins[i],LOW);
-    }
-    pinMode(fan_pin,OUTPUT);
-    digitalWrite(fan_pin,LOW);
     pinMode(switch_pin,INPUT);
-    digitalWrite(switch_pin,LOW); //check this
+    digitalWrite(switch_pin,HIGH); 
+
+    //turn all outputs off
+    allOff();
 
     //globals
     heater_on.heating = false;
 }
 
-
 void loop()
 {
+    if(digitalRead(switch_pin)==LOW)
+    {
+      Serial.println("switch pressed");
+    }
     if(Serial.available())
     {
         delay(100);
-        int hour = serReadInt();
-        int min = serReadInt();
-        updateTime(hour,min); 
+        updateTime(serReadInt(),serReadInt(),serReadInt(),serReadInt(),serReadInt(),serReadInt()); 
     }
 
     struct time now = getTime();
@@ -136,6 +137,13 @@ void loop()
         Serial.print("minutes into period:");
         Serial.println(minutes);
 
+        //safety check in case probs with RTC
+        if( minutes > 180 )
+        {
+          Serial.println("ERROR! cycle > 180 mins: turning all off");
+          allOff();
+        }
+
         int cycle_minute = minutes % cycle_length;
         Serial.print("minutes into cycle:");
         Serial.println(cycle_minute);
@@ -143,7 +151,7 @@ void loop()
         //heat comes on from 0 -> heat_length
         if( cycle_minute < heat_length )
         {
-            //analogWrite(heater_pins[heater_on.heater],heat_val);
+            analogWrite(heater_pins[heater_on.heater],heat_val);
             Serial.print("heater ");
             Serial.print(heater_on.heater);
             Serial.print(" on at:");
@@ -152,7 +160,7 @@ void loop()
         else
         {
             Serial.println("heater off");
-            //analogWrite(heater_pins[heater_on.heater],0);
+            analogWrite(heater_pins[heater_on.heater],0);
         }
 
         //fan comes on from fan_delay until fan_delay+fan_length
@@ -160,17 +168,38 @@ void loop()
         {
             Serial.print("fan on at:");
             Serial.println(fan_val);
-            //analogWrite(fan_pin,fan_val);
+            analogWrite(fan_pin,fan_val);
         }
         else
         {
             Serial.println("fan off");
-            //analogWrite(fan_pin,0);
+            fanOff();
         }
     }
     else
     {
         digitalWrite(el_pin,LOW);
-        Serial.println("heater off");
+        Serial.println("heat cycle finished");
+        //ensure fan and heater are off
+        allOff();
+
     }
+}
+
+void fanOff()
+{
+    analogWrite(fan_pin,0);
+}
+void heatersOff()
+{
+    heater_on.heating = false;
+    for(int i=0; i<heaters; i++)
+    {
+        analogWrite(heater_pins[i],0);
+    }
+}
+void allOff()
+{
+  fanOff();
+  heatersOff();
 }

@@ -14,6 +14,7 @@
  
  todo:
  sw:
+ - store robot dimensions in eeprom
  - the limits returned by the u command should be slightly bigger than the actual robot's limits
  - all commands should be get (with no args), set (with args)
  + switch to mm for movement. Needs to be able to read floats! half done
@@ -89,11 +90,15 @@ boolean calibrated = false;
 float circumference = 3.1415 * 12.4;
 float stepsPerMM = stepsPerRevolution / circumference;
 float MOTOR_DIST_MM = 680; //510;
+
+//this stuff needs to be stored in eeprom or something
 float w= MOTOR_DIST_MM*stepsPerMM;
-float h= MOTOR_DIST_MM*stepsPerMM; //330*stepsPerMM;  //300mm tall
-const int top_margin = 50*stepsPerMM; //gondola design causes too much distortion above here.
+float h= 330*stepsPerMM;  //300mm tall
+const int top_margin = 100*stepsPerMM; //gondola design causes too much distortion above here.
 const int side_margin = w/5;
-float gw = 0; //30 * stepsPerMM;  //gondola bolt width
+
+float gw = 30 * stepsPerMM;  //gondola bolt width
+long commandsExecuted = 0;
 int x1;
 int y1;
 int a1;
@@ -166,14 +171,15 @@ void setup() {
   initServo();
   //leave some time in case this doesn't work. Makes it easier to reprogram!  
   //delay(4000);
-#ifdef useSD
-  initSD();
-#endif
+
 #ifdef useRadio
   initRadio();
   checkRadio = true;    
 #endif
-
+//put init sd after radio to make the spi speed change stick
+#ifdef useSD
+  initSD();
+#endif
   //calibrate();
 }
 
@@ -354,7 +360,8 @@ void runCommand( Payload * p)
         
         //pen status
         Serial.println( penState ? "pen: down" : "pen: up" );
-        
+        Serial.print( "cmds exectuted: ");
+        Serial.println(commandsExecuted);
         p->arg1 = x1 / stepsPerMM;
         p->arg2 = y1 / stepsPerMM;
         Serial.println("ok");
@@ -427,4 +434,5 @@ void runCommand( Payload * p)
         Serial.println( "bad command");
         break;
       }
+      commandsExecuted ++;
 }
