@@ -46,6 +46,11 @@ void loop()
         set(serReadInt(),serReadInt(),serReadInt());
         break;
       }
+      case 'f': //rotate forward
+        delay(100);
+        stepper.step(serReadInt());
+        Serial.println("ok");
+        break;        
       case 'o': //set offset
         offset = serReadInt();
         Serial.print("set offset to ");
