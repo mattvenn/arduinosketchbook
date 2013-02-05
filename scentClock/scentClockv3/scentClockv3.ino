@@ -79,7 +79,7 @@ void loop()
     }
     if(Serial.available())
     {
-        delay(100);
+        delay(200);
         updateTime(serReadInt(),serReadInt(),serReadInt(),serReadInt(),serReadInt(),serReadInt()); 
     }
 

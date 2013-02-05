@@ -6,7 +6,7 @@ void setupRTC()
     Wire.begin();
     RTC.begin();
 
-    while (! RTC.isrunning()) 
+    if(! RTC.isrunning()) 
     {
         Serial.println("RTC is NOT running!");
         // following line sets the RTC to the date & time this sketch was compiled
@@ -38,7 +38,13 @@ boolean isGMT(int day, int month, int dow)
 
 void updateTime(int year,int month,int day,int hour,int min,int sec)
 {
-    RTC.adjust(DateTime(year,month,day,hour,min,sec));
+  Serial.print(year); Serial.print(",");
+  Serial.print(month); Serial.print(",");  
+  Serial.print(day); Serial.print(",");
+  Serial.print(hour); Serial.print(",");
+  Serial.print(min); Serial.print(",");   
+  Serial.println(sec); 
+  RTC.adjust(DateTime(year,month,day,hour,min,sec));
 }
 
 struct time getTime()
