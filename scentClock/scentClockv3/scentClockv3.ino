@@ -20,8 +20,8 @@ firmware updates by MV
 //pin defs
 const int heaters = 3;
 const int pots = 3;
-const int heater_pins[heaters] = {10,6,5};
-const int pot_pins[pots] = {A0,A1,A2};
+const int heater_pins[heaters] = {5,6,10};
+const int pot_pins[pots] = {A2,A1,A0};
 const int el_pin = 9;
 const int fan_pin = 11; //Pb3 == pin 15 on 168
 const int switch_pin = 2;
@@ -45,7 +45,7 @@ const int samples = 5; //multisample
 struct heater heater_on;
 
 //definitions for the heat/fan cycle
-const int heat_val = 100;
+const int heat_val = 210;
 const int fan_val = 140;
 const int cycle_length = 10;
 const int heat_length = 3;
