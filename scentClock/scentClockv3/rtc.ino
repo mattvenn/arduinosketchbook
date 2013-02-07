@@ -22,16 +22,16 @@ UK rules:
 last Sunday in March Forward by 1 hour at 01:00
 last Sunday in October Backwards by 1 hour 01:00 
 */
-boolean isGMT(int day, int month, int dow)
+boolean isBST(int day, int month, int dow)
     {
         //January, february, and december are out.
-        if (month < 3 || month > 11) { return false; }
+        if (month < 3 || month > 10) { return false; }
         //April to October are in
-        if (month > 3 && month < 11) { return true; }
+        if (month > 3 && month < 10) { return true; }
         int previousSunday = day - dow;
         //In march, we are DST if our previous sunday was after the 24th.
         if (month == 3) { return previousSunday > 24; }
-        //In november we must be before the last sunday to be dst.
+        //In october we must be before the last sunday to be dst.
         //That means the previous sunday must be after the 23rd.
         return previousSunday > 23;
 }
@@ -62,16 +62,16 @@ struct time getTime()
     t.min = now.minute();
     t.hour = now.hour();
 
-    if( isGMT(now.day(),now.month(),now.dayOfWeek()) && t.hour >= 1 )
+    if( isBST(now.day(),now.month(),now.dayOfWeek()) )
     {
-      Serial.print("GMT,");
+      Serial.print("BST,");
+      t.hour += 1;
+      if( t.hour >23 )
+        t.hour = 0;
     }
     else
     {
-      Serial.print("DST,");
-      t.hour -= 1;
-      if( t.hour < 0 )
-        t.hour = 23;
+       Serial.print("GMT,");
     }
 
     Serial.print(now.year(), DEC);
