@@ -14,7 +14,9 @@
   are external interrupts faster than pinchange?
 
   todo:
-  
+   power down stuff:
+     with all power down, serial doesn't come fast enough to read byte, but possible to do this manually
+     leave serial powered and we get byte from standby
    check external ints are they faster - doesn't work - don't know why.
   look at different sleep modes:
     pwr_down, everything so far means we miss first 5 bits of first byte
@@ -74,7 +76,7 @@ void power_down()
    power_spi_disable();
    power_timer0_disable();
    power_timer1_disable();
-   power_usart0_disable();
+ //  power_usart0_disable();
    power_timer2_disable();
    power_twi_disable();
    
@@ -106,16 +108,18 @@ void loop()
         case 's':
           Serial.println("sleep");
           delay(50);
-         // power_down();
+          power_down();
 
           attachInt();
-          sei();
+         // sei();
           sleep_now();
           
           Serial.println("woke");
-          //detachInt();
-        //  power_up();
+          
+          power_up();
+        #ifdef CAPTURE
           print_buff();
+        #endif
           break;
         default:
           Serial.print("unknown command:");Serial.println(c);
