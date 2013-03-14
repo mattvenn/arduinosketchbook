@@ -21,8 +21,8 @@
 #include <avr/sleep.h>
 #include <avr/power.h>
 
-#define PINCHANGE
-const int capture = 100;
+//#define PINCHANGE
+const int capture = 150;
 boolean buff [capture];
 byte r;
 boolean ready = false;

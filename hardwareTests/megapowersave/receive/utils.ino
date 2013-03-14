@@ -63,7 +63,8 @@ ISR(WDT_vect) {
 */
 void wakeUpNow()        // here the interrupt is handled after wakeup
 { 
-   cli();
+   detachInt();
+   //cli();
    for( int i = 0; i < capture; i ++ )
   {
     buff[i]=digitalRead(0);
