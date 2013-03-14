@@ -1,7 +1,7 @@
 //this is the low power arduino
 /*
- + todo: brown out disable
- 
+
+    default serial io with arduino is one start bit (0), which we can use to wake.  
   turning off peripherals doesn't seemt o make a difference to wake up time.
  
  9600 baud is 9600 bits per second or 10khz ish
@@ -9,20 +9,27 @@
 
   sleep mode: pwr_down
     at 9600 baud, miss first 5 chars of the wakeup byte
+
     
   are external interrupts faster than pinchange?
 
   todo:
-   check external ints are they faster
-  look at different sleep modes
-  find out if we can miss any part of the first byte? 
+  
+   check external ints are they faster - doesn't work - don't know why.
+  look at different sleep modes:
+    pwr_down, everything so far means we miss first 5 bits of first byte
+    standby, capture the first byte
+  hymera serial research: 
+    find out if we can miss any part of the first byte? 
+    does have start bit?
+  brown out disable will save more power
 */
 #include <PinChangeInt.h> //see details on this to reduce memory footprint
 #include <avr/sleep.h>
 #include <avr/power.h>
-
-//#define PINCHANGE
-const int capture = 150;
+//#define CAPTURE 
+#define PINCHANGE
+const int capture = 20;
 boolean buff [capture];
 byte r;
 boolean ready = false;
@@ -90,13 +97,7 @@ void loop()
        led_state = !led_state;
 
     }
-    /*
-    if( ready )
-    {
-      print_buff();
-      ready = false;
-    }
-    */
+ 
     if( Serial.available() )
     {
       char c = Serial.read();

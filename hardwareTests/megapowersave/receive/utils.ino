@@ -14,7 +14,8 @@ void sleep_now()         // here we put the arduino to sleep
      * sleep mode: SLEEP_MODE_PWR_DOWN
      */  
 
-    set_sleep_mode(SLEEP_MODE_PWR_DOWN);   // sleep mode is set here
+set_sleep_mode(SLEEP_MODE_STANDBY);   // sleep mode is set here
+//    set_sleep_mode(SLEEP_MODE_PWR_DOWN);   // sleep mode is set here
     sleep_enable();          // enables the sleep bit in the mcucr register
                              // so sleep is possible. just a safety pin 
    /*
@@ -65,11 +66,13 @@ void wakeUpNow()        // here the interrupt is handled after wakeup
 { 
    detachInt();
    //cli();
+  #ifdef CAPTURE
    for( int i = 0; i < capture; i ++ )
   {
     buff[i]=digitalRead(0);
     delayMicroseconds(50);
   }
+  #endif
 }
 
 
