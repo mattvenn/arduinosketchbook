@@ -18,7 +18,7 @@ volatile uint8_t counter = 0;
 volatile bool counting = false;
 volatile bool moveServo = false;
 //pins
-#define INT_PIN PB1
+#define INT_PIN PB3
 #define SERVO_PIN PB0 //OC0A
 #define LED_PIN PB4
 
