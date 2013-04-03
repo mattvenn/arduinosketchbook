@@ -86,10 +86,10 @@ boolean calibrated = false;
 //drawing globals
 // Approximate dimensions (in steps) of the total drawing area
 #define stepsPerRevolution 200
-//float stepsPerMM = 6.33; //measured rather than calculated. stepsPerRevolution / circumference;   
-float circumference = 3.1415 * 12.4;
-float stepsPerMM = stepsPerRevolution / circumference;
-float MOTOR_DIST_MM = 680; //510;
+float stepsPerMM = 6.33; //measured rather than calculated. stepsPerRevolution / circumference;   
+//float circumference = 3.1415 * 12.4;
+//float stepsPerMM = stepsPerRevolution / circumference;
+float MOTOR_DIST_MM = 510;
 
 //this stuff needs to be stored in eeprom or something
 float w= MOTOR_DIST_MM*stepsPerMM;
