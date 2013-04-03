@@ -55,9 +55,10 @@ int main()
 //    OCR0A = startServoPos;
 
     //external int setup for comms
-    setbit(MCUCR,ISC00); //rising edge of int0
-    setbit(MCUCR,ISC01); //rising edge of int0
-    setbit(GIMSK,INT0); //enable external int0 
+//    setbit(MCUCR,ISC00); //rising edge of int0
+//    setbit(MCUCR,ISC01); //rising edge of int0
+    setbit(GIMSK,PCIE); //enable pin change ints
+    setbit(PCMSK,PCINT3); //enable pin change int 3 (pb3)
     
     setbit(PORTB,LED_PIN);
     //flash led on powerup
@@ -93,11 +94,12 @@ int main()
     }
 }
 
-//int0 
-ISR(INT0_vect)
+//pcint 
+ISR(PCINT0_vect)
 {
     cli();
-
+    if(bit_is_set(PINB,INT_PIN)) //if it was a low to high transition
+    {
     //count mode
     if(counting == false)
     {
@@ -134,6 +136,7 @@ ISR(INT0_vect)
       clearbit(PORTB,LED_PIN); //turn off led
       counter = 0;
       counting = false;
+    }
     }
     sei();
 }
