@@ -103,7 +103,7 @@ void home()
   //get to left limit
   setSpeed( HOME_SPEED );
   findLeftLimit();
-
+  
   //default pwm
   setPWM(default_pwm);
   //release any tesnsion
@@ -111,13 +111,12 @@ void home()
   stepLeft(tension_release_steps);
   int steps=findRightLimit();
   
-  int hanger_l = 30;
-  a1 = (140 + hanger_l)*stepsPerMM + steps + tension_release_steps;
-  b1 = (144 + hanger_l)*stepsPerMM;
+  a1 = (142 + hanger_l)*stepsPerMM + steps + tension_release_steps;
+  b1 = (152 + hanger_l)*stepsPerMM;
   FK(a1,b1); //this updates x and y
   
-  Serial.println(a1/stepsPerMM);
-  Serial.println(b1/stepsPerMM);
+  Serial.println(a1/stepsPerMM - hanger_l);
+  Serial.println(b1/stepsPerMM - hanger_l);
   Serial.println(x1/stepsPerMM);
   Serial.println(y1/stepsPerMM);
   

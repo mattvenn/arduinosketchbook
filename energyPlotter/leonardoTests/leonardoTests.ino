@@ -86,10 +86,11 @@ boolean calibrated = false;
 //drawing globals
 // Approximate dimensions (in steps) of the total drawing area
 #define stepsPerRevolution 200
-float stepsPerMM = 6.33; //measured rather than calculated. stepsPerRevolution / circumference;   
+float stepsPerMM = 6.48; //measured rather than calculated. stepsPerRevolution / circumference;   
 //float circumference = 3.1415 * 12.4;
 //float stepsPerMM = stepsPerRevolution / circumference;
 float MOTOR_DIST_MM = 510;
+int hanger_l = 30;
 
 //this stuff needs to be stored in eeprom or something
 float w= MOTOR_DIST_MM*stepsPerMM;
@@ -190,7 +191,8 @@ void loop() {
     home();
   if( statusTimer.poll(500) )
   {
-#ifdef testLED
+
+    #ifdef testLED
     //Serial.println( "led");
     ledState = ! ledState;
     digitalWrite(led,ledState);
@@ -348,13 +350,13 @@ void runCommand( Payload * p)
         Serial.println(y1);
         
         //string lengths
-        Serial.print( "a1: ");
-        Serial.print(a1 / stepsPerMM);
+        Serial.print( "a1 (no hanger): ");
+        Serial.print(a1 / stepsPerMM - hanger_l);
         Serial.print( "mm, ");
         Serial.println(a1);
 
-        Serial.print( "b1: ");
-        Serial.print(b1 / stepsPerMM);
+        Serial.print( "b1 (no hanger): ");
+        Serial.print(b1 / stepsPerMM - hanger_l);
         Serial.print( "mm, ");
         Serial.println(b1);
         
