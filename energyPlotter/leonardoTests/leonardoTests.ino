@@ -93,9 +93,9 @@ float MOTOR_DIST_MM = 680; //510;
 
 //this stuff needs to be stored in eeprom or something
 float w= MOTOR_DIST_MM*stepsPerMM;
-float h= 330*stepsPerMM;  //300mm tall
-const int top_margin = 100*stepsPerMM; //gondola design causes too much distortion above here.
-const int side_margin = w/5;
+float h= 680*stepsPerMM;  //300mm tall
+const int top_margin = 150*stepsPerMM; //gondola design causes too much distortion above here.
+const int side_margin = top_margin;
 
 float gw = 30 * stepsPerMM;  //gondola bolt width
 long commandsExecuted = 0;
