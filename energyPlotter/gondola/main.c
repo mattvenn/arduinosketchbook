@@ -111,27 +111,18 @@ ISR(PCINT0_vect)
     else
     {
       clearbit(PORTB,LED_PIN); //turn off led
-      if( counter > 2 && counter < 5 )
+      if( counter > 2 && counter <= 4 )
       {
         OCR0A = PENUP;
-        for( int i = 0; i < 2; i ++ )
-        {
-          clearbit(PORTB,LED_PIN); //turn off led
-          _delay_ms(100);
-          setbit(PORTB,LED_PIN);
-          _delay_ms(100);
-        }
       }
-      else if( counter > 5 && counter < 8)
+      else if( counter > 4 && counter <=8)
       {
         OCR0A = PENDOWN;
-        for( int i = 0; i < 4; i ++ )
-        {
-          clearbit(PORTB,LED_PIN); //turn off led
-          _delay_ms(100);
-          setbit(PORTB,LED_PIN);
-          _delay_ms(100);
-        }
+        //flash the led
+        clearbit(PORTB,LED_PIN); //turn off led
+        _delay_ms(100);
+        setbit(PORTB,LED_PIN);
+        _delay_ms(100);
       }
       clearbit(PORTB,LED_PIN); //turn off led
       counter = 0;
