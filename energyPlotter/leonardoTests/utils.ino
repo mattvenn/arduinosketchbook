@@ -51,7 +51,18 @@ void printPayload( Payload * p)
   Serial.println( p->arg2 );
 }
 
+void dumpSerialConfig()
+{
+  for( i = 0; i < sizeof(config); i ++ )
+  {
+    //Serial.write(config[i]);
+  }
+}
 
+void loadSerialConfig()
+{
+  ;;
+}
 
 void saveConfig()
 {

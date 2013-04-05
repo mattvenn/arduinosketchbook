@@ -119,7 +119,7 @@ void home()
   setPWM(config.default_pwm);
   
   //move to center point
-  drawLine(w/2,w/2);
+  drawLine(config.w/2,config.w/2);
 
   setSpeed(config.maxSpeed);
   calibrated=true;

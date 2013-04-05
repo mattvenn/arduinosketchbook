@@ -14,18 +14,18 @@
  
  todo:
  sw:
- - store robot dimensions in eeprom
+ + store robot dimensions in eeprom
  - the limits returned by the u command should be slightly bigger than the actual robot's limits
  - all commands should be get (with no args), set (with args)
  + switch to mm for movement. Needs to be able to read floats! half done
  - after calibration, with strings equal length, x and y aren't quite right I think. problem with FK?
  + needs radio and sd card interferance fixing - seems to be done.
- - needs to have a software limit for drawing codes, shouldn't accept a command that can't be drawn.
- - needs to resolve the possibility of gondola and pen state getting mixed up. This happens in the gondola code. it needs a timeout to set it back to listening mode not timing mode.
+ + needs to have a software limit for drawing codes, shouldn't accept a command that can't be drawn.
+ + needs to resolve the possibility of gondola and pen state getting mixed up. This happens in the gondola code. it needs a timeout to set it back to listening mode not timing mode.
  hw:
  - better calibration
- - more spike testing for gondola power
- - gondola string length will be an issue as we'll need higher and higher voltages for longer lengths.
+ + more spike testing for gondola power
+ + gondola string length will be an issue as we'll need higher and higher voltages for longer lengths.
  
  */
 #define testSteppers
@@ -37,6 +37,7 @@
 //#define testMem
 #include <EEPROM.h>
 #include "EEPROMAnything.h"
+#include "config.h"
 #include <SPI.h>
 #include <JeeLib.h>
 #include "datatype.h"
@@ -85,26 +86,7 @@ long int lastCommandTime = 0;
 boolean calibrated = false;
 
 //all of this stored in eeprom
-struct config_t
-{
-  int stepsPerRevolution;
-  float stepsPerMM;
-  int hanger_l;
-  int top_margin;
-  int side_margin;
-  float motor_dist_mm;
-  float w;
-  float h;
-  byte id;
-  float gw;
-  int default_pwm;
-  int lowpower_pwm;
-  int HOME_PWM_HIGH;
-  int HOME_PWM_LOW;
-  int HOME_SPEED;
-  int maxSpeed;
-} 
-config;
+
 
 long commandsExecuted = 0;
 int x1;
@@ -325,6 +307,12 @@ void runCommand( Payload * p)
   case 'i':
     setMS(p->arg1,p->arg2);
     Serial.println("ok");
+    break;
+  case 'j':
+    dumpSerialConfig();
+    break;
+  case 'k':
+    loadSerialConfig();
     break;
   case 'm':
     stepLeft(p->arg1*config.stepsPerMM);
