@@ -36,6 +36,7 @@
 //#define testIO
 //#define testMem
 #include <EEPROM.h>
+#include "EEPROMAnything.h"
 #include <SPI.h>
 #include <JeeLib.h>
 #include "datatype.h"
@@ -74,7 +75,6 @@ MilliTimer statusTimer,sdTimer;
 
 boolean commandWaiting = false;
 boolean sendAck = false;
-int servoPos = 20;
 boolean ledState = false;
 boolean servoState = false;
 boolean testSD = false; //auto test the SD
@@ -83,22 +83,29 @@ boolean servoTest = false;
 int i = 0;
 long int lastCommandTime = 0;
 boolean calibrated = false;
-//drawing globals
-// Approximate dimensions (in steps) of the total drawing area
-#define stepsPerRevolution 200
-float stepsPerMM = 6.48; //measured rather than calculated. stepsPerRevolution / circumference;   
-//float circumference = 3.1415 * 12.4;
-//float stepsPerMM = stepsPerRevolution / circumference;
-float MOTOR_DIST_MM = 510;
-int hanger_l = 30;
 
-//this stuff needs to be stored in eeprom or something
-float w= MOTOR_DIST_MM*stepsPerMM;
-float h= 680*stepsPerMM;  //300mm tall
-const int top_margin = 150*stepsPerMM; //gondola design causes too much distortion above here.
-const int side_margin = top_margin;
+//all of this stored in eeprom
+struct config_t
+{
+  int stepsPerRevolution;
+  float stepsPerMM;
+  int hanger_l;
+  int top_margin;
+  int side_margin;
+  float motor_dist_mm;
+  float w;
+  float h;
+  byte id;
+  float gw;
+  int default_pwm;
+  int lowpower_pwm;
+  int HOME_PWM_HIGH;
+  int HOME_PWM_LOW;
+  int HOME_SPEED;
+  int maxSpeed;
+} 
+config;
 
-float gw = 30 * stepsPerMM;  //gondola bolt width
 long commandsExecuted = 0;
 int x1;
 int y1;
@@ -107,14 +114,8 @@ int b1;
 
 
 //pwm power stuff
-int default_pwm = 60;
-int lowpower_pwm = 10;
 boolean lowpower = false;
 const int low_power_time = 2000; //pwm low after 2 seconds of not doing anything.
-
-int idAddress = 0;
-byte id;
-
 
 Payload payload;
 
@@ -126,10 +127,9 @@ boolean penState = 0;
 void setup() {
   Serial.begin(57600);
   //  EEPROM.write(idAddress,1); //set address
-  id = getId();
   //delay(5000);
   Serial.print("started, robot id:");
-  Serial.println(id);
+  Serial.println(config.id);
   pinMode(led, OUTPUT);   
   digitalWrite(led,HIGH);
 
@@ -150,8 +150,8 @@ void setup() {
 
   //pinMode( GPIO1, OUTPUT);
   //pinMode(GPIO2, OUTPUT );
-   pinMode( GPIO1, INPUT );
-   digitalWrite(GPIO1,HIGH);
+  pinMode( GPIO1, INPUT );
+  digitalWrite(GPIO1,HIGH);
   //  pinMode( GPIO2, INPUT );
 
   //spi setup
@@ -177,7 +177,7 @@ void setup() {
   initRadio();
   checkRadio = true;    
 #endif
-//put init sd after radio to make the spi speed change stick
+  //put init sd after radio to make the spi speed change stick
 #ifdef useSD
   initSD();
 #endif
@@ -192,7 +192,7 @@ void loop() {
   if( statusTimer.poll(500) )
   {
 
-    #ifdef testLED
+#ifdef testLED
     //Serial.println( "led");
     ledState = ! ledState;
     digitalWrite(led,ledState);
@@ -202,7 +202,7 @@ void loop() {
     Serial.println(freeMemory());
 #endif
     //try to cope with lost packets. Send an ack if enough time has elapsed since we last completed a command.
- /*     if( millis() - lastCommandTime > 10000 ) 
+    /*     if( millis() - lastCommandTime > 10000 ) 
      {
      sendAck = 1;
      Serial.println( millis() );
@@ -217,11 +217,11 @@ void loop() {
     commandWaiting = true;
     Serial.flush();
   }
-  
+
   if( commandWaiting )
   {
     commandWaiting = false;
-  
+
     //   stopRadio();
 
     if(storeCommands)
@@ -253,7 +253,7 @@ void loop() {
     sendAck = true;   
     lastCommandTime = millis();
     //  Serial.print( "command finished at: " ); // putting these in will break the feeder 
-     // Serial.println( lastCommandTime ); //putting these in will break the feeder
+    // Serial.println( lastCommandTime ); //putting these in will break the feeder
   }
 #ifdef useRadio        
   if( checkRadio)
@@ -261,180 +261,181 @@ void loop() {
 #endif
 
   if(millis() - lastCommandTime > low_power_time && lowpower == false)
-      powerSave(true);
-    
+    powerSave(true);
+
 }
 
 void runCommand( Payload * p)
 {
   if(!calibrated && !(p->command == 'c'||p->command == 'f'))
-    {
-      Serial.println("not calibrated");
-      Serial.println("ok");
-      return;
-    }
-//  Serial.println("run command called:");
-//  printPayload(p);
+  {
+    Serial.println("not calibrated");
+    Serial.println("ok");
+    return;
+  }
+  //  Serial.println("run command called:");
+  //  printPayload(p);
   switch( p->command )
-      {
-      case 'a':
-        setAccel(p->arg1);
-        break;
-      case 'b':
-        calibrate(p->arg1);
-        break;
-      case 'c':
-        home();
-        Serial.println("ok");
-        break;
-      case 'd':
-        // if( p->arg1 != penState )
-        {
-          Serial.println( p->arg1 ? "pen down" : "pen up" );
-          p->arg1 ? penDown() : penUp();
+  {
+  case 'a':
+    setAccel(p->arg1);
+    break;
+  case 'b':
+    calibrate(p->arg1);
+    break;
+  case 'c':
+    home();
+    Serial.println("ok");
+    break;
+  case 'd':
+    // if( p->arg1 != penState )
+    {
+      Serial.println( p->arg1 ? "pen down" : "pen up" );
+      p->arg1 ? penDown() : penUp();
 
-          Serial.println( "ok");
-          penState = p->arg1;
-        }  
-        /* else
-         {
-         Serial.print( "pen already: ");
-         Serial.println( penState ? "down" : "up" );
-         }*/
-        break;
-      case 'e': //execute stored commands
-        printStoredCommands(true);
-        Serial.println("ok");
-        break;
-      case 'f':
-        a1 = p->arg1;
-        b1 = p->arg2;
-        Serial.println("a1 and b1 updated");
-        FK(a1,b1);
-        calibrated=true;
-        Serial.println("ok");
-        break;
-      case 'g':
-        drawLine(p->arg1*stepsPerMM,p->arg2*stepsPerMM);
-        Serial.println( "ok" );
-        break;
-      case 'h':
-        printStoredCommands(false);
-        Serial.println("ok");
-        break;
-      case 'i':
-        setMS(p->arg1,p->arg2);
-        Serial.println("ok");
-        break;
-      case 'm':
-        stepLeft(p->arg1*stepsPerMM);
-        stepRight(p->arg2*stepsPerMM);
-        Serial.println("ok");
-        break;
-      case 'p':
-        setSpeed(p->arg1);
-        setPWM(p->arg2);
-        default_pwm = p->arg2;
-        Serial.println("ok");
-        break;
-      case 'q':
-        //rectangular coords
-        Serial.print( "x: ");
-        Serial.print(x1 / stepsPerMM);
-        Serial.print( "mm, ");
-        Serial.println(x1);
-        
-        Serial.print( "y: ");
-        Serial.print(y1 / stepsPerMM);
-        Serial.print( "mm, ");
-        Serial.println(y1);
-        
-        //string lengths
-        Serial.print( "a1 (no hanger): ");
-        Serial.print(a1 / stepsPerMM - hanger_l);
-        Serial.print( "mm, ");
-        Serial.println(a1);
+      Serial.println( "ok");
+      penState = p->arg1;
+    }  
+    /* else
+     {
+     Serial.print( "pen already: ");
+     Serial.println( penState ? "down" : "up" );
+     }*/
+    break;
+  case 'e': //execute stored commands
+    printStoredCommands(true);
+    Serial.println("ok");
+    break;
+  case 'f':
+    a1 = p->arg1;
+    b1 = p->arg2;
+    Serial.println("a1 and b1 updated");
+    FK(a1,b1);
+    calibrated=true;
+    Serial.println("ok");
+    break;
+  case 'g':
+    drawLine(p->arg1*config.stepsPerMM,p->arg2*config.stepsPerMM);
+    Serial.println( "ok" );
+    break;
+  case 'h':
+    printStoredCommands(false);
+    Serial.println("ok");
+    break;
+  case 'i':
+    setMS(p->arg1,p->arg2);
+    Serial.println("ok");
+    break;
+  case 'm':
+    stepLeft(p->arg1*config.stepsPerMM);
+    stepRight(p->arg2*config.stepsPerMM);
+    Serial.println("ok");
+    break;
+  case 'p':
+    setSpeed(p->arg1);
+    setPWM(p->arg2);
+    config.default_pwm = p->arg2;
+    Serial.println("ok");
+    break;
+  case 'q':
+    //rectangular coords
+    Serial.print( "x: ");
+    Serial.print(x1 / config.stepsPerMM);
+    Serial.print( "mm, ");
+    Serial.println(x1);
 
-        Serial.print( "b1 (no hanger): ");
-        Serial.print(b1 / stepsPerMM - hanger_l);
-        Serial.print( "mm, ");
-        Serial.println(b1);
-        
-        //pen status
-        Serial.println( penState ? "pen: down" : "pen: up" );
-        Serial.print( "cmds exectuted: ");
-        Serial.println(commandsExecuted);
-        p->arg1 = x1 / stepsPerMM;
-        p->arg2 = y1 / stepsPerMM;
-        Serial.println("ok");
-        break;
-      case 'r':
-        //initRadio();
-        Serial.println( "useradio" );
-        //   readSD();
-        break;
-      case 's': //store commands for later
-        storeCommands = true;
-        storedCommands=0;
-        expectedCommands = p->arg1;
-        Serial.println("storing subsequent commands");
-        Serial.println("ok");
-        break;
-      case 't':
-        servoTest = p->arg1; 
-        Serial.print( "line tset: " ); 
-        Serial.println( servoTest );
-        break;
-     case 'u':
-        if( p->arg1 > 0)
-          stepsPerMM = p->arg1;
-        Serial.print("stepsPerMM: ");
-        Serial.println(stepsPerMM);
-        Serial.print("motor dist(mm): ");
-        Serial.println(MOTOR_DIST_MM);
-        
-        Serial.print("w: ");
-        Serial.print(w/stepsPerMM);
-        Serial.print("mm, ");
-        Serial.println(w);
-        
-        Serial.print("h: ");
-        Serial.print(h/stepsPerMM);
-        Serial.print("mm, ");
-        Serial.println(h);
+    Serial.print( "y: ");
+    Serial.print(y1 / config.stepsPerMM);
+    Serial.print( "mm, ");
+    Serial.println(y1);
+
+    //string lengths
+    Serial.print( "a1 (no hanger): ");
+    Serial.print(a1 / config.stepsPerMM - config.hanger_l);
+    Serial.print( "mm, ");
+    Serial.println(a1);
+
+    Serial.print( "b1 (no hanger): ");
+    Serial.print(b1 / config.stepsPerMM - config.hanger_l);
+    Serial.print( "mm, ");
+    Serial.println(b1);
+
+    //pen status
+    Serial.println( penState ? "pen: down" : "pen: up" );
+    Serial.print( "cmds exectuted: ");
+    Serial.println(commandsExecuted);
+    p->arg1 = x1 / config.stepsPerMM;
+    p->arg2 = y1 / config.stepsPerMM;
+    Serial.println("ok");
+    break;
+  case 'r':
+    //initRadio();
+    Serial.println( "useradio" );
+    //   readSD();
+    break;
+  case 's': //store commands for later
+    storeCommands = true;
+    storedCommands=0;
+    expectedCommands = p->arg1;
+    Serial.println("storing subsequent commands");
+    Serial.println("ok");
+    break;
+  case 't':
+    servoTest = p->arg1; 
+    Serial.print( "line tset: " ); 
+    Serial.println( servoTest );
+    break;
+  case 'u':
+    if( p->arg1 > 0)
+      config.stepsPerMM = p->arg1;
+    Serial.print("stepsPerMM: ");
+    Serial.println(config.stepsPerMM);
+    Serial.print("motor dist(mm): ");
+    Serial.println(config.motor_dist_mm);
+
+    Serial.print("w: ");
+    Serial.print(config.w/config.stepsPerMM);
+    Serial.print("mm, ");
+    Serial.println(config.w);
+
+    Serial.print("h: ");
+    Serial.print(config.h/config.stepsPerMM);
+    Serial.print("mm, ");
+    Serial.println(config.h);
 
 
-        Serial.print("top margin: ");
-        Serial.print(top_margin/stepsPerMM);
-        Serial.println("mm");
-        Serial.print("side margin: ");
-        Serial.print(side_margin/stepsPerMM);
-        Serial.println("mm");
+    Serial.print("top margin: ");
+    Serial.print(config.top_margin/config.stepsPerMM);
+    Serial.println("mm");
+    Serial.print("side margin: ");
+    Serial.print(config.side_margin/config.stepsPerMM);
+    Serial.println("mm");
 
-        Serial.println("ok");
-        break;
-      case 'w':
-        writeSD(p->arg1);
-        readSD();
-        //#ifdef useRadio
-        //initRadio(); //need this after a write/read some combo?
-        //#endif
-        break;  
-      case 'x':
-        detachInterrupt(0);
-        Serial.println( "detach inter" );
-        SPI.end();
-        break;
-      case 'y':
-        digitalWrite( SERVO, p->arg1 ? PENDOWN : PENUP );
-        Serial.println("ok");
-        break;   
-      case 'z':
-        initSD();
-        break;
-      default:
-        Serial.println( "bad command");
-        break;
-      }
-      commandsExecuted ++;
+    Serial.println("ok");
+    break;
+  case 'w':
+    writeSD(p->arg1);
+    readSD();
+    //#ifdef useRadio
+    //initRadio(); //need this after a write/read some combo?
+    //#endif
+    break;  
+  case 'x':
+    detachInterrupt(0);
+    Serial.println( "detach inter" );
+    SPI.end();
+    break;
+  case 'y':
+    digitalWrite( SERVO, p->arg1 ? PENDOWN : PENUP );
+    Serial.println("ok");
+    break;   
+  case 'z':
+    initSD();
+    break;
+  default:
+    Serial.println( "bad command");
+    break;
+  }
+  commandsExecuted ++;
 }
+

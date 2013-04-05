@@ -9,10 +9,6 @@
 #endif
 #define BIT_TST(REG, bit, val) ( ( (REG & (1UL << (bit) ) ) == ( (val) << (bit) ) ) )
 
-const int HOME_PWM_HIGH = 150;
-const int HOME_PWM_LOW = 15;
-const int HOME_SPEED = 3000;
-const int maxSpeed = 3000; //800;
 
 //const int steps = 200;
 int stepTime = 2;
@@ -24,8 +20,8 @@ const int SUPERFAST_ACCELERATION = 6000;
 
 void initSteppers()
 {
-  setPWM(default_pwm);
-  setSpeed(maxSpeed);
+  setPWM(config.default_pwm);
+  setSpeed(config.maxSpeed);
   setAccel(SUPERFAST_ACCELERATION);
 
   /* micro stepping stuff
@@ -61,13 +57,13 @@ void powerSave(boolean save)
   if(save==true)
   {
     lowpower = true;
-    setPWM(lowpower_pwm);
+    setPWM(config.lowpower_pwm);
     Serial.println("low power mode");
   }
   else
   {
     lowpower = false;
-    setPWM(default_pwm);
+    setPWM(config.default_pwm);
     Serial.println("default power mode");
   }
 }
@@ -96,36 +92,36 @@ void home()
   
   //setup pwm so can pull the right hand side
   //set pwmL to high
-  setPWML(HOME_PWM_HIGH);
+  setPWML(config.HOME_PWM_HIGH);
   //set pwmR to low
-  setPWMR(HOME_PWM_LOW);
+  setPWMR(config.HOME_PWM_LOW);
   
   //get to left limit
-  setSpeed( HOME_SPEED );
+  setSpeed( config.HOME_SPEED );
   findLeftLimit();
   
   //default pwm
-  setPWM(default_pwm);
+  setPWM(config.default_pwm);
   //release any tesnsion
   int tension_release_steps = 100;
   stepLeft(tension_release_steps);
   int steps=findRightLimit();
   
-  a1 = (142 + hanger_l)*stepsPerMM + steps + tension_release_steps;
-  b1 = (152 + hanger_l)*stepsPerMM;
+  a1 = (142 + config.hanger_l)*config.stepsPerMM + steps + tension_release_steps;
+  b1 = (152 + config.hanger_l)*config.stepsPerMM;
   FK(a1,b1); //this updates x and y
   
-  Serial.println(a1/stepsPerMM - hanger_l);
-  Serial.println(b1/stepsPerMM - hanger_l);
-  Serial.println(x1/stepsPerMM);
-  Serial.println(y1/stepsPerMM);
+  Serial.println(a1/config.stepsPerMM - config.hanger_l);
+  Serial.println(b1/config.stepsPerMM - config.hanger_l);
+  Serial.println(x1/config.stepsPerMM);
+  Serial.println(y1/config.stepsPerMM);
   
-  setPWM(default_pwm);
+  setPWM(config.default_pwm);
   
   //move to center point
-  //drawLine(w/2,w/2);
+  drawLine(w/2,w/2);
 
-  setSpeed(maxSpeed);
+  setSpeed(config.maxSpeed);
   calibrated=true;
 
 }

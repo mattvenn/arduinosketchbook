@@ -1,9 +1,9 @@
 //update this to take into account the gondola width
 static void FK(int l1, int l2) {
 
-  float a = l1 / stepsPerMM;
-  float b = MOTOR_DIST_MM - gw/stepsPerMM;
-  float c = l2 /stepsPerMM;
+  float a = l1 / config.stepsPerMM;
+  float b = config.motor_dist_mm - config.gw/config.stepsPerMM;
+  float c = l2 /config.stepsPerMM;
 
   // slow, uses trig
   //float theta = acos((a*a+b*b-c*c)/(2.0*a*b));
@@ -12,7 +12,7 @@ static void FK(int l1, int l2) {
   // but we know that cos(acos(i)) = i
   // and we know that sin(acos(i)) = sqrt(1-i*i)
   float i=(a*a+b*b-c*c)/(2.0*a*b);
-  x1 = i * l1 + gw / 2;
+  x1 = i * l1 + config.gw / 2;
   y1 = sqrt(1.0 - i*i)*l1;
   
 }
@@ -20,13 +20,13 @@ static void FK(int l1, int l2) {
 //don't try to move the pen to a point that is unreachable
 boolean validate(int x, int y)
 {
-  if(x < side_margin)
+  if(x < config.side_margin)
     return false;
-  if(x > w - side_margin)
+  if(x > config.w - config.side_margin)
     return false;
-  if(y < top_margin)
+  if(y < config.top_margin)
     return false;
-  if(y > h)
+  if(y > config.h)
     return false;
   return true;
 }
@@ -45,8 +45,8 @@ void moveTo(float x2, float y2)
   int b2 = sqrt(pow((w-x2),2)+pow(y2,2));*/
  //take into account the gondola width
 
-  int a2 = sqrt(pow(x2-gw/2,2)+pow(y2,2));
-  int b2 = sqrt(pow((w-x2-gw/2),2)+pow(y2,2));
+  int a2 = sqrt(pow(x2-config.gw/2,2)+pow(y2,2));
+  int b2 = sqrt(pow((config.w-x2-config.gw/2),2)+pow(y2,2));
 
   int stepA;
   int stepB;
