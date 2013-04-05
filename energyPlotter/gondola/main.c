@@ -18,7 +18,7 @@ volatile uint8_t counter = 0;
 volatile bool counting = false;
 volatile bool moveServo = false;
 //pins
-#define INT_PIN PB1
+#define INT_PIN PB3
 #define SERVO_PIN PB0 //OC0A
 #define LED_PIN PB4
 
@@ -55,9 +55,10 @@ int main()
 //    OCR0A = startServoPos;
 
     //external int setup for comms
-    setbit(MCUCR,ISC00); //rising edge of int0
-    setbit(MCUCR,ISC01); //rising edge of int0
-    setbit(GIMSK,INT0); //enable external int0 
+//    setbit(MCUCR,ISC00); //rising edge of int0
+//    setbit(MCUCR,ISC01); //rising edge of int0
+    setbit(GIMSK,PCIE); //enable pin change ints
+    setbit(PCMSK,PCINT3); //enable pin change int 3 (pb3)
     
     setbit(PORTB,LED_PIN);
     //flash led on powerup
@@ -93,11 +94,12 @@ int main()
     }
 }
 
-//int0 
-ISR(INT0_vect)
+//pcint 
+ISR(PCINT0_vect)
 {
     cli();
-
+    if(bit_is_set(PINB,INT_PIN)) //if it was a low to high transition
+    {
     //count mode
     if(counting == false)
     {
@@ -109,31 +111,23 @@ ISR(INT0_vect)
     else
     {
       clearbit(PORTB,LED_PIN); //turn off led
-      if( counter > 2 && counter < 5 )
+      if( counter > 2 && counter <= 4 )
       {
         OCR0A = PENUP;
-        for( int i = 0; i < 2; i ++ )
-        {
-          clearbit(PORTB,LED_PIN); //turn off led
-          _delay_ms(100);
-          setbit(PORTB,LED_PIN);
-          _delay_ms(100);
-        }
       }
-      else if( counter > 5 && counter < 8)
+      else if( counter > 4 && counter <=8)
       {
         OCR0A = PENDOWN;
-        for( int i = 0; i < 4; i ++ )
-        {
-          clearbit(PORTB,LED_PIN); //turn off led
-          _delay_ms(100);
-          setbit(PORTB,LED_PIN);
-          _delay_ms(100);
-        }
+        //flash the led
+        clearbit(PORTB,LED_PIN); //turn off led
+        _delay_ms(100);
+        setbit(PORTB,LED_PIN);
+        _delay_ms(100);
       }
       clearbit(PORTB,LED_PIN); //turn off led
       counter = 0;
       counting = false;
+    }
     }
     sei();
 }

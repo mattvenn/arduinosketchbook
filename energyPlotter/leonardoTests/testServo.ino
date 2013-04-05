@@ -5,7 +5,7 @@ void initServo()
 void penUp()
 {
   pulsePower(2);
-delay(50);
+delay(100);
   pulsePower(2);
   delay(1000); //these could be made shorter if the gondola code is better
 }
@@ -13,7 +13,7 @@ delay(50);
 void penDown()
 {
   pulsePower(2);
-  delay(100);
+  delay(50);
   pulsePower(2);
     delay(1000); //these could be made shorter
 }

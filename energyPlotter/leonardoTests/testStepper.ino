@@ -9,11 +9,10 @@
 #endif
 #define BIT_TST(REG, bit, val) ( ( (REG & (1UL << (bit) ) ) == ( (val) << (bit) ) ) )
 
-const int HOME_PWM_HIGH = 100;
-const int HOME_PWM_LOW = 10;
-const int HOME_SPEED = 4000;
+const int HOME_PWM_HIGH = 150;
+const int HOME_PWM_LOW = 15;
+const int HOME_SPEED = 3000;
 const int maxSpeed = 3000; //800;
-
 
 //const int steps = 200;
 int stepTime = 2;
@@ -75,6 +74,7 @@ void powerSave(boolean save)
 
 void calibrate(int steps)
 {
+
   stepLeft(steps);
   Serial.print("moved ");Serial.print(steps);Serial.println("steps. How many mm?");
   while(Serial.available()==0)
@@ -83,10 +83,13 @@ void calibrate(int steps)
   }
   float mm = serReadFloat();
   Serial.println(steps/mm);
+
 }
   
 void home()
 {
+  //got to do this or our pwm settings are lost when we move the motors
+  powerSave(false);
   penUp();
 
   setMS(LOW,LOW);
@@ -100,34 +103,27 @@ void home()
   //get to left limit
   setSpeed( HOME_SPEED );
   findLeftLimit();
+  
   //default pwm
   setPWM(default_pwm);
-
-  int tensionRelease = 20*stepsPerMM;
-  stepLeft(tensionRelease); //release tension
+  //release any tesnsion
+  int tension_release_steps = 100;
+  stepLeft(tension_release_steps);
   int steps=findRightLimit();
-  Serial.println( steps + tensionRelease );
-  const int PULLEYRADIUS = 0 * stepsPerMM;
-  const int GONDOLAWIDTH = 140 * stepsPerMM;
-  float boltToSpring = 60 * stepsPerMM; //has to be a bit shorter? because the spring makes contact lower down.
-  int gondolaLevelAmount = 200 * stepsPerMM;
-  stepRight(gondolaLevelAmount); //get gondola roughly level
-  b1=boltToSpring+gondolaLevelAmount; //measured (GONDOLAWIDTH/2)+PULLEYRADIUS-gw/2;
-  a1=steps+tensionRelease+boltToSpring; //GONDOLAWIDTH/2+PULLEYRADIUS-gw/2;
   
-  
+  a1 = (142 + hanger_l)*stepsPerMM + steps + tension_release_steps;
+  b1 = (152 + hanger_l)*stepsPerMM;
   FK(a1,b1); //this updates x and y
   
-  Serial.println(a1/stepsPerMM);
-  Serial.println(b1/stepsPerMM);
+  Serial.println(a1/stepsPerMM - hanger_l);
+  Serial.println(b1/stepsPerMM - hanger_l);
   Serial.println(x1/stepsPerMM);
   Serial.println(y1/stepsPerMM);
   
-
   setPWM(default_pwm);
   
   //move to center point
-  drawLine(w/2,w/2);
+  //drawLine(w/2,w/2);
 
   setSpeed(maxSpeed);
   calibrated=true;
@@ -137,14 +133,9 @@ void home()
 int findRightLimit()
 {
   int steps = 0;
-/*
-  //set pwmR to high
-  setPWMR(HOME_PWM_HIGH);
-  //set pwmR to low
-  setPWML(HOME_PWM_HIGH);
-*/
+
   //while limit l is high, wind l motor
-  while( digitalRead( LIMITR ) == HIGH )
+  while( digitalRead( LIMITR ) == LOW )
 //  while( bit_is_set( PORTC, 7 ) )  //reg bit val
   {
     stepLeft(+1);
@@ -162,7 +153,7 @@ int findLeftLimit()
   
 
   //while limit l is high, wind l motor
-  while( digitalRead( LIMITL ) == HIGH )
+  while( digitalRead( LIMITL ) == LOW )
 //  while( bit_is_set( PORTC, 6 ) ) 
   {
     stepLeft(-1);
