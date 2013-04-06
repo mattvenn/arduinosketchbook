@@ -377,8 +377,6 @@ void runCommand( Payload * p)
       config.stepsPerMM = p->arg1;
     Serial.print("stepsPerMM: ");
     Serial.println(config.stepsPerMM);
-    Serial.print("motor dist(mm): ");
-    Serial.println(config.motor_dist_mm);
 
     Serial.print("w: ");
     Serial.print(config.width/config.stepsPerMM);

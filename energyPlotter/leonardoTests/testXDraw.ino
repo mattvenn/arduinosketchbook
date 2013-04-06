@@ -2,7 +2,7 @@
 static void FK(int l1, int l2) {
 
   float a = l1 / config.stepsPerMM;
-  float b = config.motor_dist_mm - config.gondola_width/config.stepsPerMM;
+  float b = config.width - config.gondola_width/config.stepsPerMM;
   float c = l2 /config.stepsPerMM;
 
   // slow, uses trig

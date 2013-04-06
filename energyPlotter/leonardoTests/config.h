@@ -5,7 +5,6 @@ struct config_t
   int hanger_l; //mm
   int top_margin; //mm
   int side_margin; //mm
-  float motor_dist_mm; //mm
   float width; //mm
   float height; //mm
   byte id;
