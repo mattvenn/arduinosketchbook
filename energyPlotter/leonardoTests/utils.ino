@@ -53,15 +53,32 @@ void printPayload( Payload * p)
 
 void dumpSerialConfig()
 {
+  byte * ptr = (byte*)&config;
+  //Serial.print("dumping "); Serial.print( sizeof(config) ) ; Serial.println("bytes");
   for( i = 0; i < sizeof(config); i ++ )
   {
-    //Serial.write(config[i]);
+    Serial.write(ptr[i]);
   }
+  Serial.println("");
 }
 
 void loadSerialConfig()
 {
-  ;;
+  delay(100); //get bytes in the buffer
+  if( Serial.available() == sizeof(config) )
+  {
+    byte * ptr = (byte*)&config;
+    for(int i = 0; i < sizeof(config); i ++ )
+      ptr[i] = Serial.read();
+    saveConfig();
+    Serial.println("config updated");
+  }
+  else
+  {
+    Serial.print("not enough bytes, needed "); Serial.print(sizeof(config)); Serial.print( "got "); Serial.println(Serial.available());
+    Serial.flush();
+  }
+
 }
 
 void saveConfig()

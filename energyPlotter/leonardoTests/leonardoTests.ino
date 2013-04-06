@@ -14,18 +14,11 @@
  
  todo:
  sw:
- + store robot dimensions in eeprom
  - the limits returned by the u command should be slightly bigger than the actual robot's limits
  - all commands should be get (with no args), set (with args)
- + switch to mm for movement. Needs to be able to read floats! half done
  - after calibration, with strings equal length, x and y aren't quite right I think. problem with FK?
- + needs radio and sd card interferance fixing - seems to be done.
- + needs to have a software limit for drawing codes, shouldn't accept a command that can't be drawn.
- + needs to resolve the possibility of gondola and pen state getting mixed up. This happens in the gondola code. it needs a timeout to set it back to listening mode not timing mode.
+ - update all config values so they're in mm. convert to steps internally
  hw:
- - better calibration
- + more spike testing for gondola power
- + gondola string length will be an issue as we'll need higher and higher voltages for longer lengths.
  
  */
 #define testSteppers
@@ -107,6 +100,8 @@ unsigned int storedCommands = 0;
 boolean penState = 0;
 
 void setup() {
+  //load our config from eeprom
+  loadConfig();
   Serial.begin(57600);
   //  EEPROM.write(idAddress,1); //set address
   //delay(5000);
@@ -310,9 +305,13 @@ void runCommand( Payload * p)
     break;
   case 'j':
     dumpSerialConfig();
+    Serial.println("ok");
     break;
   case 'k':
+    //weird case, we need to send more data than usual, so we return an ok response for the feed program, then wait for more data in loadSerialConfig
+    Serial.println("ok");
     loadSerialConfig();
+    Serial.println("ok");
     break;
   case 'm':
     stepLeft(p->arg1*config.stepsPerMM);
