@@ -1,9 +1,10 @@
 //update this to take into account the gondola width
+//arguments are measured in steps
 static void FK(int l1, int l2) {
 
-  float a = l1 / config.stepsPerMM;
+  float a = l1; // / config.stepsPerMM;
   float b = config.width*config.stepsPerMM - config.gondola_width*config.stepsPerMM;
-  float c = l2 /config.stepsPerMM;
+  float c = l2; // /config.stepsPerMM;
 
   // slow, uses trig
   //float theta = acos((a*a+b*b-c*c)/(2.0*a*b));
