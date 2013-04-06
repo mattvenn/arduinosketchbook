@@ -92,12 +92,12 @@ void home()
   
   //setup pwm so can pull the right hand side
   //set pwmL to high
-  setPWML(config.HOME_PWM_HIGH);
+  setPWML(config.home_pwm_high);
   //set pwmR to low
-  setPWMR(config.HOME_PWM_LOW);
+  setPWMR(config.home_pwm_low);
   
   //get to left limit
-  setSpeed( config.HOME_SPEED );
+  setSpeed( config.home_speed );
   findLeftLimit();
   
   //default pwm
@@ -119,7 +119,7 @@ void home()
   setPWM(config.default_pwm);
   
   //move to center point
-  drawLine(config.w/2,config.w/2);
+  drawLine(config.width/2,config.width/2);
 
   setSpeed(config.maxSpeed);
   calibrated=true;

@@ -381,14 +381,14 @@ void runCommand( Payload * p)
     Serial.println(config.motor_dist_mm);
 
     Serial.print("w: ");
-    Serial.print(config.w/config.stepsPerMM);
+    Serial.print(config.width/config.stepsPerMM);
     Serial.print("mm, ");
-    Serial.println(config.w);
+    Serial.println(config.width);
 
     Serial.print("h: ");
-    Serial.print(config.h/config.stepsPerMM);
+    Serial.print(config.height/config.stepsPerMM);
     Serial.print("mm, ");
-    Serial.println(config.h);
+    Serial.println(config.height);
 
 
     Serial.print("top margin: ");

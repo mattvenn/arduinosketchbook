@@ -91,33 +91,6 @@ void loadConfig()
   EEPROM_readAnything(0, config);
 }
 
-//probably best to get rid of this and program it in from the command line. store configs as text files in the repo.
-void load_default_config()
-{
-  //machine config
-  config.stepsPerRevolution=200;
-  config.id = 0;
-  //machine dimensions
-  config.stepsPerMM = 6.48; //measured rather than calculated. stepsPerRevolution / circumference;   
-  config.motor_dist_mm = 510;
-  config.hanger_l = 30;
-  config.gw = 30 * config.stepsPerMM;  //gondola bolt width
-  config.w= config.motor_dist_mm * config.stepsPerMM;
-  config.h= 680*config.stepsPerMM;  //300mm tall
-  config.top_margin = 150*config.stepsPerMM; //gondola design causes too much distortion above here.
-  config.side_margin = config.top_margin;
-  //stepper  settings
-  config.default_pwm = 60;
-  config.lowpower_pwm = 10;
-  config.HOME_PWM_HIGH = 150;
-  config.HOME_PWM_LOW = 15;
-  config.HOME_SPEED = 3000;
-  config.maxSpeed = 3000; //800;
-
- saveConfig();
-
-
-}
 #ifdef testMem
 extern unsigned int __data_start;
 extern unsigned int __data_end;
