@@ -379,22 +379,15 @@ void runCommand( Payload * p)
     Serial.println(config.stepsPerMM);
 
     Serial.print("w: ");
-    Serial.print(config.width/config.stepsPerMM);
-    Serial.print("mm, ");
     Serial.println(config.width);
 
     Serial.print("h: ");
-    Serial.print(config.height/config.stepsPerMM);
-    Serial.print("mm, ");
     Serial.println(config.height);
 
-
     Serial.print("top margin: ");
-    Serial.print(config.top_margin/config.stepsPerMM);
-    Serial.println("mm");
+    Serial.println(config.top_margin);
     Serial.print("side margin: ");
-    Serial.print(config.side_margin/config.stepsPerMM);
-    Serial.println("mm");
+    Serial.println(config.side_margin);
 
     Serial.println("ok");
     break;
