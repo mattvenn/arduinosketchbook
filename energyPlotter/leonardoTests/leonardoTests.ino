@@ -82,10 +82,10 @@ boolean calibrated = false;
 
 
 long commandsExecuted = 0;
-int x1;
-int y1;
-int a1;
-int b1;
+int x1; //measured in steps
+int y1; //measured in steps
+int a1; //measured in steps
+int b1; //measured in steps
 
 
 //pwm power stuff
@@ -284,8 +284,8 @@ void runCommand( Payload * p)
     Serial.println("ok");
     break;
   case 'f':
-    a1 = p->arg1;
-    b1 = p->arg2;
+    a1 = p->arg1 * config.stepsPerMM;
+    b1 = p->arg2 * config.stepsPerMM;
     Serial.println("a1 and b1 updated");
     FK(a1,b1);
     calibrated=true;
@@ -314,8 +314,8 @@ void runCommand( Payload * p)
     Serial.println("ok");
     break;
   case 'm':
-    stepLeft(p->arg1*config.stepsPerMM);
-    stepRight(p->arg2*config.stepsPerMM);
+    stepLeft(p->arg1);
+    stepRight(p->arg2);
     Serial.println("ok");
     break;
   case 'p':
@@ -327,25 +327,17 @@ void runCommand( Payload * p)
   case 'q':
     //rectangular coords
     Serial.print( "x: ");
-    Serial.print(x1 / config.stepsPerMM);
-    Serial.print( "mm, ");
-    Serial.println(x1);
+    Serial.println(x1 / config.stepsPerMM);
 
     Serial.print( "y: ");
-    Serial.print(y1 / config.stepsPerMM);
-    Serial.print( "mm, ");
-    Serial.println(y1);
+    Serial.println(y1 / config.stepsPerMM);
 
     //string lengths
     Serial.print( "a1 (no hanger): ");
-    Serial.print(a1 / config.stepsPerMM - config.hanger_l);
-    Serial.print( "mm, ");
-    Serial.println(a1);
+    Serial.println(a1 / config.stepsPerMM - config.hanger_l);
 
     Serial.print( "b1 (no hanger): ");
-    Serial.print(b1 / config.stepsPerMM - config.hanger_l);
-    Serial.print( "mm, ");
-    Serial.println(b1);
+    Serial.println(b1 / config.stepsPerMM - config.hanger_l);
 
     //pen status
     Serial.println( penState ? "pen: down" : "pen: up" );
