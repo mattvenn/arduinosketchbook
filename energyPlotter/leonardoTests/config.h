@@ -7,6 +7,8 @@ struct config_t
   int side_margin; //mm
   float width; //mm
   float height; //mm
+  int left_limit; //142mm
+  int right_limit; //152mm
   byte id;
   float gondola_width; //mm
   int default_pwm;

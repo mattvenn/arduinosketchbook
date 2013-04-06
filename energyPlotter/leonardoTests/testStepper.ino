@@ -107,8 +107,8 @@ void home()
   stepLeft(tension_release_steps);
   int steps=findRightLimit();
   
-  a1 = (142 + config.hanger_l)*config.stepsPerMM + steps + tension_release_steps;
-  b1 = (152 + config.hanger_l)*config.stepsPerMM;
+  a1 = (config.left_limit + config.hanger_l)*config.stepsPerMM + steps + tension_release_steps;
+  b1 = (config.right_limit + config.hanger_l)*config.stepsPerMM;
   FK(a1,b1); //this updates x and y
   
   Serial.println(a1/config.stepsPerMM - config.hanger_l);
