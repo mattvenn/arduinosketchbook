@@ -1,6 +1,6 @@
 void initServo()
 {
-  setPowerPin(HIGH);
+  penDown();
 }
 void penUp()
 {
