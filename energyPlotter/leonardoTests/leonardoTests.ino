@@ -47,8 +47,8 @@ MilliTimer statusTimer,sdTimer;
 #define DIRR 0
 #define DIRL 4
 
-#define LIMITL 13
-#define LIMITR 5
+#define LIMITL 5
+#define LIMITR 13 
 #define SERVO A3
 #define STEPR 2
 #define STEPL 1
@@ -112,7 +112,6 @@ void setup() {
 
   // initialize the digital pin as an output.
   pinMode(SERVO,OUTPUT);
-  setPowerPin(LOW);
 
   //stepper microstep control pins  
   pinMode(MS1, OUTPUT );
