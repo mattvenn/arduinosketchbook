@@ -14,11 +14,13 @@
  
  todo:
  sw:
- - the limits returned by the u command should be slightly bigger than the actual robot's limits
- - all commands should be get (with no args), set (with args)
- - after calibration, with strings equal length, x and y aren't quite right I think. problem with FK?
- - update all config values so they're in mm. convert to steps internally
+ - check: after calibration, with strings equal length, x and y aren't quite right I think. problem with FK?
+ + update all config values so they're in mm. convert to steps internally
+ + not doing. the limits returned by the u command should be slightly bigger than the actual robot's limits
+
  hw:
+ - replace stepper driver with stepsticks?
+ - if gpio doesn't include i2c then probably it should
  
  */
 #define testSteppers
