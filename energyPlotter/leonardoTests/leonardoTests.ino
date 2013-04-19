@@ -86,8 +86,8 @@ boolean calibrated = false;
 long commandsExecuted = 0;
 int x1; //measured in steps
 int y1; //measured in steps
-int a1; //measured in steps
-int b1; //measured in steps
+long int a1; //measured in steps
+long int b1; //measured in steps
 
 
 //pwm power stuff
@@ -323,6 +323,7 @@ void runCommand( Payload * p)
     setSpeed(p->arg1);
     setPWM(p->arg2);
     config.default_pwm = p->arg2;
+    config.maxSpeed = p->arg1;
     Serial.println("ok");
     break;
   case 'q':
