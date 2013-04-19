@@ -15,12 +15,13 @@
  todo:
  sw:
  - check: after calibration, with strings equal length, x and y aren't quite right I think. problem with FK?
- + update all config values so they're in mm. convert to steps internally
- + not doing. the limits returned by the u command should be slightly bigger than the actual robot's limits
+ - deal with microsteps and stepsperMm. 
+ - is servo delay too small? might be missing small details
 
  hw:
  - replace stepper driver with stepsticks?
  - if gpio doesn't include i2c then probably it should
+ - gondola servo lift ;(
  
  */
 #define testSteppers
