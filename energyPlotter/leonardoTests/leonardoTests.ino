@@ -255,9 +255,6 @@ void runCommand( Payload * p)
   //  printPayload(p);
   switch( p->command )
   {
-  case 'a':
-    setAccel(p->arg1);
-    break;
   case 'b':
     calibrate(p->arg1);
     break;
@@ -301,7 +298,7 @@ void runCommand( Payload * p)
     Serial.println("ok");
     break;
   case 'i':
-    setMS(p->arg1,p->arg2);
+    setMS(p->arg1);
     Serial.println("ok");
     break;
   case 'j':
@@ -323,7 +320,7 @@ void runCommand( Payload * p)
     setSpeed(p->arg1);
     setPWM(p->arg2);
     config.default_pwm = p->arg2;
-    config.maxSpeed = p->arg1;
+    config.draw_speed = p->arg1;
     Serial.println("ok");
     break;
   case 'q':
