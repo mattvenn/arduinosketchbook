@@ -1,6 +1,5 @@
 struct config_t
 {
-  int stepsPerRevolution;
   float stepsPerMM;
   int hanger_l; 
   int top_margin; 
@@ -16,6 +15,7 @@ struct config_t
   int home_pwm_high;
   int home_pwm_low;
   int home_speed;
-  int maxSpeed;
+  int draw_speed;
+  int microstep;
 } 
 config;

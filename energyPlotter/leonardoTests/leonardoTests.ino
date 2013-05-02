@@ -15,12 +15,13 @@
  todo:
  sw:
  - check: after calibration, with strings equal length, x and y aren't quite right I think. problem with FK?
- + update all config values so they're in mm. convert to steps internally
- + not doing. the limits returned by the u command should be slightly bigger than the actual robot's limits
+ - deal with microsteps and stepsperMm. 
+ - is servo delay too small? might be missing small details
 
  hw:
  - replace stepper driver with stepsticks?
  - if gpio doesn't include i2c then probably it should
+ - gondola servo lift ;(
  
  */
 #define testSteppers
@@ -49,8 +50,8 @@ MilliTimer statusTimer,sdTimer;
 #define DIRR 0
 #define DIRL 4
 
-#define LIMITL 13
-#define LIMITR 5
+#define LIMITL 5
+#define LIMITR 13 
 #define SERVO A3
 #define STEPR 2
 #define STEPL 1
@@ -86,8 +87,8 @@ boolean calibrated = false;
 long commandsExecuted = 0;
 int x1; //measured in steps
 int y1; //measured in steps
-int a1; //measured in steps
-int b1; //measured in steps
+long int a1; //measured in steps
+long int b1; //measured in steps
 
 
 //pwm power stuff
@@ -114,7 +115,6 @@ void setup() {
 
   // initialize the digital pin as an output.
   pinMode(SERVO,OUTPUT);
-  setPowerPin(LOW);
 
   //stepper microstep control pins  
   pinMode(MS1, OUTPUT );
@@ -256,9 +256,6 @@ void runCommand( Payload * p)
   //  printPayload(p);
   switch( p->command )
   {
-  case 'a':
-    setAccel(p->arg1);
-    break;
   case 'b':
     calibrate(p->arg1);
     break;
@@ -302,7 +299,7 @@ void runCommand( Payload * p)
     Serial.println("ok");
     break;
   case 'i':
-    setMS(p->arg1,p->arg2);
+    setMS(p->arg1);
     Serial.println("ok");
     break;
   case 'j':
@@ -324,6 +321,7 @@ void runCommand( Payload * p)
     setSpeed(p->arg1);
     setPWM(p->arg2);
     config.default_pwm = p->arg2;
+    config.draw_speed = p->arg1;
     Serial.println("ok");
     break;
   case 'q':
