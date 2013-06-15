@@ -11,6 +11,11 @@ probs with original library code:
     timeout on software serial doesn't work all the time - seems better after a power cycle
     slow serial reads/writes? check power.
 
+probs with getting a connection
+at+creg shows no network
+blink light is showing no connection
+at+csq shows bad signal.
+
 */
 
 #include "SIM900.h"
@@ -33,18 +38,19 @@ void setup()
   //Serial connection.
   Serial.begin(9600);
   Serial.println(F("GSM Shield testing."));
-
+  update();
 };
 
 bool startGSM()
 {
   //startup at 4800
-  if(gsm.begin(9600))
+  if(gsm.begin(4800))
   {
     Serial.println(F("GSM started"));
 
     //GPRS attach, put in order APN, username and password.
     //If no needed auth let them blank.
+    //failing to attach can be a signal strength issue. check at+creg and at+csq
     if(inet.attachGPRS("giffgaff.com", "giffgaff", "password"))
         Serial.println(F("attached to apn"));
     else
@@ -74,16 +80,21 @@ bool startGSM()
 void endGSM()
 {
     Serial.println(F("turning off gsm"));
-
     digitalWrite(GSM_ON, HIGH);
-    delay(1200);
-    digitalWrite(GSM_ON, LOW);
+    delay(3200);
+    digitalWrite(GSM_ON, LOW); 
+    //could read some data here, but we do it when we start up.
+
 }
 void update()
 {
     for( int i = 0; i < maxGSMTries; i ++)
     {
         Serial.print(F("trying to start GSM: "));
+        //serial.flush() doesn't flush any more, so just read out the chars to avoid the gsm startup failing
+        Serial.print(F("reading any serial chars first"));
+        while(Serial1.available())
+          Serial.write(Serial1.read());
         Serial.println(i);
         if( startGSM() )
         {
@@ -98,7 +109,7 @@ void update()
             Serial.println(buff);
 
             numdata = inet.httpPOST("api.cosm.com", 80, "/v2/feeds/127682.csv", buff, msg, 150);
-
+            delay(1000);
             //Print the results.
             Serial.println("\nNumber of data received:");
             Serial.println(numdata);  
@@ -107,6 +118,10 @@ void update()
             break;
         }
     }
+    //wait for result to come back
+    delay(5000);
+    gsm.WhileSimpleRead();
+    
     //turn off module
     endGSM();
 }
@@ -115,14 +130,15 @@ void loop()
   delay(1000);
   Serial.println( millis());
   
-  /*
-  if( millis() > lastPost + 120000 )
+  //every 5 minutes
+  if( millis() > lastPost + 300000)
   {
+    Serial.println( "update");
     lastPost = millis();
     update();
     Serial.println(freeMemory());
   }
-  */
+
   if( Serial.available() )
   {
     char c = Serial.read();
