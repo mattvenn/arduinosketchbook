@@ -20,7 +20,7 @@ int countloop = 0;
 void setup()
 {
   Serial.begin(9600);
-   attachInterrupt(0, count, FALLING);
+  // attachInterrupt(0, count, FALLING);
    pinMode(EN,OUTPUT);
    pinMode(FOR,OUTPUT);
    pinMode(REV,OUTPUT);
@@ -29,12 +29,15 @@ void setup()
    digitalWrite(FOR,HIGH);
    
     //initialize the variables we're linked to
-  Input = 0;
-  Setpoint = 10;
-
+  Input = analogRead(A0);
+  Setpoint = 500;
+myPID.SetOutputLimits(-255, 255);
   //turn the PID on
   myPID.SetMode(AUTOMATIC);
 }
+boolean forward;
+boolean reverse;
+int pwm;
 void loop()
 {
   delay(10);
@@ -45,16 +48,36 @@ void loop()
 }
   if(countloop++>100)
   {
-  Serial.print("count:" ); Serial.println(counter);
+//  Serial.print("count:" ); Serial.println(counter);
+
   Serial.print("op:"); Serial.println(Output);
+    Serial.print("input:") ; Serial.println(Input);
+  Serial.print("pwm:"); Serial.println(pwm);
+  Serial.print("for:"); Serial.println(forward);
+    Serial.print("rev:"); Serial.println(reverse);
   countloop = 0;
   }
   
-  Input = counter;
-  
+ // Input = counter;
+Input = analogRead(A0); 
   myPID.Compute();
-  analogWrite(3,Output);
-  counter = 0;
+  pwm = abs(Output);
+  if( Output >= 128 )
+  {
+      forward = true;
+      reverse = false;
+      digitalWrite(FOR,true);
+      digitalWrite(REV,false);
+  }
+  else
+  {
+      reverse = true;
+      forward = false;
+      digitalWrite(FOR,false);
+      digitalWrite(REV,true);
+  }
+  analogWrite(3,pwm);
+ // counter = 0;
 
 
 }
