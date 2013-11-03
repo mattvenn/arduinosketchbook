@@ -6,10 +6,9 @@
 #define batt_sense A4
 #define temp_sense 11
 
-#define log_file "log3.csv"
+#define log_file "log4.csv"
 
 long int last_send  = 0;
-
 
 void setup()
 {
@@ -24,56 +23,46 @@ void setup()
 //  pinMode(gsm_power_fet,OUTPUT);
    pinMode(sd_cs,OUTPUT);
    pinMode(relay_cs,OUTPUT);
-   digitalWrite(sd_cs,LOW);
-   digitalWrite(relay_cs,LOW);
+   digitalWrite(sd_cs,HIGH);
+   digitalWrite(relay_cs,HIGH);
   
-
   //dump_log();
   log();
-  //last_send = -60000;
 }
 
 void loop()
 {
-
-
-
   if( millis() > last_send + 60000 )
   {
     last_send = millis();
     log();
   }  
-  //Serial.println(millis());
   delay(500);
   print_time();
-
-
 }
 
 void log()
 {
+  Serial.println("logging");
+  //get the data
+  float batt_sense = analogRead(batt_sense)/70; //fix ratio
+  float temp = get_temp()/100;
+  float uptime = millis()/1000;
 
-
-  Serial.println("log started");
-  int batt_sense = analogRead(batt_sense);
-  //print_time();
+  //create a string with the stuff we're logging and write to sd
   String log_string;
-  
-  log_string += get_temp();
+  log_string += uptime;
   log_string += ",";
-  
   log_string += batt_sense;
-
-  setup_gsm();
-  sendData(millis());
-
-  close_connection();
-  delay(100);
-  print_client_msg();
- 
+  log_string += ",";
+  log_string += temp;
   write_log(log_string);
-
-
+  
+  //send the same stuff to xively
+  setup_gsm();
+  sendData(uptime,batt_sense,temp);
+  close_connection();
+  //print_client_msg();
 }
 
 

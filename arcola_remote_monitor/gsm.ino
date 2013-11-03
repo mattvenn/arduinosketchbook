@@ -3,7 +3,7 @@
  
  This sketch connects an analog sensor to Pachube (http://www.pachube.com)
  using a Telefonica GSM/GPRS shield.
-
+ 
  This example has been updated to use version 2.0 of the Pachube.com API. 
  To make it work, create a feed with a datastream, and give it the ID
  sensor1. Or change the code below to match your feed.
@@ -25,6 +25,8 @@
 
 // libraries
 #include <GSM.h>
+#include <Xively.h>
+#include <HttpClient.h>
 
 // Pachube Client data
 #define APIKEY         "SSQmVnjhxhWGq4hScV8mKo5piZySAKxZZFhEemZSNHZLbz0g"  // replace your pachube api key here
@@ -44,6 +46,18 @@ GSMClient client;
 GPRS gprs;
 GSM gsmAccess;
 
+char uptime_stream[] = "uptime";
+char batt_stream[] = "batt_voltage";
+char temp_stream[] = "temperature";
+
+XivelyDatastream datastreams[] = {
+  XivelyDatastream(uptime_stream, strlen(uptime_stream), DATASTREAM_FLOAT),
+  XivelyDatastream(batt_stream, strlen(batt_stream), DATASTREAM_FLOAT),
+  XivelyDatastream(temp_stream, strlen(temp_stream), DATASTREAM_FLOAT )
+  };
+  XivelyFeed feed(FEEDID, datastreams, 3);       // Creating the feed, defining two datastreams
+XivelyClient xivelyclient(client);   
+
 // if you don't want to use DNS (and reduce your sketch size)
 // use the numeric IP instead of the name for the server:
 // IPAddress server(216,52,233,121);    // numeric IP for api.pachube.com
@@ -54,144 +68,67 @@ boolean lastConnected = false;                  // state of the connection last 
 const unsigned long postingInterval = 10*1000;  //delay between updates to Pachube.com
 boolean notConnected = true;
 
-void setup_gsm(){
-     Serial.println("connecting");
-
-  while (notConnected) {
- //   digitalWrite(gsm_power,HIGH);
-    if(gsmAccess.begin(PINNUMBER)==GSM_READY){
+void setup_gsm()
+{
+  //Serial.println("connecting");
+  write_log("gsm setup");
+  while (notConnected) 
+  {
+    if(gsmAccess.begin(PINNUMBER)==GSM_READY)
+    {
       delay(3000);
-      if(gprs.attachGPRS(GPRS_APN, GPRS_LOGIN, GPRS_PASSWORD)==GPRS_READY){
+      if(gprs.attachGPRS(GPRS_APN, GPRS_LOGIN, GPRS_PASSWORD)==GPRS_READY)
+      {
         notConnected = false;
-      
       }
     }
-    else{
-            Serial.println("Not connected");
-
+    else
+    {
+      write_log("not connected");
+      //Serial.println("not connected");
       delay(1000);
     }
   }
 }
 
-void close_connection(){
-              Serial.println("shutdown ");
+void close_connection()
+{
+  write_log("gsm shutdown");
 
-  while(notConnected==false){
+  while(notConnected==false)
+  {
     if(gsmAccess.shutdown())
     {
       delay(1000);
-    //  digitalWrite(gsm_power,LOW);
       notConnected = true;
-    
     }
-    else{
-                    Serial.println("shutdown wait ");
-
+    else
+    {
+      write_log("gsm shutdown wait");
       delay(1000);
     }
   }
-                Serial.println("shutdown ok ");
+  write_log("gsm shutdown ok");
 
 }
+//for debugging
 void print_client_msg()
 {
   while (client.available())
   {
-     char c = client.read();
-     Serial.print(c);
+    char c = client.read();
+    Serial.print(c);
   }
 }
 
-void power_up()
+void sendData(float uptime, float batt, float temp)
 {
-    delay(1000);
-    digitalWrite(gsm_power,LOW);
+  datastreams[0].setFloat(uptime);
+  datastreams[1].setFloat(batt);
+  datastreams[2].setFloat(temp);
+
+  int ret = xivelyclient.put(feed, APIKEY);
+  String msg = "xivelyclient.put returned ";
+  msg += ret; 
+  write_log(msg);
 }
-void power_down()
-{
- 
-    client.stop();
-    digitalWrite(gsm_power,HIGH);
-    delay(5000);
-    digitalWrite(gsm_power,LOW);
-  
-}
-
-  
- 
- 
-
-/*
-  This method makes a HTTP connection to the server.
-*/
-void sendData(int thisData)
-{
-  // if there's a successful connection:
-  if (client.connect(server, 80))
-  {
-    Serial.println("sending...");
-    
-    // send the HTTP PUT request:
-    client.print("PUT /v2/feeds/");
-    client.print(FEEDID);
-    client.println(".csv HTTP/1.1");
-    client.println("Host: api.pachube.com");
-    client.print("X-ApiKey: ");
-    client.println(APIKEY);
-    client.print("User-Agent: ");
-    client.println(USERAGENT);
-    client.print("Content-Length: ");
-
-    // calculate the length of the sensor reading in bytes:
-    // 8 bytes for "sensor1," + number of digits of the data:
-    int thisLength = 8 + getLength(thisData);
-    client.println(thisLength);
-
-    // last pieces of the HTTP PUT request:
-    client.println("Content-Type: text/csv");
-    client.println("Connection: close");
-    client.println();
-    
-    // here's the actual content of the PUT request:
-    client.print("sensor1,");
-    client.println(thisData);
-    client.stop();
-  } 
-  else
-  {
-    // if you couldn't make a connection:
-    Serial.println("connection failed");
-    Serial.println();
-    Serial.println("disconnecting.");
-    client.stop();
-  }
-  // note the time that the connection was made or attempted
-  lastConnectionTime = millis();
-}
-
-/*
-  This method calculates the number of digits in the
-  sensor reading.  Since each digit of the ASCII decimal
-  representation is a byte, the number of digits equals
-  the number of bytes.
-*/
-int getLength(int someValue)
-{
-  // there's at least one byte:
-  int digits = 1;
-  
-  // continually divide the value by ten, 
-  // adding one to the digit count for each
-  // time you divide, until you're at 0:
-  int dividend = someValue /10;
-  while (dividend > 0)
-  {
-    dividend = dividend /10;
-    digits++;
-  }
-  
-  // return the number of digits:
-  return digits;
-}
-
