@@ -58,7 +58,7 @@ void setup_gsm(){
      Serial.println("connecting");
 
   while (notConnected) {
-    digitalWrite(gsm_power,HIGH);
+ //   digitalWrite(gsm_power,HIGH);
     if(gsmAccess.begin(PINNUMBER)==GSM_READY){
       delay(3000);
       if(gprs.attachGPRS(GPRS_APN, GPRS_LOGIN, GPRS_PASSWORD)==GPRS_READY){
@@ -77,19 +77,20 @@ void setup_gsm(){
 void close_connection(){
               Serial.println("shutdown ");
 
- // while(notConnected==false){
-    gsmAccess.shutdown();
+  while(notConnected==false){
+    if(gsmAccess.shutdown())
+    {
       delay(1000);
-      digitalWrite(gsm_power,LOW);
+    //  digitalWrite(gsm_power,LOW);
       notConnected = true;
-/*    
+    
     }
     else{
                     Serial.println("shutdown wait ");
 
       delay(1000);
     }
-  }*/
+  }
                 Serial.println("shutdown ok ");
 
 }
