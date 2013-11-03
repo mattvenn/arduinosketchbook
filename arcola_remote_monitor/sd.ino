@@ -19,7 +19,6 @@
  This example code is in the public domain.
  	 
  */
-#define log_file "log2.csv"
 
 #include <SPI.h>
 #include <SD.h>
@@ -58,7 +57,7 @@ void write_log(String dataString)
     
   Serial.println(log_string);
 
-  
+   return; 
   // open the file. note that only one file can be open at a time,
   // so you have to close this one before opening another.
   File dataFile = SD.open(log_file, FILE_WRITE);

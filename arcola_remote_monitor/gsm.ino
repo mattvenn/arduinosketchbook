@@ -52,52 +52,84 @@ char server[] = "api.pachube.com";      // name address for pachube API
 unsigned long lastConnectionTime = 0;         // last time you connected to the server, in milliseconds
 boolean lastConnected = false;                  // state of the connection last time through the main loop
 const unsigned long postingInterval = 10*1000;  //delay between updates to Pachube.com
+boolean notConnected = true;
 
-void power_down_gsm()
-{
-  digitalWrite(gsm_power,HIGH);
-   delay(3000);
-   write_log("gsm power down");
-   digitalWrite(gsm_power,LOW);
-}
-void setup_gsm()
-{
-  // initialize serial communications and wait for port to open:
-   digitalWrite(gsm_power,HIGH);
-   delay(500);
-   digitalWrite(gsm_power,LOW);
-   write_log("gsm starting");
-  
-  // connection state
-  boolean notConnected = true;
-  
-  // After starting the modem with GSM.begin()
-  // attach the shield to the GPRS network with the APN, login and password
-  while(notConnected)
-  {
-    if((gsmAccess.begin(PINNUMBER)==GSM_READY) &
-        (gprs.attachGPRS(GPRS_APN, GPRS_LOGIN, GPRS_PASSWORD)==GPRS_READY))
-      notConnected = false;
-    else
-    {
-      write_log("not connected");
+void setup_gsm(){
+     Serial.println("connecting");
+
+  while (notConnected) {
+    digitalWrite(gsm_power,HIGH);
+    if(gsmAccess.begin(PINNUMBER)==GSM_READY){
+      delay(3000);
+      if(gprs.attachGPRS(GPRS_APN, GPRS_LOGIN, GPRS_PASSWORD)==GPRS_READY){
+        notConnected = false;
+      
+      }
+    }
+    else{
+            Serial.println("Not connected");
+
       delay(1000);
     }
   }
 }
 
+void close_connection(){
+              Serial.println("shutdown ");
 
+ // while(notConnected==false){
+    gsmAccess.shutdown();
+      delay(1000);
+      digitalWrite(gsm_power,LOW);
+      notConnected = true;
+/*    
+    }
+    else{
+                    Serial.println("shutdown wait ");
 
+      delay(1000);
+    }
+  }*/
+                Serial.println("shutdown ok ");
+
+}
+void print_client_msg()
+{
+  while (client.available())
+  {
+     char c = client.read();
+     Serial.print(c);
+  }
+}
+
+void power_up()
+{
+    delay(1000);
+    digitalWrite(gsm_power,LOW);
+}
+void power_down()
+{
+ 
+    client.stop();
+    digitalWrite(gsm_power,HIGH);
+    delay(5000);
+    digitalWrite(gsm_power,LOW);
+  
+}
+
+  
+ 
+ 
 
 /*
   This method makes a HTTP connection to the server.
 */
-void send_gsm_data(int thisData)
+void sendData(int thisData)
 {
   // if there's a successful connection:
   if (client.connect(server, 80))
   {
-    write_log("gsm send");
+    Serial.println("sending...");
     
     // send the HTTP PUT request:
     client.print("PUT /v2/feeds/");
@@ -123,11 +155,14 @@ void send_gsm_data(int thisData)
     // here's the actual content of the PUT request:
     client.print("sensor1,");
     client.println(thisData);
+    client.stop();
   } 
   else
   {
     // if you couldn't make a connection:
-    write_log("gsm failed");
+    Serial.println("connection failed");
+    Serial.println();
+    Serial.println("disconnecting.");
     client.stop();
   }
   // note the time that the connection was made or attempted
