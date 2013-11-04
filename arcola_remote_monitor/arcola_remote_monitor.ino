@@ -1,18 +1,18 @@
 
 //pin defs
-#define lcd_tx	14
-#define lcd_rx	15
+#define lcd_tx	14  //hw serial3
+#define lcd_rx	15  //hw serial3
 #define hymera_reprog_tx	16
 #define hymera_reprog_rx	17
-#define telit_tx	18
-#define telit_rx	19
+#define telit_tx	18 //hw serial1
+#define telit_rx	19 //hw serial1
 #define temp_sense	11
 #define gsm_shield rx	10
 #define gsm_power	5
 #define telit_power_fet	4
 #define gsm_tx	3
-#define gps_tx	1
-#define gps_rx	0
+#define gps_tx	1 //hw serial0
+#define gps_rx	0 //hw serial0
 #define current_sense_1	A5
 #define current_sense_2	A6
 #define batt_sense	A4
@@ -33,13 +33,13 @@ void setup()
   setup_temp();
   setup_sd();
   setup_hymera();
+//  relay_setup();
 
 //  pinMode(gsm_power_fet,OUTPUT);
    pinMode(sd_cs,OUTPUT);
    pinMode(relay_cs,OUTPUT);
    digitalWrite(sd_cs,HIGH);
    digitalWrite(relay_cs,HIGH);
-  
   //dump_log();
   //log();
 }
@@ -52,6 +52,12 @@ void loop()
     char c = Serial.read();
     switch(c)
     {
+      case 'a':
+      setup_gsm();
+        send_data_arcola(1,2,3);
+          close_connection();
+
+        break;
       case 'd':
         dump_log();
         break;
@@ -60,6 +66,12 @@ void loop()
         break;
       case 'h':
         Serial.println(fetch_hymera_data());
+        break;
+      case 'r':
+        test_relays();
+        break;
+      case 't':
+        test_telit_232();
         break;
       default:
         Serial.print("unknown command");
@@ -71,7 +83,7 @@ void loop()
   if( millis() > last_send + 60000 )
   {
     last_send = millis();
-    log();
+    //log();
   }  
     
   delay(1000);
@@ -100,7 +112,8 @@ void log()
   
   //send the same stuff to xively
   setup_gsm();
-  sendData(uptime,batt_sense,temp);
+  send_data_xively(uptime,batt_sense,temp);
+  send_data_arcola(uptime,batt_sense,temp);
   close_connection();
   //print_client_msg();
 }
