@@ -42,6 +42,8 @@ void setup()
    digitalWrite(relay_cs,HIGH);
   //dump_log();
   //log();
+    setup_gsm();
+
 }
 
 void loop()
@@ -54,9 +56,12 @@ void loop()
     {
       case 'a':
       setup_gsm();
-        send_data_arcola(1,2,3);
+        send_data_arcola("1,2,3");
           close_connection();
 
+        break;
+      case 'b':
+        test_analog();
         break;
       case 'd':
         dump_log();
@@ -86,8 +91,14 @@ void loop()
     //log();
   }  
     
-  delay(1000);
-  print_time();
+  //delay(1000);
+  //print_time();
+  
+  loop_arcola();
+  /*
+        send_data_arcola("1,2,3");
+          close_connection();
+          */
 }
 
 void log()
@@ -113,7 +124,7 @@ void log()
   //send the same stuff to xively
   setup_gsm();
   send_data_xively(uptime,batt_sense,temp);
-  send_data_arcola(uptime,batt_sense,temp);
+  //send_data_arcola(log_string);
   close_connection();
   //print_client_msg();
 }

@@ -56,12 +56,8 @@ XivelyDatastream datastreams[] = {
   XivelyDatastream(temp_stream, strlen(temp_stream), DATASTREAM_FLOAT )
   };
   XivelyFeed feed(FEEDID, datastreams, 3);       // Creating the feed, defining two datastreams
-XivelyClient xivelyclient(client);   
+//XivelyClient xivelyclient(client);   
 
-// if you don't want to use DNS (and reduce your sketch size)
-// use the numeric IP instead of the name for the server:
-// IPAddress server(216,52,233,121);    // numeric IP for api.pachube.com
-char server[] = "api.pachube.com";      // name address for pachube API
 
 unsigned long lastConnectionTime = 0;         // last time you connected to the server, in milliseconds
 boolean lastConnected = false;                  // state of the connection last time through the main loop
@@ -121,90 +117,94 @@ void print_client_msg()
     Serial.print(c);
   }
 }
-const int kNetworkTimeout = 30*1000;
-const int kNetworkDelay = 1000;
 
 
-void send_data_arcola(float uptime, float batt, float temp)
-{
-Serial.println("arcola");
-/*
-delay(1000);
-  write_log("connecting to arcola");
-  HttpClient http(client);
-  int err = http.get("arduino.cc", "/asciilogo.txt");
-//  err = http.get(kHostname, kPath);
-  if (err == 0)
+void loop_arcola()
+{  
+  // read the analog sensor:
+  int sensorReading = analogRead(A0);   
+
+  // if there's incoming data from the net connection.
+  // send it out the serial port.  This is for debugging
+  // purposes only:
+  if (client.available())
   {
-    Serial.println("startedRequest ok");
-
-    err = http.responseStatusCode();
-    if (err >= 0)
-    {
-      Serial.print("Got status code: ");
-      Serial.println(err);
-
-      // Usually you'd check that the response code is 200 or a
-      // similar "success" code (200-299) before carrying on,
-      // but we'll print out whatever response we get
-
-      err = http.skipResponseHeaders();
-      if (err >= 0)
-      {
-        int bodyLen = http.contentLength();
-        Serial.print("Content length is: ");
-        Serial.println(bodyLen);
-        Serial.println();
-        Serial.println("Body returned follows:");
-      
-        // Now we've got to the body, so we can print it out
-        unsigned long timeoutStart = millis();
-        char c;
-        // Whilst we haven't timed out & haven't reached the end of the body
-        while ( (http.connected() || http.available()) &&
-               ((millis() - timeoutStart) < kNetworkTimeout) )
-        {
-            if (http.available())
-            {
-                c = http.read();
-                // Print out this character
-                Serial.print(c);
-               
-                bodyLen--;
-                // We read something, reset the timeout counter
-                timeoutStart = millis();
-            }
-            else
-            {
-                // We haven't got any data, so let's pause to allow some to
-                // arrive
-                delay(kNetworkDelay);
-            }
-        }
-      }
-      else
-      {
-        Serial.print("Failed to skip response headers: ");
-        Serial.println(err);
-      }
-    }
-    else
-    {    
-      Serial.print("Getting response failed: ");
-      Serial.println(err);
-    }
+     char c = client.read();
+     Serial.print(c);
   }
+
+  // if there's no net connection, but there was one last time
+  // through the loop, then stop the client:
+  if (!client.connected() && lastConnected)
+  {
+    client.stop();
+  }
+  
+  // if you're not connected, and ten seconds have passed since
+  // your last connection, then connect again and send data:
+  if(!client.connected() && ((millis() - lastConnectionTime) > postingInterval))
+  {
+  send_data_arcola("bla");
+  }
+  
+  // store the state of the connection for next time through
+  // the loop:
+  lastConnected = client.connected();
+}
+//worked once.
+//annoying to do this by hand when we're already including the httpclient library, but I can't work out how it works!
+long int global_count = 0;
+void send_data_arcola(String ballz)
+{
+  
+    String send_str = "log100,1,2,3";
+    send_str += ",";
+    send_str += global_count ++;
+    send_str += ",";
+    send_str += millis();
+Serial.println(send_str);
+  // if there's a successful connection:
+    //
+  if(client.connect("arcolatheatre.com", 8161))
+
+  {
+    Serial.println("connecting...");
+    // send the HTTP PUT request:
+    client.println("PUT /recorder.php HTTP/1.1");
+    client.println("Host: arcolatheatre.com");
+   
+    
+    client.print("User-Agent: ");
+    client.println(USERAGENT);
+    client.print("Content-Length: ");
+
+    // calculate the length of the sensor reading in bytes:
+    // 8 bytes for "sensor1," + number of digits of the data:
+    
+    client.println(send_str.length());
+
+    // last pieces of the HTTP PUT request:
+    client.println("Content-Type: text/csv");
+    client.println("Connection: close");
+    client.println();
+    
+    // here's the actual content of the PUT request:
+    client.println(send_str);
+  } 
   else
   {
-    Serial.print("Connect failed: ");
-    Serial.println(err);
+    // if you couldn't make a connection:
+    Serial.println("connection failed");
+    Serial.println();
+    Serial.println("disconnecting.");
+    client.stop();
   }
-  http.stop();
-
-*/
+  // note the time that the connection was made or attempted
+  lastConnectionTime = millis();
 }
 void send_data_xively(float uptime, float batt, float temp)
 {
+  /*
   write_log("connecting to xively");
   datastreams[0].setFloat(uptime);
   datastreams[1].setFloat(batt);
@@ -214,4 +214,6 @@ void send_data_xively(float uptime, float batt, float temp)
   String msg = "xivelyclient.put returned ";
   msg += ret; 
   write_log(msg);
+  */
 }
+
