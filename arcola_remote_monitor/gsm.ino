@@ -52,15 +52,16 @@ char temp_stream[] = "temperature";
 char memory_stream[] = "memory";
 
 
+//if you add more to this, increase the number of feeds below too
 XivelyDatastream datastreams[] = {
   XivelyDatastream(uptime_stream, strlen(uptime_stream), DATASTREAM_FLOAT),
   XivelyDatastream(batt_stream, strlen(batt_stream), DATASTREAM_FLOAT),
   XivelyDatastream(temp_stream, strlen(temp_stream), DATASTREAM_FLOAT),
-  XivelyDatastream(memory_stream, strlen(memory_stream), DATASTREAM_FLOAT )
+  XivelyDatastream(memory_stream, strlen(memory_stream), DATASTREAM_INT )
 
   };
-  
-XivelyFeed feed(FEEDID, datastreams, 3);       // Creating the feed, defining two datastreams
+
+XivelyFeed feed(FEEDID, datastreams, 4);       // Creating the feed, defining 4 datastreams
 XivelyClient xivelyclient(client);   
 
 
@@ -97,8 +98,6 @@ void setup_gsm()
 void close_connection()
 {
   write_log("gsm shutdown");
-  Serial.println(client.connected());
-
   while(notConnected==false)
   {
     if(gsmAccess.shutdown())
@@ -161,7 +160,7 @@ void send_data_xively(float uptime, float batt, float temp, int memory)
    datastreams[0].setFloat(uptime);
    datastreams[1].setFloat(batt);
    datastreams[2].setFloat(temp);
-   datastreams[3].setFloat((float)memory);
+   datastreams[3].setInt(memory);
    
    int ret = xivelyclient.put(feed, APIKEY);
    String msg = "xively put returned ";
