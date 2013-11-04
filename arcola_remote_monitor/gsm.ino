@@ -92,7 +92,7 @@ void setup_gsm()
 void close_connection()
 {
   write_log("gsm shutdown");
-Serial.println(client.connected());
+  Serial.println(client.connected());
 
   while(notConnected==false)
   {
@@ -121,53 +121,20 @@ void print_client_msg()
 }
 
 
-void loop_arcola()
-{  
-  // read the analog sensor:
-  int sensorReading = analogRead(A0);   
-
-  // if there's incoming data from the net connection.
-  // send it out the serial port.  This is for debugging
-  // purposes only:
-  if (client.available())
-  {
-     char c = client.read();
-     Serial.print(c);
-  }
-
-  // if there's no net connection, but there was one last time
-  // through the loop, then stop the client:
-  /*if (!client.connected() && lastConnected)
-  {
-    Serial.println("stopping client");
-    client.stop();
-  }
-  */
-  // if you're not connected, and ten seconds have passed since
-  // your last connection, then connect again and send data:
-  if(!client.connected() && ((millis() - lastConnectionTime) > postingInterval))
-  {
-  send_data_arcola("bla");
-  }
-  
-  // store the state of the connection for next time through
-  // the loop:
-  lastConnected = client.connected();
-}
 //worked once.
 //annoying to do this by hand when we're already including the httpclient library, but I can't work out how it works!
 long int global_count = 0;
 void send_data_arcola(String ballz)
 {
-  
-    String send_str = "log100,1,2,3";
-    send_str += ",";
-    send_str += global_count ++;
-    send_str += ",";
-    send_str += millis();
-Serial.println(send_str);
+
+  String send_str = "log100,1,2,3";
+  send_str += ",";
+  send_str += global_count ++;
+  send_str += ",";
+  send_str += millis();
+  Serial.println(send_str);
   // if there's a successful connection:
-    //
+  //
   if(client.connect("arcolatheatre.com", 8161))
 
   {
@@ -176,25 +143,33 @@ Serial.println(send_str);
     // send the HTTP PUT request:
     client.println("PUT /recorder.php HTTP/1.1");
     client.println("Host: arcolatheatre.com");
-   
-    
+
+
     client.print("User-Agent: ");
     client.println(USERAGENT);
     client.print("Content-Length: ");
 
     // calculate the length of the sensor reading in bytes:
     // 8 bytes for "sensor1," + number of digits of the data:
-    
+
     client.println(send_str.length());
 
     // last pieces of the HTTP PUT request:
     client.println("Content-Type: text/csv");
     client.println("Connection: close");
     client.println();
-    
+
     // here's the actual content of the PUT request:
     client.println(send_str);
+    //wait for response
+    for(int i =0; i < 50; i ++ )
+    {
+      print_client_msg();
+      delay(100);
+    }
+
     Serial.println("done");
+
   } 
   else
   {
@@ -211,14 +186,15 @@ void send_data_xively(float uptime, float batt, float temp)
 {
   /*
   write_log("connecting to xively");
-  datastreams[0].setFloat(uptime);
-  datastreams[1].setFloat(batt);
-  datastreams[2].setFloat(temp);
-
-  int ret = xivelyclient.put(feed, APIKEY);
-  String msg = "xivelyclient.put returned ";
-  msg += ret; 
-  write_log(msg);
-  */
+   datastreams[0].setFloat(uptime);
+   datastreams[1].setFloat(batt);
+   datastreams[2].setFloat(temp);
+   
+   int ret = xivelyclient.put(feed, APIKEY);
+   String msg = "xivelyclient.put returned ";
+   msg += ret; 
+   write_log(msg);
+   */
 }
+
 

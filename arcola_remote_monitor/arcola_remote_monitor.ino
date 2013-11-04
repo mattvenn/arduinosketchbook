@@ -35,14 +35,14 @@ void setup()
   setup_hymera();
   relay_setup();
 
-//  pinMode(gsm_power_fet,OUTPUT);
-   pinMode(sd_cs,OUTPUT);
-   pinMode(relay_cs,OUTPUT);
-   digitalWrite(sd_cs,HIGH);
-   digitalWrite(relay_cs,HIGH);
+  //  pinMode(gsm_power_fet,OUTPUT);
+  pinMode(sd_cs,OUTPUT);
+  pinMode(relay_cs,OUTPUT);
+  digitalWrite(sd_cs,HIGH);
+  digitalWrite(relay_cs,HIGH);
   //dump_log();
   //log();
-   
+
 
 }
 
@@ -54,58 +54,49 @@ void loop()
     char c = Serial.read();
     switch(c)
     {
-      case 'a':
+    case 'a':
       setup_gsm();
-        send_data_arcola("1,2,3");
-          close_connection();
+      send_data_arcola("1,2,3");
+      close_connection();
 
-        break;
-      case 'b':
-        test_analog();
-        break;
-      case 'd':
-        dump_log();
-        break;
-      case 'l':
-        log();
-        break;
-      case 'h':
-        Serial.println(fetch_hymera_data());
-        break;
-      case 'r':
-        test_relays();
-        break;
-      case 't':
-        test_telit_232();
-        break;
-      default:
-        Serial.print("unknown command");
-        Serial.println(c);
-        break;
+      break;
+    case 'b':
+      test_analog();
+      break;
+    case 'd':
+      dump_log();
+      break;
+    case 'l':
+      log();
+      break;
+    case 'h':
+      Serial.println(fetch_hymera_data());
+      break;
+    case 'r':
+      test_relays();
+      break;
+    case 't':
+      test_telit_232();
+      break;
+    default:
+      Serial.print("unknown command");
+      Serial.println(c);
+      break;
     }
   }
-  
+
   if( millis() > last_send + 60000 )
   {
     last_send = millis();
     //log();
   }  
-    
+
   //delay(1000);
   //print_time();
-   setup_gsm();
-   
-       loop_arcola();
-for(int i =0; i < 50; i ++ )
-{
-        print_client_msg();
-delay(100);
-}
+  setup_gsm();
+  send_data_arcola("1,2,3");
   close_connection();
-  /*
-        send_data_arcola("1,2,3");
-          close_connection();
-          */
+ 
 }
 
 void log()
@@ -116,7 +107,7 @@ void log()
   float temp = get_temp()/100;
   float uptime = millis()/1000;
   int hymera_data = fetch_hymera_data();
-  
+
   //create a string with the stuff we're logging and write to sd
   String log_string;
   log_string += uptime;
@@ -127,7 +118,7 @@ void log()
   log_string += ",";
   log_string += hymera_data;
   write_log(log_string);
-  
+
   //send the same stuff to xively
   setup_gsm();
   send_data_xively(uptime,batt_sense,temp);
@@ -135,6 +126,7 @@ void log()
   close_connection();
   //print_client_msg();
 }
+
 
 
 
