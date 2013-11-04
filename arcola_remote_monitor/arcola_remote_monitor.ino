@@ -127,7 +127,7 @@ void log()
 
   //send the same stuff to xively
   setup_gsm();
-  //send_data_xively(uptime,batt_sense,temp);
+  //send_data_xively(uptime,batt_sense,temp,memory);
   send_data_arcola(log_string);
   close_connection();
   //print_client_msg();

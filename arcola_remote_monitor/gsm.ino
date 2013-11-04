@@ -49,14 +49,19 @@ GSM gsmAccess;
 char uptime_stream[] = "uptime";
 char batt_stream[] = "batt_voltage";
 char temp_stream[] = "temperature";
+char memory_stream[] = "memory";
+
 
 XivelyDatastream datastreams[] = {
   XivelyDatastream(uptime_stream, strlen(uptime_stream), DATASTREAM_FLOAT),
   XivelyDatastream(batt_stream, strlen(batt_stream), DATASTREAM_FLOAT),
-  XivelyDatastream(temp_stream, strlen(temp_stream), DATASTREAM_FLOAT )
+  XivelyDatastream(temp_stream, strlen(temp_stream), DATASTREAM_FLOAT),
+  XivelyDatastream(memory_stream, strlen(memory_stream), DATASTREAM_FLOAT )
+
   };
-  XivelyFeed feed(FEEDID, datastreams, 3);       // Creating the feed, defining two datastreams
-//XivelyClient xivelyclient(client);   
+  
+XivelyFeed feed(FEEDID, datastreams, 3);       // Creating the feed, defining two datastreams
+XivelyClient xivelyclient(client);   
 
 
 unsigned long lastConnectionTime = 0;         // last time you connected to the server, in milliseconds
@@ -120,13 +125,14 @@ void print_client_msg()
   }
 }
 
+//uses httpclient to do a put to the arcola website
 void send_data_arcola(String data)
 {
+  //don't understand how this works - needs changing
   String send_str = "log100,";
   send_str += data;
-  Serial.println(send_str);
   
-  Serial.println("connecting to arcola");
+  write_log("connecting to arcola");
 
   HttpClient http(client);
   http.beginRequest();
@@ -138,7 +144,6 @@ void send_data_arcola(String data)
     http.endRequest();
 
     ret = http.responseStatusCode();
-    Serial.println(ret);
     String msg = "arcola put returned ";
     msg += ret; 
     write_log(msg);
@@ -150,19 +155,19 @@ void send_data_arcola(String data)
     Serial.println("connection failed");
   }
 }
-void send_data_xively(float uptime, float batt, float temp)
+void send_data_xively(float uptime, float batt, float temp, int memory)
 {
-  /*
-  write_log("connecting to xively");
+   write_log("connecting to xively");
    datastreams[0].setFloat(uptime);
    datastreams[1].setFloat(batt);
    datastreams[2].setFloat(temp);
+   datastreams[3].setFloat((float)memory);
    
    int ret = xivelyclient.put(feed, APIKEY);
    String msg = "xively put returned ";
    msg += ret; 
    write_log(msg);
-   */
+   
 }
 
 
