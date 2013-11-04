@@ -44,7 +44,6 @@ void setup()
   //dump_log();
   //log();
 
-
 }
 
 void loop()
@@ -59,7 +58,6 @@ void loop()
       setup_gsm();
       send_data_arcola("1,2,3");
       close_connection();
-
       break;
     case 'b':
       test_analog();
@@ -89,16 +87,12 @@ void loop()
   if( millis() > last_send + 60000 )
   {
     last_send = millis();
-    //log();
+    log();
   }  
 
   delay(1000);
   print_time();
- /*
-  setup_gsm();
-  send_data_arcola("1,2,3");
-  close_connection();
- */
+
 }
 
 void log()
@@ -125,12 +119,11 @@ void log()
   
   write_log(log_string);
 
-  //send the same stuff to xively
+  //send the same stuff to xively and arcola
   setup_gsm();
-  //send_data_xively(uptime,batt_sense,temp,memory);
+  send_data_xively(uptime,batt_sense,temp,memory);
   send_data_arcola(log_string);
   close_connection();
-  //print_client_msg();
 }
 
 
