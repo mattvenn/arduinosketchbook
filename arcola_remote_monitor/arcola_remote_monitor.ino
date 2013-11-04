@@ -42,7 +42,7 @@ void setup()
    digitalWrite(relay_cs,HIGH);
   //dump_log();
   //log();
-    setup_gsm();
+   
 
 }
 
@@ -93,8 +93,15 @@ void loop()
     
   //delay(1000);
   //print_time();
-  
-  loop_arcola();
+   setup_gsm();
+   
+       loop_arcola();
+for(int i =0; i < 50; i ++ )
+{
+        print_client_msg();
+delay(100);
+}
+  close_connection();
   /*
         send_data_arcola("1,2,3");
           close_connection();

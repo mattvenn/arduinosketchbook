@@ -61,11 +61,12 @@ XivelyDatastream datastreams[] = {
 
 unsigned long lastConnectionTime = 0;         // last time you connected to the server, in milliseconds
 boolean lastConnected = false;                  // state of the connection last time through the main loop
-const unsigned long postingInterval = 10*1000;  //delay between updates to Pachube.com
+const unsigned long postingInterval = 5*1000;  //delay between updates to Pachube.com
 boolean notConnected = true;
 
 void setup_gsm()
 {
+  notConnected = true;
   //Serial.println("connecting");
   write_log("gsm setup");
   while (notConnected) 
@@ -91,6 +92,7 @@ void setup_gsm()
 void close_connection()
 {
   write_log("gsm shutdown");
+Serial.println(client.connected());
 
   while(notConnected==false)
   {
@@ -135,11 +137,12 @@ void loop_arcola()
 
   // if there's no net connection, but there was one last time
   // through the loop, then stop the client:
-  if (!client.connected() && lastConnected)
+  /*if (!client.connected() && lastConnected)
   {
+    Serial.println("stopping client");
     client.stop();
   }
-  
+  */
   // if you're not connected, and ten seconds have passed since
   // your last connection, then connect again and send data:
   if(!client.connected() && ((millis() - lastConnectionTime) > postingInterval))
@@ -169,6 +172,7 @@ Serial.println(send_str);
 
   {
     Serial.println("connecting...");
+    Serial.println(client.connected());
     // send the HTTP PUT request:
     client.println("PUT /recorder.php HTTP/1.1");
     client.println("Host: arcolatheatre.com");
@@ -190,6 +194,7 @@ Serial.println(send_str);
     
     // here's the actual content of the PUT request:
     client.println(send_str);
+    Serial.println("done");
   } 
   else
   {
