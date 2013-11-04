@@ -120,67 +120,35 @@ void print_client_msg()
   }
 }
 
-
-//worked once.
-//annoying to do this by hand when we're already including the httpclient library, but I can't work out how it works!
-long int global_count = 0;
-void send_data_arcola(String ballz)
+void send_data_arcola(String data)
 {
-
-  String send_str = "log100,1,2,3";
-  send_str += ",";
-  send_str += global_count ++;
-  send_str += ",";
-  send_str += millis();
+  String send_str = "log100,";
+  send_str += data;
   Serial.println(send_str);
-  // if there's a successful connection:
-  //
-  if(client.connect("arcolatheatre.com", 8161))
+  
+  Serial.println("connecting to arcola");
 
+  HttpClient http(client);
+  http.beginRequest();
+  int ret = http.put("arcolatheatre.com", 8161, "/recorder.php");
+  if (ret == 0)
   {
-    Serial.println("connecting...");
-    Serial.println(client.connected());
-    // send the HTTP PUT request:
-    client.println("PUT /recorder.php HTTP/1.1");
-    client.println("Host: arcolatheatre.com");
+    http.sendHeader("Content-Length", send_str.length());
+    http.print(send_str);
+    http.endRequest();
 
-
-    client.print("User-Agent: ");
-    client.println(USERAGENT);
-    client.print("Content-Length: ");
-
-    // calculate the length of the sensor reading in bytes:
-    // 8 bytes for "sensor1," + number of digits of the data:
-
-    client.println(send_str.length());
-
-    // last pieces of the HTTP PUT request:
-    client.println("Content-Type: text/csv");
-    client.println("Connection: close");
-    client.println();
-
-    // here's the actual content of the PUT request:
-    client.println(send_str);
-    //wait for response
-    for(int i =0; i < 50; i ++ )
-    {
-      print_client_msg();
-      delay(100);
-    }
-
-    Serial.println("done");
-
+    ret = http.responseStatusCode();
+    Serial.println(ret);
+    String msg = "arcola put returned ";
+    msg += ret; 
+    write_log(msg);
+    
+    http.stop();
   } 
   else
   {
-    // if you couldn't make a connection:
     Serial.println("connection failed");
-    Serial.println();
-    Serial.println("disconnecting.");
-    client.stop();
   }
-  // note the time that the connection was made or attempted
-  lastConnectionTime = millis();
 }
 void send_data_xively(float uptime, float batt, float temp)
 {
@@ -191,10 +159,11 @@ void send_data_xively(float uptime, float batt, float temp)
    datastreams[2].setFloat(temp);
    
    int ret = xivelyclient.put(feed, APIKEY);
-   String msg = "xivelyclient.put returned ";
+   String msg = "xively put returned ";
    msg += ret; 
    write_log(msg);
    */
 }
+
 
 

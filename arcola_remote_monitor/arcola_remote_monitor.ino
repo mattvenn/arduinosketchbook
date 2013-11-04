@@ -21,6 +21,7 @@
 #define sd_cs	SS
 
 #define log_file "log4.csv"
+#define test_mem
 
 long int last_send  = 0;
 
@@ -91,12 +92,13 @@ void loop()
     //log();
   }  
 
-  //delay(1000);
-  //print_time();
+  delay(1000);
+  print_time();
+ /*
   setup_gsm();
   send_data_arcola("1,2,3");
   close_connection();
- 
+ */
 }
 
 void log()
@@ -107,7 +109,8 @@ void log()
   float temp = get_temp()/100;
   float uptime = millis()/1000;
   int hymera_data = fetch_hymera_data();
-
+  int memory = freeMemory();
+  
   //create a string with the stuff we're logging and write to sd
   String log_string;
   log_string += uptime;
@@ -117,12 +120,15 @@ void log()
   log_string += temp;
   log_string += ",";
   log_string += hymera_data;
+  log_string += ",";
+  log_string += memory;
+  
   write_log(log_string);
 
   //send the same stuff to xively
   setup_gsm();
-  send_data_xively(uptime,batt_sense,temp);
-  //send_data_arcola(log_string);
+  //send_data_xively(uptime,batt_sense,temp);
+  send_data_arcola(log_string);
   close_connection();
   //print_client_msg();
 }
