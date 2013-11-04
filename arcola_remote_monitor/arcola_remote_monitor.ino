@@ -33,7 +33,7 @@ void setup()
   setup_temp();
   setup_sd();
   setup_hymera();
-//  relay_setup();
+  relay_setup();
 
 //  pinMode(gsm_power_fet,OUTPUT);
    pinMode(sd_cs,OUTPUT);
