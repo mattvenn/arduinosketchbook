@@ -20,7 +20,7 @@
 #define mega_168_cs	49
 #define sd_cs	SS
 
-#define log_file "log4.csv"
+#define log_file "log6.csv"
 #define test_mem
 
 long int last_send  = 0;
@@ -29,12 +29,13 @@ void setup()
 {
   Serial.begin(9600);
   Serial.println("started");
-
   setup_rtc();
   setup_temp();
   setup_sd();
   setup_hymera();
   relay_setup();
+
+  write_log("started");
 
   //  pinMode(gsm_power_fet,OUTPUT);
   pinMode(sd_cs,OUTPUT);
@@ -78,7 +79,7 @@ void loop()
       test_telit_232();
       break;
     default:
-      Serial.print("unknown command");
+      Serial.print("unknown command: ");
       Serial.println(c);
       break;
     }
