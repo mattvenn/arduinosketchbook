@@ -4,10 +4,20 @@
 
 #reset vector and boot size important for bootloader to work
 
-avrdude -p atmega168 -P /dev/ttyACM1  -c STK500 -v -B 266 -U lfuse:w:0xdf:m -U hfuse:w:0xdc:m -U efuse:w:0xf8:m
+dev=/dev/ttyACM0
+part=m168p
+
+#to unlock lock
+avrdude -p $part -P $dev -c STK500 -v -B 266 -U lock:w:0x3f:m
+
+#arduino defaults
+avrdude -p $part -P $dev -c STK500 -v -B 266 -U lfuse:w:0xff:m -U hfuse:w:0xdd:m -U efuse:w:0xf8:m
 
 #this boot loader works with above settings
-avrdude -p atmega168 -P /dev/ttyACM1  -c STK500 -v -B 5 -U flash:w:./ATmegaBOOT_168_diecimila.hex 
+avrdude -p $part -P $dev -c STK500 -v -B 5 -U flash:w:./ATmegaBOOT_168_diecimila.hex 
 
-#lock not important? don't know this yet
-avrdude -p atmega168 -P /dev/ttyACM1  -c STK500 -v -B 5 -U lock:w:0x0f:m
+#to lock
+avrdude -p $part -P $dev -c STK500 -v -B 5 -U lock:w:0x0f:m
+#to read lock:
+#avrdude -p m328p -P /dev/ttyACM1 -c STK500 -v -U lock:r:-:h
+
