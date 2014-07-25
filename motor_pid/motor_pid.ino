@@ -3,11 +3,14 @@
 #define RUN_LED 11
 #define TRIAC 3
 #define SPEED A0
+#define RPM 5
+
 int pulse_length;
 void setup()
 {
     noInterrupts();           // disable all interrupts
-
+  pinMode(RPM,INPUT);
+  digitalWrite(RPM,LOW);
   pinMode(TRIAC,OUTPUT);
   digitalWrite(TRIAC,LOW);
   pinMode(ZC,INPUT);
@@ -61,4 +64,10 @@ void loop()
    pulse_length = map(analogRead(SPEED),0,1024,0,2500);
    Serial.println(pulse_length);
    delay(100);
+   if(digitalRead(RPM))
+       digitalWrite(STATUS_LED,HIGH); 
+   else
+       digitalWrite(STATUS_LED,LOW); 
+
+   Serial.println(digitalRead(RPM));
 }
