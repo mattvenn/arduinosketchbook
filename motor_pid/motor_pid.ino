@@ -6,6 +6,11 @@
 #define RPM 5
 #include <PID_v1.h>
 
+#include <LiquidCrystal.h>
+
+LiquidCrystal lcd(4, 6, 7, 8, 9, 10);
+
+
 
 //closet to green led: blue red white green
 int pulse_length;
@@ -31,6 +36,13 @@ void setup()
   pinMode(STATUS_LED,OUTPUT);
   digitalWrite(STATUS_LED,HIGH);
   Serial.begin(9600);
+
+
+  // set up the LCD's number of columns and rows: 
+  lcd.begin(16, 2);
+  // Print a message to the LCD.
+  lcd.print("motor pid");
+
   
   //setup for the RPM counter on timer 1
   //clear the control registers
@@ -60,7 +72,8 @@ void setup()
   pulse_length = max_pulse;
   attachInterrupt(0,ZC_INT,FALLING);
    TIMSK2 |= (1 << TOIE2);   // enable timer  2 overflow interrupt
-    
+
+  delay(500);    
   interrupts();             // enable all interrupts
 
   
@@ -86,6 +99,15 @@ double last_print = 0;
 void loop()
 {
    target_rpm = map(analogRead(SPEED),0,1024,0,30000);
+
+  lcd.setCursor(0,0 );
+  lcd.print("rpm: ");
+  lcd.print(Input);
+  
+  lcd.setCursor(0, 1);
+  // print the number of seconds since reset:
+  lcd.print("target: ");
+  lcd.print(target_rpm);
 
 
   
