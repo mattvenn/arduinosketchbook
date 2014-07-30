@@ -5,13 +5,14 @@
 #define SPEED A0
 #define RPM 5
 #include <PID_v1.h>
-
+#define EXT_RUN A1
+#define EXT_SPD A2
 #include <LiquidCrystal.h>
 
 LiquidCrystal lcd(4, 6, 7, 8, 9, 10);
 
 
-
+boolean run = false;
 //closet to green led: blue red white green
 int pulse_length;
 int min_pulse;
@@ -22,7 +23,7 @@ PID myPID(&Input, &Output, &target_rpm,0.010,0.001,0,REVERSE);
 void setup()
 {
   
-  target_rpm = 30000;
+  target_rpm = 0;
   //turn the PID on
   myPID.SetMode(AUTOMATIC);
     noInterrupts();           // disable all interrupts
@@ -81,7 +82,7 @@ void setup()
 boolean led_status;
 ISR(TIMER2_OVF_vect)        // interrupt service routine 
 {
- digitalWrite(RUN_LED,LOW);
+
  digitalWrite(TRIAC,HIGH);
  //delayMicroseconds(10);
 // digitalWrite(TRIAC,LOW);
@@ -91,34 +92,41 @@ ISR(TIMER2_OVF_vect)        // interrupt service routine
 void ZC_INT()
 {
   digitalWrite(TRIAC,LOW);
-  digitalWrite(RUN_LED,HIGH); 
   TCNT2 = 256 - pulse_length;   // preload timer
 }
 
 double last_print = 0;
 void loop()
 {
-   target_rpm = map(analogRead(SPEED),0,1024,0,30000);
+   delay(100);
+  //   target_rpm = map(analogRead(SPEED),0,1024,0,30000);
+  target_rpm = map(analogRead(EXT_SPD),0,1000,0,30000);
+  run = digitalRead(EXT_RUN);
+  Input = getRPM();
+  if( run )
+  {
+   digitalWrite(RUN_LED,HIGH); 
 
+   myPID.Compute();
+   pulse_length = Output;
+   //pulse_length = map(analogRead(SPEED),0,1024,min_pulse,max_pulse);
+  }
+  else
+  {
+    //safely off 
+   digitalWrite(RUN_LED,LOW);
+    pulse_length = max_pulse;
+  }
   lcd.setCursor(0,0 );
   lcd.print("rpm: ");
   lcd.print(Input);
   
   lcd.setCursor(0, 1);
-  // print the number of seconds since reset:
   lcd.print("target: ");
   lcd.print(target_rpm);
 
 
   
-   Input = getRPM();
-   
-   myPID.Compute();
-
-    delay(100);
-   pulse_length = Output;
-   //pulse_length = map(analogRead(SPEED),0,1024,min_pulse,max_pulse);
-
   if( millis() - last_print > 1000)
   {
     last_print = millis();
@@ -130,6 +138,8 @@ void loop()
    Serial.println(target_rpm);
     Serial.print("rpm : " );
    Serial.println(Input);
+
+
   }
 }
 
