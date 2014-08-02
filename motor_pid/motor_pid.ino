@@ -13,6 +13,7 @@ LiquidCrystal lcd(4, 6, 7, 8, 9, 10);
 
 
 boolean run = false;
+boolean led_status;
 //closet to green led: blue red white green
 int pulse_length;
 int min_pulse;
@@ -38,13 +39,11 @@ void setup()
   digitalWrite(STATUS_LED,HIGH);
   Serial.begin(9600);
 
-
   // set up the LCD's number of columns and rows: 
   lcd.begin(16, 2);
   // Print a message to the LCD.
   lcd.print("motor pid");
 
-  
   //setup for the RPM counter on timer 1
   //clear the control registers
   TCCR1A = 0;
@@ -53,42 +52,35 @@ void setup()
   TCCR1B |= (1 << CS12) | ( 1<< CS11 ); //external pin 5 count
   TCCR1B |= (1 << ICNC1 ); //noise canceller
 
-
   //setup for the triac control on timer 2
   TCCR2A = 0;
   TCCR2B = 0;
-
-  
   
   //all this is using timer1
   TCCR2B |= (1 << CS22) | (1<< CS21) | (1<<CS20);    // 1024 prescaler 
+  TIMSK2 |= (1 << TOIE2);   // enable timer  2 overflow interrupt
 
- //want this to vary between 0 and 10ms (100hz)
-// 16mhz / 1024 / 100hz = 156
-  max_pulse = 156 + 5; //little longer
-  min_pulse = 1;
-  myPID.SetOutputLimits(min_pulse,max_pulse);
+  //want this to vary between 0 and 10ms (100hz)
+  //16mhz / 1024 / 100hz = 156
   //156 will be the slowest, 0 the fastest
   //so timer-reset varies from 0 to 156
+  max_pulse = 156 + 5; //little longer
+  min_pulse = 1;
   pulse_length = max_pulse;
-  attachInterrupt(0,ZC_INT,FALLING);
-   TIMSK2 |= (1 << TOIE2);   // enable timer  2 overflow interrupt
+  myPID.SetOutputLimits(min_pulse,max_pulse);
 
   delay(500);    
+  attachInterrupt(0,ZC_INT,FALLING); //set the interrupt handler for the RPM counter
   interrupts();             // enable all interrupts
-
-  
 }
-boolean led_status;
-ISR(TIMER2_OVF_vect)        // interrupt service routine 
+
+//timer 2 overflow interrupt - used to turn on the triac
+ISR(TIMER2_OVF_vect)        
 {
-
  digitalWrite(TRIAC,HIGH);
- //delayMicroseconds(10);
-// digitalWrite(TRIAC,LOW);
-
 }
 
+//zc interrupt
 void ZC_INT()
 {
   digitalWrite(TRIAC,LOW);
