@@ -1,3 +1,7 @@
+/* 
+TODO:
+fix motor on at pc boot
+*/
 #define ZC 2
 #define STATUS_LED 12
 #define RUN_LED 11
@@ -19,7 +23,7 @@ int pulse_length;
 int min_pulse;
 int max_pulse;
 double target_rpm, Input, Output;
-PID myPID(&Input, &Output, &target_rpm,0.001,0.005,0,REVERSE);
+PID myPID(&Input, &Output, &target_rpm,0.003,0.0001,0,REVERSE);
 
 void setup()
 {
@@ -59,7 +63,6 @@ void setup()
   
   //all this is using timer2
   TCCR2B |= (1 << CS22) | (1<< CS21) | (1<<CS20);    // 1024 prescaler 
-  disableSpindle();
  
 
   //want this to vary between 0 and 10ms (100hz)
@@ -70,14 +73,14 @@ void setup()
   min_pulse = 1;
   pulse_length = max_pulse;
   myPID.SetOutputLimits(min_pulse,max_pulse);
-   myPID.Compute();
+  myPID.Compute();
 
   delay(500);    
   attachInterrupt(0,ZC_INT,FALLING); //set the interrupt handler for the RPM counter
-  interrupts();             // enable all interrupts
+  disableSpindle();
+
 }
 
-//
 void enableSpindle()
 {
    TIMSK2 |= (1 << TOIE2);   // enable timer  2 overflow interrupt
@@ -113,9 +116,9 @@ void loop()
     double i = float(serReadInt())/1000.0;
     double d = float(serReadInt())/1000.0;
     
-    Serial.println(p * 1000);
-    Serial.println(i * 1000);
-    Serial.println(d * 1000);
+    Serial.println(p,5);
+    Serial.println(i,5);
+    Serial.println(d,5);
     myPID.SetTunings(p,i,d);
   }  
    //delay(100);
@@ -151,7 +154,7 @@ void loop()
     Serial.print("\t");
     Serial.print(target_rpm);
     Serial.print("\t");
-   Serial.print("rpm : " );
+ //  Serial.print("rpm : " );
     Serial.println(Input);
     
   }
