@@ -19,7 +19,7 @@ int pulse_length;
 int min_pulse;
 int max_pulse;
 double target_rpm, Input, Output;
-PID myPID(&Input, &Output, &target_rpm,0.010,0.001,0,REVERSE);
+PID myPID(&Input, &Output, &target_rpm,0.001,0.005,0,REVERSE);
 
 void setup()
 {
@@ -27,6 +27,7 @@ void setup()
   target_rpm = 0;
   //turn the PID on
   myPID.SetMode(AUTOMATIC);
+  myPID.SetSampleTime(100);
     noInterrupts();           // disable all interrupts
   pinMode(RPM,INPUT);
 //  digitalWrite(RPM,HIGH);
@@ -37,7 +38,7 @@ void setup()
   pinMode(RUN_LED,OUTPUT);
   pinMode(STATUS_LED,OUTPUT);
   digitalWrite(STATUS_LED,HIGH);
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   // set up the LCD's number of columns and rows: 
   lcd.begin(16, 2);
@@ -56,22 +57,38 @@ void setup()
   TCCR2A = 0;
   TCCR2B = 0;
   
-  //all this is using timer1
+  //all this is using timer2
   TCCR2B |= (1 << CS22) | (1<< CS21) | (1<<CS20);    // 1024 prescaler 
-  TIMSK2 |= (1 << TOIE2);   // enable timer  2 overflow interrupt
+  disableSpindle();
+ 
 
   //want this to vary between 0 and 10ms (100hz)
   //16mhz / 1024 / 100hz = 156
   //156 will be the slowest, 0 the fastest
   //so timer-reset varies from 0 to 156
-  max_pulse = 156 + 5; //little longer
+  max_pulse = 140; //little shorter, so never off.
   min_pulse = 1;
   pulse_length = max_pulse;
   myPID.SetOutputLimits(min_pulse,max_pulse);
+   myPID.Compute();
 
   delay(500);    
   attachInterrupt(0,ZC_INT,FALLING); //set the interrupt handler for the RPM counter
   interrupts();             // enable all interrupts
+}
+
+//
+void enableSpindle()
+{
+   TIMSK2 |= (1 << TOIE2);   // enable timer  2 overflow interrupt
+   interrupts();
+}
+void disableSpindle()
+{
+  TIMSK2 |= (0 << TOIE2);   // disable timer  2 overflow interrupt  
+  digitalWrite(TRIAC,LOW);
+  noInterrupts();
+
 }
 
 //timer 2 overflow interrupt - used to turn on the triac
@@ -90,14 +107,25 @@ void ZC_INT()
 double last_print = 0;
 void loop()
 {
-   delay(100);
+  if(Serial.available())
+  {
+    double p = float(serReadInt())/1000.0;
+    double i = float(serReadInt())/1000.0;
+    double d = float(serReadInt())/1000.0;
+    
+    Serial.println(p * 1000);
+    Serial.println(i * 1000);
+    Serial.println(d * 1000);
+    myPID.SetTunings(p,i,d);
+  }  
+   //delay(100);
   //   target_rpm = map(analogRead(SPEED),0,1024,0,30000);
-  target_rpm = map(analogRead(EXT_SPD),0,1000,0,30000);
+  target_rpm = map(analogRead(EXT_SPD),0,1000,5000,30000);
   run = digitalRead(EXT_RUN);
-  Input = getRPM();
   if( run )
   {
-   digitalWrite(RUN_LED,HIGH); 
+    enableSpindle();
+    digitalWrite(RUN_LED,HIGH); 
 
    myPID.Compute();
    pulse_length = Output;
@@ -106,32 +134,26 @@ void loop()
   else
   {
     //safely off 
+    disableSpindle();
    digitalWrite(RUN_LED,LOW);
+   
     pulse_length = max_pulse;
   }
-  lcd.setCursor(0,0 );
-  lcd.print("rpm: ");
-  lcd.print(Input);
-  
-  lcd.setCursor(0, 1);
-  lcd.print("target: ");
-  lcd.print(target_rpm);
 
-
-  
-  if( millis() - last_print > 1000)
+  if( millis() - last_print > 200)
   {
-    last_print = millis();
-    Serial.print("out : " );
+      Input = getRPM();
+          last_print = millis();
 
 
-   Serial.println(Output);
-    Serial.print("target : ");
-   Serial.println(target_rpm);
-    Serial.print("rpm : " );
-   Serial.println(Input);
-
-
+    Serial.print(run ? "1\t" : "0\t" );
+    Serial.print(last_print);
+    Serial.print("\t");
+    Serial.print(target_rpm);
+    Serial.print("\t");
+   Serial.print("rpm : " );
+    Serial.println(Input);
+    
   }
 }
 
@@ -147,8 +169,36 @@ float getRPM()
   TCNT1 = 0;
  
   int interval = now - last_get;
+ // Serial.print("count:"); Serial.println(count);
+  //Serial.print("interval:"); Serial.println(interval);
   float rpm = (60000 * count / interval );
   
   last_get = now;  
   return rpm;
 }
+
+int serReadInt()
+{
+  int i, serAva;                           // i is a counter, serAva hold number of serial available
+  char inputBytes [7];                 // Array hold input bytes
+  char * inputBytesPtr = &inputBytes[0];  // Pointer to the first element of the array
+
+  if (Serial.available()>0)            // Check to see if there are any serial input
+  {
+    delay(5);                              // Delay for terminal to finish transmitted
+    // 5mS work great for 9600 baud (increase this number for slower baud)
+    serAva = Serial.available();  // Read number of input bytes
+    for (i=0; i<serAva; i++)   
+    {
+      char readChar = (char)Serial.read();   // Load input bytes into array
+      if( readChar == ',' )
+        break;
+      inputBytes[i] = readChar;
+    }
+    inputBytes[i] =  '\0';             // Put NULL character at the end
+    return atoi(inputBytesPtr);    // Call atoi function and return result
+  }
+  else
+    return -1;                           // Return -1 if there is no input
+}
+
