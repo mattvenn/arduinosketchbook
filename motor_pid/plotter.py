@@ -12,14 +12,15 @@ from collections import deque
 
 import matplotlib.pyplot as plt 
 import matplotlib.animation as animation
-
+import sys
     
 # plot class
 class AnalogPlot:
   # constr
   def __init__(self, strPort, maxLen):
       # open serial port
-      self.ser = serial.Serial(strPort, 9600)
+      #self.ser = serial.Serial(strPort, 9600)
+      self.ser = sys.stdin
 
       self.ax = deque([0.0]*maxLen)
       self.ay = deque([0.0]*maxLen)
@@ -44,6 +45,7 @@ class AnalogPlot:
       try:
           line = self.ser.readline()
           data = [float(val) for val in line.split()]
+          print(data)
           # print data
           if(len(data) == 2):
               self.add(data)
@@ -56,9 +58,10 @@ class AnalogPlot:
 
   # clean up
   def close(self):
+      pass        
       # close serial
-      self.ser.flush()
-      self.ser.close()    
+      #self.ser.flush()
+      #self.ser.close()    
 
 # main() function
 def main():
