@@ -15,7 +15,7 @@ fix motor on at pc boot
 
 LiquidCrystal lcd(4, 6, 7, 8, 9, 10);
 
-
+boolean usePID = true;
 boolean run = false;
 boolean led_status;
 //closet to green led: blue red white green
@@ -32,9 +32,14 @@ void setup()
   //turn the PID on
   myPID.SetMode(AUTOMATIC);
   myPID.SetSampleTime(100);
+  //had to load these in again, as they didn't seem to take on the contructor above.
+  myPID.SetTunings(0.007,0.006,0);
     noInterrupts();           // disable all interrupts
   pinMode(RPM,INPUT);
 //  digitalWrite(RPM,HIGH);
+  pinMode(EXT_RUN,INPUT);
+  digitalWrite(EXT_RUN,LOW);
+
   pinMode(TRIAC,OUTPUT);
   digitalWrite(TRIAC,LOW);
   pinMode(ZC,INPUT);
@@ -131,7 +136,11 @@ void loop()
     digitalWrite(RUN_LED,HIGH); 
 
    myPID.Compute();
-   pulse_length = Output;
+   if(usePID)
+     pulse_length = Output;
+   else
+     pulse_length = map(analogRead(EXT_SPD),1024,0,min_pulse,max_pulse);
+
    //pulse_length = map(analogRead(SPEED),0,1024,min_pulse,max_pulse);
   }
   else
@@ -143,7 +152,7 @@ void loop()
     pulse_length = max_pulse;
   }
 
-  if( millis() - last_print > 200)
+  if( millis() - last_print > 250)
   {
       Input = getRPM();
           last_print = millis();
