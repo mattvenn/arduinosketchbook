@@ -19,8 +19,8 @@ class AnalogPlot:
   # constr
   def __init__(self, strPort, maxLen):
       # open serial port
-      #self.ser = serial.Serial(strPort, 9600)
-      self.ser = sys.stdin
+      self.ser = serial.Serial(strPort, 115200)
+      #self.ser = sys.stdin
 
       self.ax = deque([0.0]*maxLen)
       self.ay = deque([0.0]*maxLen)
@@ -29,10 +29,10 @@ class AnalogPlot:
   # add to buffer
   def addToBuf(self, buf, val):
       if len(buf) < self.maxLen:
-          buf.append(val)
-      else:
-          buf.pop()
           buf.appendleft(val)
+      else:
+          buf.popleft()
+          buf.append(val)
 
   # add data
   def add(self, data):
@@ -53,15 +53,18 @@ class AnalogPlot:
               a1.set_data(range(self.maxLen), self.ay)
       except KeyboardInterrupt:
           print('exiting')
+      except ValueError:
+          print('bad value on line %s' % line)
+        
       
       return a0, 
 
   # clean up
   def close(self):
-      pass        
-      # close serial
-      #self.ser.flush()
-      #self.ser.close()    
+      #pass        
+      #close serial
+      self.ser.flush()
+      self.ser.close()    
 
 # main() function
 def main():
@@ -73,24 +76,24 @@ def main():
   # parse args
   args = parser.parse_args()
   
-  #strPort = '/dev/tty.usbserial-A7006Yqh'
+#  strPort = '/dev/tty.usbserial-A7006Yqh'
   strPort = args.port
 
   print('reading from serial port %s...' % strPort)
 
   # plot parameters
-  analogPlot = AnalogPlot(strPort, 100)
+  analogPlot = AnalogPlot(strPort, 300)
 
   print('plotting data...')
 
   # set up animation
   fig = plt.figure()
-  ax = plt.axes(xlim=(0, 100), ylim=(0, 1023))
+  ax = plt.axes(xlim=(0, 300), ylim=(0, 30000))
   a0, = ax.plot([], [])
   a1, = ax.plot([], [])
   anim = animation.FuncAnimation(fig, analogPlot.update, 
                                  fargs=(a0, a1), 
-                                 interval=50)
+                                 interval=250)
 
   # show plot
   plt.show()

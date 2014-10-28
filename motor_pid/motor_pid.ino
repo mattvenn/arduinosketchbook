@@ -23,7 +23,7 @@ int pulse_length;
 int min_pulse;
 int max_pulse;
 double target_rpm, Input, Output;
-PID myPID(&Input, &Output, &target_rpm,0.003,0.0001,0,REVERSE);
+PID myPID(&Input, &Output, &target_rpm,0.007,0.0006,0,REVERSE);
 
 void setup()
 {
@@ -149,9 +149,9 @@ void loop()
           last_print = millis();
 
 
-    Serial.print(run ? "1\t" : "0\t" );
-    Serial.print(last_print);
-    Serial.print("\t");
+   // Serial.print(run ? "1\t" : "0\t" );
+ //   Serial.print(last_print);
+ //   Serial.print("\t");
     Serial.print(target_rpm);
     Serial.print("\t");
  //  Serial.print("rpm : " );
