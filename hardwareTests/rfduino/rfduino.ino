@@ -1,52 +1,74 @@
 #include <RFduinoBLE.h>
+
 int count = 0;
 const int num_leds = 4;
 int leds[num_leds] = {2,3,4,5};
-/* default serial RX & TX are on pins 0 & 1 */
-int motor = 0;
+// default serial RX & TX are on pins 0 & 1 
+int batt_level = 1;
+int button = 0;
+int motor = 6;
 int motor_on = 50;
 int motor_off = 300;
 
+int last_reading = 0;
+
+// #define SERIAL_DEBUG
 void setup() {
   RFduinoBLE.advertisementData = "temp";
-
- // Serial.begin(9600);
- // Serial.println(num_leds);
+    pinMode(button,INPUT_PULLUP);
+    pinMode(batt_level,INPUT);
+    RFduino_pinWake(button,LOW);
+    #ifdef SERIAL_DEBUG
+        Serial.begin(9600);
+    #endif
 
   // start the BLE stack
   RFduinoBLE.begin();
+   pinMode(motor,OUTPUT);
+  digitalWrite(motor,LOW);
   for( int i = 0 ; i<num_leds; i ++)
   {
       pinMode(leds[i],OUTPUT);
-      digitalWrite(leds[i],HIGH);
-      //Serial.println(i);
+     
   }
-  pinMode(motor,OUTPUT);
-  digitalWrite(motor,LOW);
+indicate(1,4);
 }
 
 void loop() {
-  // sample once per second
-  RFduino_ULPDelay( SECONDS(1) );
+  // sleeep till we're woken by BLE
+  RFduino_ULPDelay(INFINITE );
+  //RFduinoBLE.sendInt(analogRead(batt_level)); //this adds about 300ua to draw
+  //Serial.println(analogRead(batt_level));
+
+  //if button pressed, show last reading
+  if(RFduino_pinWoke(button))
+  {
+    RFduino_resetPinWake(button);
+    bar_graph(last_reading);
+    delay(500);
+    bar_graph(0);
+  }
 
 
-// Serial.println(count,HEX);
-  RFduinoBLE.sendInt(count++);
 }
 
 void RFduinoBLE_onReceive(char *data, int len)
 {
-  //Serial.println(len);
-  //Serial.print(data[0],HEX);
+ 
   if(len == 2)
   {
+    #ifdef SERIAL_DEBUG
+    Serial.println(data[0],DEC);
+    Serial.println(data[1],DEC);
+    #endif
+      last_reading = data[1];
       indicate(data[0],data[1]);
   }  
  //   analogWrite(led, data[0]);
 }
 void indicate(int start, int end)
 {
-  if( start > end )
+  if( start < end )
   {
       for(int i = start; i <= end; i ++)
       {
@@ -84,3 +106,19 @@ void bar_graph(int level)
   for(int i=0; i < level; i ++)
     digitalWrite(leds[i],HIGH); 
 }
+/* not sure if this is needed
+void RFduinoBLE_onConnect()
+{
+  // request central role use a different connection interval in the given range
+  // the central role may reject the request (or even pick a value outside the range)
+  // we will request something in the 900ms to 1100ms range
+  // the actual rate the iPhone uses is 1098ms
+  // the best way to get the connection interval you are after is trail and error
+  // if the iPhone rejects the request, the connection interval will be the default (25ms)
+  RFduinoBLE.updateConnInterval(900, 1100);
+
+  // note: you cannot use delay()/RFduinoBLE.getConnInterval() here to determine which
+  // connection interval the iPhone selected - getConnInterval() must be called from
+  // either loop() or onReceive()
+}
+*/
