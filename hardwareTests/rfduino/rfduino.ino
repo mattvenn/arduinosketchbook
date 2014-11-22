@@ -16,7 +16,8 @@ int last_reading = 0;
 void setup() {
   RFduinoBLE.advertisementData = "temp";
     pinMode(button,INPUT_PULLUP);
-    pinMode(batt_level,INPUT);
+    pinMode(batt_level,OUTPUT);
+    digitalWrite(batt_level,LOW);
     RFduino_pinWake(button,LOW);
     #ifdef SERIAL_DEBUG
         Serial.begin(9600);
@@ -34,11 +35,22 @@ void setup() {
 indicate(1,4);
 }
 
+int readDAC()
+{
+  // battery read stuff
+  NRF_ADC->TASKS_START = 1;
+  pinMode(batt_level,INPUT);
+  delay(10);
+  //this adds about 300ua to draw
+  int batt = analogRead(batt_level); 
+  NRF_ADC->TASKS_STOP = 1;
+  pinMode(batt_level,OUTPUT);
+  digitalWrite(batt_level,LOW);
+  return batt;
+}
 void loop() {
   // sleeep till we're woken by BLE
   RFduino_ULPDelay(INFINITE );
-  //RFduinoBLE.sendInt(analogRead(batt_level)); //this adds about 300ua to draw
-  //Serial.println(analogRead(batt_level));
 
   //if button pressed, show last reading
   if(RFduino_pinWoke(button))
@@ -48,8 +60,6 @@ void loop() {
     delay(500);
     bar_graph(0);
   }
-
-
 }
 
 void RFduinoBLE_onReceive(char *data, int len)
@@ -65,6 +75,7 @@ void RFduinoBLE_onReceive(char *data, int len)
       indicate(data[0],data[1]);
   }  
  //   analogWrite(led, data[0]);
+    RFduinoBLE.sendInt(readDAC());
 }
 void indicate(int start, int end)
 {
