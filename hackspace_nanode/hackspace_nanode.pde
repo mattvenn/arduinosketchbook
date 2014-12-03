@@ -31,16 +31,16 @@ byte mymac[6];
 // Static IP configuration to use if no DHCP found
 // Change these to match your site setup
 static byte static_ip[] = { 
-  192,168,0,200 };
+  192,168,0,201 };
 // gateway ip address
 static byte static_gw[] = { 
   192,168,0,1 };
 static byte static_dns[] = { 
-  192,168,0,1 };
+  10,100,144,1 };
 
 char cosmURL[] PROGMEM = "api.pachube.com";
 
-#define REMOTE
+//#define REMOTE
 #ifdef REMOTE
 char robotURL[] PROGMEM = "mattvenn.net";
 byte robotIP[4];
@@ -191,14 +191,14 @@ void loop () {
  
 #endif
 
-  if( getDataTimer.poll(10000) )
+  if( getDataTimer.poll(60000) )
   {
 
 #ifdef MEMTEST
     Serial.print( "mem: " );
     Serial.println( freeMemory() );
 #endif
-
+/*
     if( turn ++ % 2 == 0 )
     {
       printf_P(PSTR("getting robot data\n"));
@@ -215,6 +215,7 @@ void loop () {
     }
     else
     {
+   */
       printf_P(PSTR("pushing to cosm\n"));
 
       getData();
@@ -255,7 +256,9 @@ void loop () {
 
       // send the packet - this also releases all stash buffers once done
       session = ether.tcpSend();
+      /*
     }
+    */
   }
 
   const char * reply  = ether.tcpReply(session);
