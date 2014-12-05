@@ -15,6 +15,8 @@ int last_reading = 0;
 // #define SERIAL_DEBUG
 void setup() {
   RFduinoBLE.advertisementData = "temp";
+  // try this:
+  RFduinoBLE.advertisementInterval = 1000; 
     pinMode(button,INPUT_PULLUP);
     pinMode(batt_level,OUTPUT);
     digitalWrite(batt_level,LOW);
@@ -32,8 +34,18 @@ void setup() {
       pinMode(leds[i],OUTPUT);
      
   }
-indicate(1,4);
+//indicate(1,4);
+    for(int i = 0; i < 4 ; i ++)
+    {
+    bar_graph(4);
+    delay(100);
+    bar_graph(0);
+    delay(100);
+    }
+    NRF_WDT->CRV = 10 * 32768; // Timeout period of 10 s
+    NRF_WDT->TASKS_START = 1; // Watchdog start
 }
+
 
 int readDAC()
 {
@@ -50,7 +62,8 @@ int readDAC()
 }
 void loop() {
   // sleeep till we're woken by BLE
-  RFduino_ULPDelay(INFINITE );
+   RFduino_ULPDelay(5000);
+   NRF_WDT->RR[0] = WDT_RR_RR_Reload;
 
   //if button pressed, show last reading
   if(RFduino_pinWoke(button))
