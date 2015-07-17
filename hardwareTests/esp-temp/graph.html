@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- EXTERNAL LIBS-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="https://www.google.com/jsapi"></script>
+
+    <!-- EXAMPLE SCRIPT -->
+    <script>
+
+      // onload callback
+      function drawChart() {
+
+        var public_key = 'q5X5m25pp8FYYgZ0EQld';
+
+        // JSONP request
+        var jsonData = $.ajax({
+          url: 'https://data.sparkfun.com/output/' + public_key + '.json',
+          data: {'gte' :{'timestamp' : 'now - 7 days'}},
+          dataType: 'jsonp',
+        }).done(function (results) {
+
+          var data = new google.visualization.DataTable();
+
+          data.addColumn('datetime', 'Time');
+          data.addColumn('number', 'temp degrees C');
+
+          $.each(results, function (i, row) {
+            data.addRow([
+              (new Date(row.timestamp)),
+              parseFloat(row.temp),
+            ]);
+          });
+
+          var chart = new google.visualization.LineChart($('#chart').get(0));
+
+          chart.draw(data, {
+            title: 'G11 temperature',
+            height: 400,
+            hAxis: {
+                        format: 'd/M',
+                    },
+            vAxis: {
+                minValue: 0,
+                maxValue: 40,
+                    },
+          });
+
+        });
+
+      }
+
+      // load chart lib
+      google.load('visualization', '1', {
+        packages: ['corechart']
+      });
+
+      // call drawChart once google charts is loaded
+      google.setOnLoadCallback(drawChart);
+
+    </script>
+
+  </head>
+  <body>
+    <div id="chart" style="width: 100%;"></div>
+    <!--
+    <p><ul>
+    <li><a href="http://bristol.hackspace.org.uk/wiki/doku.php?id=dust-sensor">wiki page</a></li>
+    <li><a href="https://data.sparkfun.com/streams/7JD1NG3mWNuGVqEpqWK0">raw data</a></li>
+    <li><a href="https://github.com/bristolhackspace/dust-sensor">github repo</a></li>
+
+    </ul></p>
+    -->
+  </body>
+</html>
