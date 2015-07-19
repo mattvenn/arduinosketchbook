@@ -1,30 +1,23 @@
 #include <OneWire.h>
-#include <DallasTemperature.h>
 #include <ESP8266WiFi.h>
 #include "secrets.h"
 
 #define LED 0
 #define ONE_WIRE_BUS 2
+#define WIFI
 
-// Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
+long int interval = 1000 * 60; // * 5;
+//long int interval = 1000; // * 60; // * 5;
 float temp;
-long int interval = 1000 * 60 * 5;
-
-// Pass our oneWire reference to Dallas Temperature. 
-DallasTemperature sensors(&oneWire);
 
 void setup()
 {
     pinMode(LED, OUTPUT);
-
-    // start serial port
     Serial.begin(9600);
-    Serial.println("Temperature Sensor");
+    Serial.println("Wifi Temperature Sensor");
 
-    // Start up the library
-    sensors.begin();
-
+    #ifdef WIFI
     WiFi.begin(ssid, password);
 
     while (WiFi.status() != WL_CONNECTED) 
@@ -37,28 +30,30 @@ void setup()
     Serial.println("WiFi connected");  
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
+    #endif
+
 }
 
 void loop()
 {
-    // call sensors.requestTemperatures() to issue a global temperature 
-    // request to all devices on the bus
-    Serial.print("Requesting temperatures...");
-    sensors.requestTemperatures(); // Send the command to get temperatures
-    Serial.println("DONE");
+    // get temp
+    while( ! get_temp() )
+        delay(1000);
 
-    Serial.print("Temperature for the device 1 (index 0) is: ");
-    temp = sensors.getTempCByIndex(0);
     Serial.println(temp);  
-    //send it
-    send(temp);
 
+    #ifdef WIFI
+    // send it
+    send(temp);
+    #endif
+
+    // wait
     digitalWrite(LED, HIGH);
     delay(interval);
     digitalWrite(LED, LOW);
 }
 
-//send the data to sparkfun
+// send the data to sparkfun
 void send(float value)
 {
     Serial.print("connecting to ");
@@ -87,6 +82,8 @@ void send(float value)
     client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                  "Host: " + host + "\r\n" + 
                  "Connection: close\r\n\r\n");
+
+    // wait for response
     delay(500);
     
     // Read all the lines of the reply from server and print them to Serial
