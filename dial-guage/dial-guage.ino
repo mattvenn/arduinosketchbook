@@ -1,23 +1,96 @@
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
+#include <Ticker.h>
+
+const char *ssid =	"flat5";		// cannot be longer than 32 characters!
+const char *pass =	"matt&inma";		//
+
+Ticker t_publish;
+boolean publish_now = false;
+
+IPAddress server(192,168,0,200);
+WiFiClient wclient;
+PubSubClient client(wclient, server);
+
 const int dial = 5;
-const int range = 1024;
-const int wait = 20;
-void setup()
-{
-	pinMode(dial,OUTPUT);
+const int dial_min = 5;
+const int dial_max = 995;
+const int dial_min_allow = 30; //it gets stuck at amounts below 30
+const int dial_max_allow = dial_max;
+
+//client callback for MQTT subscriptions
+void callback(const MQTT::Publish& pub) {
+  Serial.print(pub.topic());
+  Serial.print("=");
+  Serial.println(pub.payload_string());
+  if(pub.topic() == "/dial/guage")
+  {
+    int value = pub.payload_string().toInt();
+    int out = map(value,1000,0,dial_min,dial_max);
+    if(out > dial_max_allow)
+        out = dial_max_allow;
+    if(out < dial_min_allow)
+        out = dial_min_allow;
+    analogWrite(dial,out);
+  }
 }
 
-void loop()
+
+void setup() 
 {
-	for(int i =0; i< range; i++)
-	{
-		analogWrite(dial,i);
-		delay(wait);
-	}
-	for(int i =0; i< range; i++)
-	{
-		analogWrite(dial,range-i);
-		delay(wait);
-	}
+  pinMode(dial,OUTPUT);
+  analogWriteFreq(50);
+  analogWrite(dial,(dial_max-dial_min)/2);
+  Serial.begin(9600);
+  delay(10);
+  Serial.println();
+  Serial.println();
+
+  //client callback for MQTT subscriptions
+  client.set_callback(callback);
+  //publish uptime every 60 seconds
+  t_publish.attach(60, publish);
 }
 
+void loop() {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.print("Connecting to ");
+    Serial.print(ssid);
+    Serial.println("...");
+    WiFi.begin(ssid, pass);
 
+    if (WiFi.waitForConnectResult() != WL_CONNECTED)
+      return;
+    Serial.println("WiFi connected");
+  }
+  else if(WiFi.status() == WL_CONNECTED) 
+  {
+      //not connected - then connect & subscribe
+      if(!client.connected())
+      {
+          //don't clean session so queued messages are received
+          //if (client.connect(MQTT::Connect("dial").unset_clean_session()))
+          if (client.connect("dial"))
+          {
+            Serial.println("connected to MQTT");
+//            client.subscribe("/dial/guage", 2); //qos level 2
+            client.subscribe("/dial/guage"); 
+          }
+      }
+      else if(publish_now)
+      {
+        Serial.println("publishing uptime to MQTT");
+        client.publish("/dial/uptime",String(millis()));
+        client.publish("/dial/heap",String(ESP.getFreeHeap()));
+        publish_now = false;
+      }
+  }
+
+  delay(500);
+  client.loop();
+}
+
+void publish()
+{
+    publish_now = true;
+}
