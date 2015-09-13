@@ -12,7 +12,7 @@ IPAddress server(192,168,0,200);
 WiFiClient wclient;
 PubSubClient client(wclient, server);
 
-const int dial = 5;
+const int dial_pin = 5;
 const int dial_min = 5;
 const int dial_max = 995;
 const int dial_min_allow = 30; //it gets stuck at amounts below 30
@@ -26,21 +26,29 @@ void callback(const MQTT::Publish& pub) {
   if(pub.topic() == "/dial/guage")
   {
     int value = pub.payload_string().toInt();
-    int out = map(value,1000,0,dial_min,dial_max);
+    dial(value);
+  }
+}
+
+/*
+write a number between 0 and 1000 to the dial
+handles min and max amounts
+prevents dial from getting stuck at min
+*/
+void dial(int amount)
+{
+    int out = map(amount,1000,0,dial_min,dial_max);
     if(out > dial_max_allow)
         out = dial_max_allow;
     if(out < dial_min_allow)
         out = dial_min_allow;
-    analogWrite(dial,out);
-  }
+    analogWrite(dial_pin,out);
 }
-
 
 void setup() 
 {
-  pinMode(dial,OUTPUT);
   analogWriteFreq(50);
-  analogWrite(dial,(dial_max-dial_min)/2);
+  dial(0);
   Serial.begin(9600);
   delay(10);
   Serial.println();
@@ -52,8 +60,11 @@ void setup()
   t_publish.attach(60, publish);
 }
 
-void loop() {
-  if (WiFi.status() != WL_CONNECTED) {
+void loop() 
+{
+  if (WiFi.status() != WL_CONNECTED) 
+  {
+    dial(250);
     Serial.print("Connecting to ");
     Serial.print(ssid);
     Serial.println("...");
@@ -68,6 +79,7 @@ void loop() {
       //not connected - then connect & subscribe
       if(!client.connected())
       {
+          dial(500);
           //don't clean session so queued messages are received
           //if (client.connect(MQTT::Connect("dial").unset_clean_session()))
           if (client.connect("dial"))
@@ -75,6 +87,7 @@ void loop() {
             Serial.println("connected to MQTT");
 //            client.subscribe("/dial/guage", 2); //qos level 2
             client.subscribe("/dial/guage"); 
+            dial(750);
           }
       }
       else if(publish_now)
