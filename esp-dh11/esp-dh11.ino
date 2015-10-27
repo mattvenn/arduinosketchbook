@@ -7,25 +7,31 @@ git@github.com:adafruit/DHT-sensor-library.git
 #include "secrets.h"
 
 #include "DHT.h"
-#define DHTPIN 2     // what digital pin we're connected to
+#define LEDPIN 5
+#define DHTPIN 4     // what digital pin we're connected to
 #define DHTTYPE DHT11   // DHT 11
 
 DHT dht(DHTPIN, DHTTYPE);
 
-#define SAMPLETIME_MS 1000 * 60 * 1 //sample every 1 mins
+#define POST_TIME_MS 1000 * 60 * 1 //sample every 1 mins
 
 // state machine
-#define NOT_CONNECTED 1
-#define WAITING 2
-#define CHECK_WIFI 3
-#define POSTING 4
+enum states
+{
+    NOT_CONNECTED,
+    SAMPLING,
+    CHECK_WIFI,
+    POSTING,
+};
 
-int state = NOT_CONNECTED;
+states state = NOT_CONNECTED;
 int last_state = -1;
+
 
 void setup()
 {
     Serial.begin(9600);
+    pinMode(LEDPIN, OUTPUT);
     Serial.println();
     Serial.println();
     dht.begin();
@@ -34,6 +40,9 @@ void setup()
 void loop()
 {
     static unsigned long start_time;
+    static int samples = 0;
+    static float total_temp = 0;
+    static float total_humidity = 0;
 
     if(last_state != state)
     {
@@ -47,12 +56,30 @@ void loop()
         case NOT_CONNECTED:
         {
             start_wifi();
-            state = WAITING;
+            state = SAMPLING;
             break;
         }
-        case WAITING:
+        case SAMPLING:
         {
-            if((millis() - start_time) > SAMPLETIME_MS)
+            delay(500);
+            // Reading temperature or humidity takes about 250 milliseconds!
+            // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+            float humidity = dht.readHumidity();
+            float temp = dht.readTemperature();
+
+            // Check if any reads failed and exit early (to try again).
+            if (isnan(humidity) || isnan(temp))
+            {
+                Serial.println("Failed to read from DHT sensor!");
+            }
+            else
+            {
+                samples ++;
+                total_temp += temp;
+                total_humidity += humidity;
+            }
+
+            if((millis() - start_time) > POST_TIME_MS)
                 state = CHECK_WIFI;
             break;
         }
@@ -66,30 +93,23 @@ void loop()
         }
         case POSTING:
         {
-            post();
+            Serial.print("averaging samples:");
+            Serial.println(samples);
+            post(total_temp/samples, total_humidity/samples);
+            total_temp = 0;
+            total_humidity = 0;
+            samples = 0;
             start_time = millis();
-            state = WAITING;
+            state = SAMPLING;
             break;
         }
     }
 
 }
 
-void post()
+void post(float temp, float humidity)
 {
-    // Reading temperature or humidity takes about 250 milliseconds!
-    // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-    float humidity = dht.readHumidity();
-    // Read temperature as Celsius (the default)
-    float temp = dht.readTemperature();
-
-    // Check if any reads failed and exit early (to try again).
-    if (isnan(humidity) || isnan(temp))
-    {
-        Serial.println("Failed to read from DHT sensor!");
-        return;
-    }
-
+    digitalWrite(LEDPIN, HIGH);
     Serial.print("Humidity: ");
     Serial.print(humidity);
     Serial.print(" %\t");
@@ -138,10 +158,12 @@ void post()
   
     Serial.println();
     Serial.println("closing connection");
+    digitalWrite(LEDPIN, LOW);
 }
 
 void start_wifi()
 {
+    digitalWrite(LEDPIN, HIGH);
     Serial.print("Connecting to ");
     Serial.println(ssid);
 
@@ -157,5 +179,6 @@ void start_wifi()
     Serial.println("WiFi connected");  
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
+    digitalWrite(LEDPIN, LOW);
 }
 
