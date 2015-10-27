@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- EXTERNAL LIBS-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="https://www.google.com/jsapi"></script>
+
+    <!-- EXAMPLE SCRIPT -->
+    <script>
+
+      // onload callback
+      function drawChart() {
+
+        var public_key = '2X0oJkZLaauMabd24JYBUvX6ZpM';
+
+        // JSONP request
+        var jsonData = $.ajax({
+          url: 'http://phant.cursivedata.co.uk/output/' + public_key + '.json',
+          data: {'sample': 1, 'gte' :{'timestamp' : 'now - 12 hours'}},
+          dataType: 'jsonp',
+	  
+        }).done(function (results) {
+
+          var data = new google.visualization.DataTable();
+
+          data.addColumn('datetime', 'Time');
+          data.addColumn('number', ' (degC)');
+          data.addColumn('number', 'humidity (%)');
+
+          $.each(results, function (i, row) {
+            data.addRow([
+              (new Date(row.timestamp)),
+              parseFloat(row.temp),
+              parseFloat(row.humidity),
+            ]);
+          });
+
+          var chart = new google.visualization.LineChart($('#chart').get(0));
+
+          chart.draw(data, {
+            title: 'Temp',
+            height: 400,
+
+            vAxes: {
+            0: {viewWindow: { min: 15, max: 35 }},
+            1: {viewWindow: { min: 45, max: 65 }},
+            },
+            series:{
+           0:{targetAxisIndex:0},
+           1:{targetAxisIndex:1},
+           },
+
+          });
+
+        });
+
+      }
+
+      // load chart lib
+      google.load('visualization', '1', {
+        packages: ['corechart']
+      });
+
+      // call drawChart once google charts is loaded
+      google.setOnLoadCallback(drawChart);
+
+    </script>
+
+  </head>
+  <body>
+    <div id="chart" style="width: 100%;"></div>
+    <p><ul>
+    <li><a href="http://phant.cursivedata.co.uk/streams/2X0oJkZLaauMabd24JYBUvX6ZpM">raw data</a></li>
+    <li><a href="https://github.com/mattvenn/arduinosketchbook/tree/master/esp-dh11">github repo</a></li>
+    </ul></p>
+  </body>
+</html>
