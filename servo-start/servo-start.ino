@@ -130,11 +130,12 @@ void loop(){
         calc = false;
         Packet pos;
         status = bufferRead(&pos);
-        posref = pos.lpos;
         if (status == BUFFER_EMPTY) {      
             //underrun
             Serial.write(BUFFER_EMPTY);
         } 
+        else
+            posref = pos.lpos;
      long newPosition = myEnc.read();
      xn = float(posref - newPosition);
       yn = ynm1 + (b0*xn) + (b1*xnm1) + (b2*xnm2);
