@@ -4,6 +4,7 @@ import time
 import logging
 import math
 import struct
+import pickle
 
 buflen = 16
 freq = 50.0
@@ -89,7 +90,7 @@ class TestBuffer(unittest.TestCase):
         self.assertEqual(status, 4)
         self.assertEqual(id, 1)
 
-    def test_keep_buffer_full(self):
+    def xtest_keep_buffer_full(self):
         self._serial_port.timeout=0.001
         self._serial_port.flushInput()
         
@@ -98,6 +99,54 @@ class TestBuffer(unittest.TestCase):
             logging.info("writing %d" % i)
             data = struct.pack('<HHBB',i*10,i*10,i % 256,0)
             self._serial_port.write(data)
+            response = self._serial_port.read(1);
+            if response:
+                status, = struct.unpack('<B', response)
+
+                # overrun
+                if status == 2:
+                    response = self._serial_port.read(1);
+                    id, = struct.unpack('<B', response)
+                    logging.info("overrun last id = %d, sleeping...." % id)
+                    time.sleep((buflen / 2) * (1 / freq))
+                    i = id
+                # missing data
+                elif status == 4:
+                    response = self._serial_port.read(1);
+                    id, = struct.unpack('<B', response)
+                    logging.info("missing data, last id = %d" % id)
+                    i = id
+                # underrun
+                elif status == 1:
+                    logging.info("underrun")
+                # buffer low
+                elif status == 5:
+                    logging.info("buffer low")
+                # buffer high
+                elif status == 6:
+                    logging.info("buffer high, sleeping")
+                    time.sleep(0.1)
+                else:
+                    logging.debug("unexpected status: %s" % status)
+
+            i += 1
+
+    def test_run_robot(self):
+        self._serial_port.timeout=0.001
+        self._serial_port.flushInput()
+
+        with open('points.d') as fh:
+            data = pickle.load(fh)
+
+        logging.info("file is %d points long" % len(data['i']))
+        
+        i = 1
+        while i < len(data['i']):
+            logging.info("writing %d" % i)
+            a = data['i'][i]['a']
+            b = data['i'][i]['b']
+            bindata = struct.pack('<HHBB',int(a*10),int(b*10),i % 256,0)
+            self._serial_port.write(bindata)
             response = self._serial_port.read(1);
             if response:
                 status, = struct.unpack('<B', response)
@@ -129,7 +178,6 @@ class TestBuffer(unittest.TestCase):
                     logging.debug("unexpected status: %s" % status)
 
             i += 1
-
 
 if __name__ == '__main__':
     unittest.main()
