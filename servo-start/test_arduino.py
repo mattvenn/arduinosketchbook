@@ -170,51 +170,36 @@ class TestBuffer(unittest.TestCase):
 
             i += 1
 
-    def xtest_run_robot(self):
-        self._serial_port.timeout=0.001
-        self._serial_port.flushInput()
-
+    def test_run_robot(self):
         with open('points.d') as fh:
-            data = pickle.load(fh)
+            points = pickle.load(fh)
+        logging.info("file is %d points long" % len(points['i']))
 
-        logging.info("file is %d points long" % len(data['i']))
+        self._serial_port.flushInput()
+        self.send_packet(STOP)
+        status, data = self.get_response()
+        self.send_packet(FLUSH)
+        status, data = self.get_response()
+        self.assertEqual(status, BUFFER_EMPTY)
         
         i = 1
-        while i < len(data['i']):
-            logging.info("writing %d" % i)
-            a = data['i'][i]['a']
-            b = data['i'][i]['b']
-            bindata = struct.pack('<HHBB',int(a*10),int(b*10),i % 256,0)
-            self._serial_port.write(bindata)
-            response = self._serial_port.read(1);
-            if response:
-                status, = struct.unpack('<B', response)
+        while i < len(points['i']):
+            if i == buflen / 2:
+                self.send_packet(START)
+                status, data = self.get_response()
 
-                # overrun
-                if status == 2:
-                    response = self._serial_port.read(1);
-                    id, = struct.unpack('<B', response)
-                    logging.info("overrun last id = %d, sleeping...." % id)
-                    time.sleep((buflen / 2) * (1 / freq))
-                    i = id + 1
-                # missing data
-                elif status == 4:
-                    response = self._serial_port.read(1);
-                    id, = struct.unpack('<B', response)
-                    logging.info("missing data, last id = %d" % id)
-                    i = id + 1
-                # underrun
-                elif status == 1:
-                    logging.info("underrun")
-                # buffer low
-                elif status == 5:
-                    logging.info("buffer low")
-                # buffer high
-                elif status == 6:
-                    logging.info("buffer high, sleeping")
-                    time.sleep(0.1)
-                else:
-                    logging.debug("unexpected status: %s" % status)
+            logging.info("writing %d" % i)
+            a = points['i'][i]['a']
+            b = points['i'][i]['b']
+            self.send_packet(LOAD, a, b, i % 256)
+            status, data = self.get_response()
+
+            if status == BUFFER_OK:
+                pass
+            elif status == BUFFER_HIGH:
+                time.sleep(buflen / 2 * (1 / freq))
+            else:
+                self.fail("packet %d unexpected status: %s [%s]" % (i, self.status_str(status), data))
 
             i += 1
 
