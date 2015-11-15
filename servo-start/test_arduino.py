@@ -25,7 +25,7 @@ FLUSH = 3
 buflen = 32
 freq = 50.0
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 crc8_func = crcmod.predefined.mkPredefinedCrcFun("crc-8-maxim")
 
 class TestBuffer(unittest.TestCase):
@@ -163,6 +163,8 @@ class TestBuffer(unittest.TestCase):
 
             if status == BUFFER_OK:
                 pass
+            elif status == BUFFER_LOW:
+                pass
             elif status == BUFFER_HIGH:
                 time.sleep(buflen / 2 * (1 / freq))
             else:
@@ -188,13 +190,15 @@ class TestBuffer(unittest.TestCase):
                 self.send_packet(START)
                 status, data = self.get_response()
 
-            logging.info("writing %d" % i)
+            logging.debug("writing %d" % i)
             a = points['i'][i]['a']
             b = points['i'][i]['b']
             self.send_packet(LOAD, a, b, i % 256)
             status, data = self.get_response()
 
             if status == BUFFER_OK:
+                pass
+            elif status == BUFFER_LOW:
                 pass
             elif status == BUFFER_HIGH:
                 time.sleep(buflen / 2 * (1 / freq))
