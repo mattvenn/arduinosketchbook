@@ -64,6 +64,8 @@ enum BufferStatus bufferStatus()
 {
 //    int space = (buffer.newest_index - buffer.oldest_index) % BUFFER_SIZE;
     int space = (buffer.newest_index - buffer.oldest_index + BUFFER_SIZE) % BUFFER_SIZE;
+    if(space == 0)
+        return BUFFER_EMPTY;
     if(space < BUFFER_SIZE / 2)
         return BUFFER_LOW;
     if(space > 3 * BUFFER_SIZE / 4)
@@ -141,10 +143,10 @@ void loop(){
         {
             Packet pos;
             status = bufferRead(&pos);
-            if (status == BUFFER_EMPTY)
-                send_response(BUFFER_EMPTY,0);
-            else
+            if (status != BUFFER_EMPTY)
                 posref = pos.lpos;
+                //send_response(BUFFER_EMPTY,0);
+            //else
         }
      long newPosition = myEnc.read();
      xn = float(posref - newPosition);
@@ -190,11 +192,11 @@ void loop(){
         {
             case START:
                 running = true;
-                send_response(BUFFER_OK,0);
+                send_response(bufferStatus(),0);
                 break;
             case STOP:
                 running = false;
-                send_response(BUFFER_OK,0);
+                send_response(bufferStatus(),0);
                 break;
             case LOAD:
                 //load does send_response
@@ -205,7 +207,7 @@ void loop(){
                 last_id = 0;
                 buffer.oldest_index = 0;
                 buffer.newest_index = 0;
-                send_response(BUFFER_OK,0);
+                send_response(bufferStatus(),0);
                 break;
         }
     }
@@ -228,29 +230,29 @@ void send_response(uint8_t status, uint8_t data)
 
 void load(Packet data)
 {
-        //check id is next in series
-        if(data.id != (last_id + 1) % 256)
-        {
-            send_response(MISSING_DATA, last_id);
-            return;
-        }
-            
-        //add to buffer
-        int status = bufferWrite(data);
-        if (status == BUFFER_FULL) 
-        {      
-            send_response(BUFFER_FULL, last_id);
-            return;
-        }
-        else if(status == BUFFER_OK)
-        {
-            last_id = data.id;
-            status = bufferStatus();
-            if(status == BUFFER_HIGH)
-                send_response(BUFFER_HIGH, 0);
-            else
-                send_response(BUFFER_OK, 0);
-        }
+    //check id is next in series
+    if(data.id != (last_id + 1) % 256)
+    {
+        send_response(MISSING_DATA, last_id);
+        return;
+    }
+        
+    //add to buffer
+    int status = bufferWrite(data);
+    if (status == BUFFER_FULL) 
+    {      
+        send_response(BUFFER_FULL, last_id);
+        return;
+    }
+    else if(status == BUFFER_OK)
+    {
+        last_id = data.id;
+        status = bufferStatus();
+        if(status == BUFFER_HIGH)
+            send_response(BUFFER_HIGH, 0);
+        else
+            send_response(BUFFER_OK, 0);
+    }
 }
 
 byte CRC8(char *data, byte len) {

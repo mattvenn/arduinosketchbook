@@ -15,7 +15,6 @@ BAD_CKSUM = 3
 MISSING_DATA = 4
 BUFFER_LOW = 5
 BUFFER_HIGH = 6
-START = 7
 
 #commands
 START = 0
@@ -33,7 +32,7 @@ class TestBuffer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls._serial_port=serial.Serial()
-        cls._serial_port.port='/dev/ttyACM1'
+        cls._serial_port.port='/dev/ttyACM0'
         cls._serial_port.timeout=1
         cls._serial_port.baudrate=115200
         cls._serial_port.open()
@@ -44,18 +43,39 @@ class TestBuffer(unittest.TestCase):
     def tearDownClass(cls):
         cls._serial_port.close()
 
+    def status_str(self, status):
+        if status == BUFFER_OK:
+            return 'BUFFER_OK'
+        if status == BUFFER_EMPTY:
+            return 'BUFFER_EMPTY'
+        if status == BUFFER_FULL:
+            return 'BUFFER_FULL'
+        if status == BAD_CKSUM:
+            return 'BAD_CKSUM'
+        if status == MISSING_DATA:
+            return 'MISSING_DATA'
+        if status == BUFFER_LOW:
+            return 'BUFFER_LOW'
+        if status == BUFFER_HIGH:
+            return 'BUFFER_HIGH'
+        if status == START:
+            return 'START'
+        
     def get_response(self):
         response = self._serial_port.read(3)
-        status, data, cksum = struct.unpack('<BBB', response)
-        data = struct.pack('<BB',status,data)
-        # check cksum
-        self.assertEqual(cksum, crc8_func(data))
-        return status, data
+        if response:
+            status, data, cksum = struct.unpack('<BBB', response)
+            bin = struct.pack('<BB',status,data)
+            # check cksum
+            self.assertEqual(cksum, crc8_func(bin))
+            return status, data
+        else:
+            logging.error("response time out")
 
-    def send_packet(self, command, lpos, rpos, id):
-        data = struct.pack('<BHHB', command, lpos, rpos, id)
-        data = struct.pack('<BHHBB',command, lpos, rpos, id, crc8_func(data))
-        self._serial_port.write(data)
+    def send_packet(self, command, lpos=0, rpos=0, id=0):
+        bin = struct.pack('<BHHB', command, lpos, rpos, id)
+        bin = struct.pack('<BHHBB',command, lpos, rpos, id, crc8_func(bin))
+        self._serial_port.write(bin)
 
     def test_good_cksum(self):
         self._serial_port.flushInput()
@@ -67,33 +87,37 @@ class TestBuffer(unittest.TestCase):
     def test_bad_cksum(self):
         self._serial_port.flushInput()
         for i in range(1,100):
-            data = struct.pack('<BHHB',START, i,i,i)
-            data = struct.pack('<BHHBB',START, i+1,i+1,i,crc8_func(data))
-            self._serial_port.write(data)
+            bin = struct.pack('<BHHB',START, i,i,i)
+            bin = struct.pack('<BHHBB',START, i+1,i+1,i,crc8_func(bin))
+            self._serial_port.write(bin)
             status, data = self.get_response()
             self.assertEqual(status, BAD_CKSUM)
 
     def test_buffer_underrun(self):
         self._serial_port.flushInput()
-        self.send_packet(START, 0, 0, 0)
+        self.send_packet(FLUSH)
         status, data = self.get_response()
-        self.assertEqual(status, BUFFER_OK)
+        self.send_packet(START)
+        status, data = self.get_response()
+        self.assertEqual(status, BUFFER_EMPTY)
 
         # run at less than frequency
-        for i in range(1, buflen):
+        for i in range(1, buflen / 2):
             self.send_packet(LOAD, i, i, i)
             status, data = self.get_response()
-            time.sleep(10 * (1 / freq))
+            time.sleep(20 * (1 / freq))
 
+        self.send_packet(STOP)
+        status, data = self.get_response()
         self.assertEqual(status, BUFFER_EMPTY)
 
     def test_buffer_overrun(self):
         self._serial_port.flushInput()
-        self.send_packet(FLUSH, 0, 0, 0)
+        self.send_packet(FLUSH)
         status, data = self.get_response()
-        self.send_packet(STOP, 0, 0, 0)
+        self.send_packet(STOP)
         status, data = self.get_response()
-        self.assertEqual(status, BUFFER_OK)
+        self.assertEqual(status, BUFFER_EMPTY)
 
         for i in range(1, buflen + 1):
             self.send_packet(LOAD, i, i, i)
@@ -105,60 +129,48 @@ class TestBuffer(unittest.TestCase):
         
     def test_missing_data(self):
         self._serial_port.flushInput()
-        self.send_packet(FLUSH, 0, 0, 0)
+        self.send_packet(STOP)
         status, data = self.get_response()
+        self.send_packet(FLUSH)
+        status, data = self.get_response()
+        self.assertEqual(status, BUFFER_EMPTY)
 
         for i in range(1, buflen / 2):
             self.send_packet(LOAD, i, i, i)
             status, data = self.get_response()
 
-        self.send_packet(LOAD, 0, 0, 0)
+        self.send_packet(LOAD)
         status, data = self.get_response()
 
         self.assertEqual(status, MISSING_DATA)
+        self.assertEqual(data, buflen / 2 - 1)
 
     def test_keep_buffer_full(self):
-#        self._serial_port.timeout=0.001
         self._serial_port.flushInput()
-        self.send_packet(FLUSH, 0, 0, 0)
+        self.send_packet(STOP)
         status, data = self.get_response()
+        self.send_packet(FLUSH)
+        status, data = self.get_response()
+        self.assertEqual(status, BUFFER_EMPTY)
 
-        self.send_packet(START, 0, 0, 0)
-        status, data = self.get_response()
-        
         i = 1
         while i < 1000:
-#            logging.info("writing %d" % i)
+            if i == buflen / 2:
+                self.send_packet(START)
+                status, data = self.get_response()
             self.send_packet(LOAD, i, i, i % 256)
             status, data = self.get_response()
 
             if status == BUFFER_OK:
                 pass
-            # overrun
-            elif status == BUFFER_FULL:
-                logging.info("overrun last id = %d, sleeping...." % data)
-                time.sleep((buflen / 2) * (1 / freq))
-                i = data + 1
-            # missing data
-            elif status == MISSING_DATA:
-                logging.info("missing data, last id = %d" % data)
-                i = data + 1
-            # underrun
-            elif status == BUFFER_EMPTY:
-                logging.info("underrun")
-            # buffer low
-            elif status == BUFFER_LOW:
-                logging.info("buffer low")
-            # buffer high
             elif status == BUFFER_HIGH:
-                logging.info("buffer high, sleeping")
-                time.sleep(0.1)
+                time.sleep(buflen / 2 * (1 / freq))
             else:
-                logging.debug("unexpected status: %s" % status)
+                self.fail("packet %d unexpected status: %s [%s]" % (i, self.status_str(status), data))
 
             i += 1
 
-    def test_run_robot(self):
+    def xtest_run_robot(self):
         self._serial_port.timeout=0.001
         self._serial_port.flushInput()
 
