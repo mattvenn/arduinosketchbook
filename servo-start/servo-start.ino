@@ -1,6 +1,12 @@
 /*
 buffer tips:
 http://hackaday.com/2015/10/29/embed-with-elliot-going-round-with-circular-buffers/
+
+rs485 tips
+http://www.gammon.com.au/forum/?id=11428
+
+crc tips
+http://www.leonardomiliani.com/en/2013/un-semplice-crc8-per-arduino/
 */
 
 #include <Encoder.h>
@@ -10,17 +16,18 @@ Encoder myEnc(2,3);
 #define REV 6
 
 boolean running = false;
+volatile bool calc;
+int timer1_counter = 0;
+uint8_t last_id = 0;
 
+//pid globals
 int pwm = 128;
 unsigned int posref = 0;
-// long a1 = 0;
-// long a2 = 0;
 float b0 = 0;
 float b1 = 0;
 float b2 = 0;
 double yn = 0;
 double ynm1 = 0;
-// long ynm2 = 0;
 float xn = 0;
 float xnm1 = 0;
 float xnm2 = 0;
@@ -28,6 +35,7 @@ float kp = .9;
 float ki = 0.000;
 float kd = .5;
 
+//message structures
 typedef struct {
     uint8_t command;
     unsigned int lpos;
@@ -42,8 +50,8 @@ typedef struct {
     uint8_t cksum;
 } Response;
 
+//ring buffer for movement commands
 #define BUFFER_SIZE 32 //must be a power of 2!
-
 struct Buffer {
 	Packet data[BUFFER_SIZE];
 	uint8_t newest_index;
@@ -52,9 +60,11 @@ struct Buffer {
 
 struct Buffer buffer = {{}, 0, 0};;
 
+//command definitions
 enum BufferStatus {BUFFER_OK, BUFFER_EMPTY, BUFFER_FULL, BAD_CKSUM, MISSING_DATA,BUFFER_LOW, BUFFER_HIGH};
 enum Commands { START, STOP, LOAD, FLUSH };
 
+//ring buffer functions
 void load(Packet data);
 enum BufferStatus bufferWrite(Packet byte);
 enum BufferStatus bufferRead(Packet *byte);
@@ -62,7 +72,6 @@ enum BufferStatus bufferStatus();
 
 enum BufferStatus bufferStatus()
 {
-//    int space = (buffer.newest_index - buffer.oldest_index) % BUFFER_SIZE;
     int space = (buffer.newest_index - buffer.oldest_index + BUFFER_SIZE) % BUFFER_SIZE;
     if(space == 0)
         return BUFFER_EMPTY;
@@ -73,7 +82,6 @@ enum BufferStatus bufferStatus()
     return BUFFER_OK; 
 }
     
-
 enum BufferStatus bufferWrite(Packet byte){
 	uint8_t next_index = (buffer.newest_index+1) % BUFFER_SIZE;
 
@@ -82,7 +90,7 @@ enum BufferStatus bufferWrite(Packet byte){
 	}
 	buffer.data[buffer.newest_index] = byte;
 	buffer.newest_index = next_index;
-	return BUFFER_OK;
+	return bufferStatus();
 }
 
 enum BufferStatus bufferRead(Packet *byte){
@@ -91,85 +99,82 @@ enum BufferStatus bufferRead(Packet *byte){
 	}
 	*byte = buffer.data[buffer.oldest_index];
 	buffer.oldest_index = (buffer.oldest_index+1) % BUFFER_SIZE;
-	return BUFFER_OK;
+	return bufferStatus();
 }
 
-volatile bool calc;
-int timer1_counter = 0;
-
-ISR(TIMER1_OVF_vect)        // interrupt service routine 
+//interrupt service routine 
+ISR(TIMER1_OVF_vect)        
 {
-  TCNT1 = timer1_counter;   // preload timer
-  calc = true;
+    //preload timer
+    TCNT1 = timer1_counter;   
+    calc = true;
 }
 
 void setup()
 {
-  Serial.begin(115200);
-  //test_space();
+    Serial.begin(115200);
 
-  TCCR1A = 0;
-  TCCR1B = 0;
+    TCCR1A = 0;
+    TCCR1B = 0;
 
-  // Set timer1_counter to the correct value for our interrupt interval
-  //timer1_counter = 64911;   // preload timer 65536-16MHz/256/100Hz
-  timer1_counter = 64286;   // preload timer 65536-16MHz/256/50Hz
-  //timer1_counter = 34286;   // preload timer 65536-16MHz/256/2Hz
-  
-  TCNT1 = timer1_counter;   // preload timer
-  TCCR1B |= (1 << CS12);    // 256 prescaler 
-  TIMSK1 |= (1 << TOIE1);   // enable timer overflow interrupt
-  interrupts();             // enable all interrupts
+    // Set timer1_counter to the correct value for our interrupt interval
+    //timer1_counter = 64911;   // preload timer 65536-16MHz/256/100Hz
+    timer1_counter = 64286;   // preload timer 65536-16MHz/256/50Hz
+    //timer1_counter = 34286;   // preload timer 65536-16MHz/256/2Hz
 
-  pinMode(FOR, OUTPUT);
-  digitalWrite(FOR,LOW);
-  pinMode(REV, OUTPUT);
-  digitalWrite(REV,LOW);
+    TCNT1 = timer1_counter;   // preload timer
+    TCCR1B |= (1 << CS12);    // 256 prescaler 
+    TIMSK1 |= (1 << TOIE1);   // enable timer overflow interrupt
+    interrupts();             // enable all interrupts
 
-  b0 = kp+ki+kd;
-  b1 = -kp-2*kd;
-  b2 = kd;
+    pinMode(FOR, OUTPUT);
+    digitalWrite(FOR,LOW);
+    pinMode(REV, OUTPUT);
+    digitalWrite(REV,LOW);
+
+    b0 = kp+ki+kd;
+    b1 = -kp-2*kd;
+    b2 = kd;
 }
 
-uint8_t last_id = 0;
 
-void loop(){
+void loop()
+{
     enum BufferStatus status;
 
     if(calc)
     {
         calc = false;
+        //get next command from buffer
         if(running)
         {
             Packet pos;
             status = bufferRead(&pos);
             if (status != BUFFER_EMPTY)
                 posref = pos.lpos;
-                //send_response(BUFFER_EMPTY,0);
-            //else
         }
-     long newPosition = myEnc.read();
-     xn = float(posref - newPosition);
-      yn = ynm1 + (b0*xn) + (b1*xnm1) + (b2*xnm2);
-      ynm1 = yn;
-      if(yn > 127)
-      {
-        yn = 127;
-      }
-      if(yn < -128)
-      {
-        yn = -128;
-      }
-      
-      pwm = 128 + int(yn);   
-  
-  //write pwm values
-  analogWrite(FOR,255-pwm);
-  analogWrite(REV,pwm);
 
-  //set previous input and output values
-      xnm1 = xn;
-      xnm2 = xnm1;
+        //pid calculation
+        long newPosition = myEnc.read();
+        xn = float(posref - newPosition);
+        yn = ynm1 + (b0*xn) + (b1*xnm1) + (b2*xnm2);
+        ynm1 = yn;
+
+        //limit
+        if(yn > 127)
+            yn = 127;
+        if(yn < -128)
+            yn = -128;
+
+        pwm = 128 + int(yn);   
+
+        //write pwm values
+        analogWrite(FOR,255-pwm);
+        analogWrite(REV,pwm);
+
+        //set previous input and output values
+        xnm1 = xn;
+        xnm2 = xnm1;
     }
     
     if(Serial.available() >= sizeof(Packet))
@@ -237,36 +242,34 @@ void load(Packet data)
         return;
     }
         
-    //add to buffer
+    //try to add to buffer
     int status = bufferWrite(data);
-    if (status == BUFFER_FULL) 
-    {      
-        send_response(BUFFER_FULL, last_id);
-        return;
-    }
-    else if(status == BUFFER_OK)
-    {
+
+    if (status != BUFFER_FULL) 
+        //success, so store last id
         last_id = data.id;
-        status = bufferStatus();
-        if(status == BUFFER_HIGH)
-            send_response(BUFFER_HIGH, 0);
-        else
-            send_response(BUFFER_OK, 0);
-    }
+
+    //send response
+    send_response(status, last_id);
 }
 
-byte CRC8(char *data, byte len) {
-  byte crc = 0x00;
-  while (len--) {
-    byte extract = *data++;
-    for (byte tempI = 8; tempI; tempI--) {
-      byte sum = (crc ^ extract) & 0x01;
-      crc >>= 1;
-      if (sum) {
-        crc ^= 0x8C;
-      }
-      extract >>= 1;
+//crc from Dallas Semi
+byte CRC8(char *data, byte len) 
+{
+    byte crc = 0x00;
+    while (len--)
+    {
+        byte extract = *data++;
+        for (byte tempI = 8; tempI; tempI--) 
+        {
+            byte sum = (crc ^ extract) & 0x01;
+            crc >>= 1;
+            if(sum) 
+            {
+                crc ^= 0x8C;
+            }
+            extract >>= 1;
+        }
     }
-  }
-  return crc;
+    return crc;
 }
