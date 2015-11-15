@@ -9,6 +9,7 @@ Encoder myEnc(2,3);
 #define FOR 5
 #define REV 6
 
+boolean running = false;
 
 int pwm = 128;
 unsigned int posref = 0;
@@ -28,11 +29,18 @@ float ki = 0.000;
 float kd = .5;
 
 typedef struct {
+    uint8_t command;
     unsigned int lpos;
     unsigned int rpos;
     uint8_t id;
     uint8_t cksum;
 } Packet;
+
+typedef struct {
+    uint8_t status;
+    uint8_t data;
+    uint8_t cksum;
+} Response;
 
 #define BUFFER_SIZE 32 //must be a power of 2!
 
@@ -45,7 +53,9 @@ struct Buffer {
 struct Buffer buffer = {{}, 0, 0};;
 
 enum BufferStatus {BUFFER_OK, BUFFER_EMPTY, BUFFER_FULL, BAD_CKSUM, MISSING_DATA,BUFFER_LOW, BUFFER_HIGH};
+enum Commands { START, STOP, LOAD, FLUSH };
 
+void load(Packet data);
 enum BufferStatus bufferWrite(Packet byte);
 enum BufferStatus bufferRead(Packet *byte);
 enum BufferStatus bufferStatus();
@@ -84,7 +94,6 @@ enum BufferStatus bufferRead(Packet *byte){
 
 volatile bool calc;
 int timer1_counter = 0;
-int packet_len;
 
 ISR(TIMER1_OVF_vect)        // interrupt service routine 
 {
@@ -96,7 +105,6 @@ void setup()
 {
   Serial.begin(115200);
   //test_space();
-  packet_len = sizeof(Packet);
 
   TCCR1A = 0;
   TCCR1B = 0;
@@ -121,21 +129,23 @@ void setup()
   b2 = kd;
 }
 
+uint8_t last_id = 0;
+
 void loop(){
     enum BufferStatus status;
-    static uint8_t last_id;
 
     if(calc)
     {
         calc = false;
-        Packet pos;
-        status = bufferRead(&pos);
-        if (status == BUFFER_EMPTY) {      
-            //underrun
-            Serial.write(BUFFER_EMPTY);
-        } 
-        else
-            posref = pos.lpos;
+        if(running)
+        {
+            Packet pos;
+            status = bufferRead(&pos);
+            if (status == BUFFER_EMPTY)
+                send_response(BUFFER_EMPTY,0);
+            else
+                posref = pos.lpos;
+        }
      long newPosition = myEnc.read();
      xn = float(posref - newPosition);
       yn = ynm1 + (b0*xn) + (b1*xnm1) + (b2*xnm2);
@@ -160,49 +170,76 @@ void loop(){
       xnm2 = xnm1;
     }
     
-    if(Serial.available() >= packet_len)
+    if(Serial.available() >= sizeof(Packet))
     {
         Packet data;
         char buf[sizeof(Packet)];
+        // do something with status?
         int status = Serial.readBytes(buf, sizeof(Packet));
-        memcpy(&data, &buf, sizeof(Packet));
-        /*
-        Serial.print(status);
-        Serial.print("\n");
-        Serial.print(data.lpos);
-        Serial.print("\n");
-        Serial.print(data.rpos);
-        Serial.print("\n");
-        Serial.print(data.id);
-        Serial.print("\n");
-        Serial.print(data.cksum);
-        Serial.print("\n");
-        return;
-        */
 
+        //copy buffer to structure
+        memcpy(&data, &buf, sizeof(Packet));
         //calculate cksum is ok
-        /*
-        if(data.cksum != CRC8(&data,packet_len))
+        if(data.cksum != CRC8(buf,sizeof(Packet)-1))
         {
-            Serial.print(BAD_CKSUM);
+            send_response(BAD_CKSUM,0);
             return;
         }
-        */
 
+        switch(data.command)
+        {
+            case START:
+                running = true;
+                send_response(BUFFER_OK,0);
+                break;
+            case STOP:
+                running = false;
+                send_response(BUFFER_OK,0);
+                break;
+            case LOAD:
+                //load does send_response
+                load(data);
+                break;
+            case FLUSH:
+                //flush buffer
+                last_id = 0;
+                buffer.oldest_index = 0;
+                buffer.newest_index = 0;
+                send_response(BUFFER_OK,0);
+                break;
+        }
+    }
+}
+
+void send_response(uint8_t status, uint8_t data)
+{
+    Response resp;
+    resp.status = status;
+    resp.data = data;
+
+    char buf[sizeof(Response)];
+    memcpy(&buf, &resp, sizeof(Response));
+    resp.cksum = CRC8(buf,sizeof(Response)-1);
+
+    memcpy(&buf, &resp, sizeof(Response));
+    for(int b = 0; b < sizeof(Response); b++)
+        Serial.write(buf[b]);
+}
+
+void load(Packet data)
+{
         //check id is next in series
         if(data.id != (last_id + 1) % 256)
         {
-            Serial.write(MISSING_DATA);
-            Serial.write(last_id);
+            send_response(MISSING_DATA, last_id);
             return;
         }
             
         //add to buffer
-        status = bufferWrite(data);
+        int status = bufferWrite(data);
         if (status == BUFFER_FULL) 
         {      
-            Serial.write(BUFFER_FULL);
-            Serial.write(last_id);
+            send_response(BUFFER_FULL, last_id);
             return;
         }
         else if(status == BUFFER_OK)
@@ -210,13 +247,13 @@ void loop(){
             last_id = data.id;
             status = bufferStatus();
             if(status == BUFFER_HIGH)
-                Serial.write(BUFFER_HIGH);
+                send_response(BUFFER_HIGH, 0);
+            else
+                send_response(BUFFER_OK, 0);
         }
-    }
 }
 
-/*
-byte CRC8(const byte *data, byte len) {
+byte CRC8(char *data, byte len) {
   byte crc = 0x00;
   while (len--) {
     byte extract = *data++;
@@ -231,4 +268,3 @@ byte CRC8(const byte *data, byte len) {
   }
   return crc;
 }
-*/
