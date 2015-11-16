@@ -32,10 +32,11 @@ class TestBuffer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls._serial_port=serial.Serial()
-        cls._serial_port.port='/dev/ttyACM0'
+        cls._serial_port.port='/dev/ttyUSB0'
         cls._serial_port.timeout=1
         cls._serial_port.baudrate=115200
         cls._serial_port.open()
+        cls._serial_port.setRTS(True)
 
         time.sleep(2);
 
@@ -75,7 +76,31 @@ class TestBuffer(unittest.TestCase):
     def send_packet(self, command, lpos=0, rpos=0, id=0):
         bin = struct.pack('<BHHB', command, lpos, rpos, id)
         bin = struct.pack('<BHHBB',command, lpos, rpos, id, crc8_func(bin))
+
+        self.send_rs485_data(bin)
+
+    def send_rs485_data(self, bin):
+        self._serial_port.setRTS(False)
+        time.sleep(0.001)
         self._serial_port.write(bin)
+        time.sleep(0.001)
+        self._serial_port.setRTS(True)
+
+    def send_rs232_data(bin):
+        self._serial_port.write(bin)
+
+    def test_send_rs485byte(self):
+        bin = struct.pack('<B', 0xA)
+        self._serial_port.setRTS(False)
+        time.sleep(0.001)
+        self._serial_port.write(bin)
+        time.sleep(0.008)
+        self._serial_port.setRTS(True)
+        time.sleep(1)
+
+    def test_send_flush(self):
+        self.send_packet(FLUSH)
+        status, data = self.get_response()
 
     def test_good_cksum(self):
         self._serial_port.flushInput()
@@ -89,7 +114,7 @@ class TestBuffer(unittest.TestCase):
         for i in range(1,100):
             bin = struct.pack('<BHHB',START, i,i,i)
             bin = struct.pack('<BHHBB',START, i+1,i+1,i,crc8_func(bin))
-            self._serial_port.write(bin)
+            self.send_rs485_data(bin)
             status, data = self.get_response()
             self.assertEqual(status, BAD_CKSUM)
 

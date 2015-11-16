@@ -9,6 +9,11 @@ crc tips
 http://www.leonardomiliani.com/en/2013/un-semplice-crc8-per-arduino/
 */
 
+#define SSerialTxControl 4   //RS485 Direction control
+#define LED 13
+#define RS485Transmit    HIGH
+#define RS485Receive     LOW
+
 #include <Encoder.h>
 Encoder myEnc(2,3);
 
@@ -131,6 +136,10 @@ void setup()
     digitalWrite(FOR,LOW);
     pinMode(REV, OUTPUT);
     digitalWrite(REV,LOW);
+    pinMode(LED, OUTPUT);
+
+    pinMode(SSerialTxControl, OUTPUT);  
+    digitalWrite(SSerialTxControl, RS485Receive);  // Init Transceiver
 
     b0 = kp+ki+kd;
     b1 = -kp-2*kd;
@@ -220,6 +229,7 @@ void loop()
 
 void send_response(uint8_t status, uint8_t data)
 {
+    delay(10);
     Response resp;
     resp.status = status;
     resp.data = data;
@@ -229,8 +239,21 @@ void send_response(uint8_t status, uint8_t data)
     resp.cksum = CRC8(buf,sizeof(Response)-1);
 
     memcpy(&buf, &resp, sizeof(Response));
+
+    // Enable RS485 Transmit    
+//    delay(0);
+    digitalWrite(LED, true);
+    digitalWrite(SSerialTxControl, RS485Transmit);  
+    delay(1);
+
     for(int b = 0; b < sizeof(Response); b++)
         Serial.write(buf[b]);
+
+    Serial.flush();
+    delay(1);
+    // Disable RS485 Transmit      
+    digitalWrite(SSerialTxControl, RS485Receive); 
+    digitalWrite(LED, false);
 }
 
 void load(Packet data)
