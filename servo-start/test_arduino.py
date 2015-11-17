@@ -83,6 +83,8 @@ class TestBuffer(unittest.TestCase):
         self._serial_port.setRTS(False)
         time.sleep(0.001)
         self._serial_port.write(bin)
+        # while self._serial_port.inWaiting() > 0:
+        # time.sleep(0.001) might work
         time.sleep(0.001)
         self._serial_port.setRTS(True)
 
@@ -188,8 +190,8 @@ class TestBuffer(unittest.TestCase):
 
             if status == BUFFER_OK:
                 pass
-            elif status == BUFFER_LOW:
-                pass
+#            elif status == BUFFER_LOW:
+#                pass
             elif status == BUFFER_HIGH:
                 time.sleep(buflen / 2 * (1 / freq))
             else:
@@ -223,8 +225,8 @@ class TestBuffer(unittest.TestCase):
 
             if status == BUFFER_OK:
                 pass
-            elif status == BUFFER_LOW:
-                pass
+#            elif status == BUFFER_LOW:
+#                pass
             elif status == BUFFER_HIGH:
                 time.sleep(buflen / 2 * (1 / freq))
             else:
