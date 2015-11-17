@@ -83,22 +83,12 @@ class TestBuffer(unittest.TestCase):
         self._serial_port.setRTS(False)
         time.sleep(0.001)
         self._serial_port.write(bin)
-        # while self._serial_port.inWaiting() > 0:
-        # time.sleep(0.001) might work
         time.sleep(0.001)
+#        time.sleep(0.001)
         self._serial_port.setRTS(True)
 
     def send_rs232_data(bin):
         self._serial_port.write(bin)
-
-    def test_send_rs485byte(self):
-        bin = struct.pack('<B', 0xA)
-        self._serial_port.setRTS(False)
-        time.sleep(0.001)
-        self._serial_port.write(bin)
-        time.sleep(0.008)
-        self._serial_port.setRTS(True)
-        time.sleep(1)
 
     def test_send_flush(self):
         self.send_packet(FLUSH)
@@ -106,6 +96,10 @@ class TestBuffer(unittest.TestCase):
 
     def test_good_cksum(self):
         self._serial_port.flushInput()
+        self.send_packet(STOP)
+        status, data = self.get_response()
+        self.send_packet(FLUSH)
+        status, data = self.get_response()
         for i in range(1,100):
             self.send_packet(START, i, i, 0)
             status, data = self.get_response()
@@ -113,9 +107,12 @@ class TestBuffer(unittest.TestCase):
 
     def test_bad_cksum(self):
         self._serial_port.flushInput()
+        self.send_packet(STOP)
+        status, data = self.get_response()
+        self.send_packet(FLUSH)
+        status, data = self.get_response()
         for i in range(1,100):
-            bin = struct.pack('<BHHB',START, i,i,i)
-            bin = struct.pack('<BHHBB',START, i+1,i+1,i,crc8_func(bin))
+            bin = struct.pack('<BHHBB',START, i,i,i,0xFF)
             self.send_rs485_data(bin)
             status, data = self.get_response()
             self.assertEqual(status, BAD_CKSUM)
@@ -185,13 +182,14 @@ class TestBuffer(unittest.TestCase):
             if i == buflen / 2:
                 self.send_packet(START)
                 status, data = self.get_response()
+
             self.send_packet(LOAD, i, i, i % 256)
             status, data = self.get_response()
 
             if status == BUFFER_OK:
                 pass
-#            elif status == BUFFER_LOW:
-#                pass
+            elif status == BUFFER_LOW:
+                pass
             elif status == BUFFER_HIGH:
                 time.sleep(buflen / 2 * (1 / freq))
             else:
@@ -199,7 +197,7 @@ class TestBuffer(unittest.TestCase):
 
             i += 1
 
-    def test_run_robot(self):
+    def xtest_run_robot(self):
         with open('points.d') as fh:
             points = pickle.load(fh)
         logging.info("file is %d points long" % len(points['i']))
@@ -236,5 +234,10 @@ class TestBuffer(unittest.TestCase):
 
     
 if __name__ == '__main__':
-    unittest.main()
-
+#    unittest.main()
+#    exit(0)
+    log_file = 'log_file.txt'
+    f = open(log_file, "a")
+    runner = unittest.TextTestRunner(f)
+    unittest.main(testRunner=runner)
+    f.close()
