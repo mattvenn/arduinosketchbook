@@ -101,6 +101,7 @@ class TestBuffer(unittest.TestCase):
         self.send_packet(FLUSH)
         status, data = self.get_response()
         for i in range(1,100):
+            logging.debug(i)
             self.send_packet(START, i, i, 0)
             status, data = self.get_response()
             self.assertNotEqual(status, BAD_CKSUM)
@@ -112,6 +113,7 @@ class TestBuffer(unittest.TestCase):
         self.send_packet(FLUSH)
         status, data = self.get_response()
         for i in range(1,100):
+            logging.debug(i)
             bin = struct.pack('<BHHBB',START, i,i,i,0xFF)
             self.send_rs485_data(bin)
             status, data = self.get_response()
@@ -127,6 +129,7 @@ class TestBuffer(unittest.TestCase):
 
         # run at less than frequency
         for i in range(1, buflen / 2):
+            logging.debug(i)
             self.send_packet(LOAD, i, i, i)
             status, data = self.get_response()
             time.sleep(20 * (1 / freq))
@@ -144,6 +147,7 @@ class TestBuffer(unittest.TestCase):
         self.assertEqual(status, BUFFER_EMPTY)
 
         for i in range(1, buflen + 1):
+            logging.debug(i)
             self.send_packet(LOAD, i, i, i)
             status, data = self.get_response()
             time.sleep(0.1 * (1 / freq))
@@ -160,6 +164,7 @@ class TestBuffer(unittest.TestCase):
         self.assertEqual(status, BUFFER_EMPTY)
 
         for i in range(1, buflen / 2):
+            logging.debug(i)
             self.send_packet(LOAD, i, i, i)
             status, data = self.get_response()
 
@@ -179,6 +184,7 @@ class TestBuffer(unittest.TestCase):
 
         i = 1
         while i < 1000:
+            logging.debug(i)
             if i == buflen / 2:
                 self.send_packet(START)
                 status, data = self.get_response()
@@ -197,7 +203,8 @@ class TestBuffer(unittest.TestCase):
 
             i += 1
 
-    def xtest_run_robot(self):
+
+    def test_run_robot(self):
         with open('points.d') as fh:
             points = pickle.load(fh)
         logging.info("file is %d points long" % len(points['i']))
@@ -223,8 +230,8 @@ class TestBuffer(unittest.TestCase):
 
             if status == BUFFER_OK:
                 pass
-#            elif status == BUFFER_LOW:
-#                pass
+            elif status == BUFFER_LOW:
+                pass
             elif status == BUFFER_HIGH:
                 time.sleep(buflen / 2 * (1 / freq))
             else:
@@ -234,8 +241,8 @@ class TestBuffer(unittest.TestCase):
 
     
 if __name__ == '__main__':
-#    unittest.main()
-#    exit(0)
+    #unittest.main()
+    #exit(0)
     log_file = 'log_file.txt'
     f = open(log_file, "a")
     runner = unittest.TextTestRunner(f)
