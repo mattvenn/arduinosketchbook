@@ -9,6 +9,13 @@ crc tips
 http://www.leonardomiliani.com/en/2013/un-semplice-crc8-per-arduino/
 */
 
+#ifndef cbi
+#define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
+#endif
+#ifndef sbi
+#define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
+#endif
+
 #define SSerialTxControl 4   //RS485 Direction control
 #define LED 13
 #define RS485Transmit    HIGH
@@ -19,6 +26,8 @@ Encoder myEnc(2,3);
 
 #define FOR 5
 #define REV 6
+
+#define TRIG 7 //just for testing
 
 boolean running = false;
 volatile bool calc;
@@ -110,9 +119,12 @@ enum BufferStatus bufferRead(Packet *byte){
 //interrupt service routine 
 ISR(TIMER1_OVF_vect)        
 {
+    //flash light
+    sbi(PORTD,TRIG);
     //preload timer
     TCNT1 = timer1_counter;   
     calc = true;
+    cbi(PORTD,TRIG);
 }
 
 void setup()
@@ -140,6 +152,8 @@ void setup()
 
     pinMode(SSerialTxControl, OUTPUT);  
     digitalWrite(SSerialTxControl, RS485Receive);  // Init Transceiver
+
+    pinMode(TRIG, OUTPUT);
 
     b0 = kp+ki+kd;
     b1 = -kp-2*kd;
