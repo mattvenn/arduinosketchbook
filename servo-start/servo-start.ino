@@ -16,18 +16,22 @@ http://www.leonardomiliani.com/en/2013/un-semplice-crc8-per-arduino/
 #define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
 #endif
 
-#define SSerialTxControl 4   //RS485 Direction control
+#define SerialTxControl 4   //RS485 Direction control
+#define SSerialTxControl 10   //RS485 Direction control
 #define LED 13
 #define RS485Transmit    HIGH
 #define RS485Receive     LOW
 
 #include <Encoder.h>
+#include <SoftwareSerial.h>
 Encoder myEnc(2,3);
+SoftwareSerial mySerial(9, 8); // RX, TX
 
 #define FOR 5
 #define REV 6
 
 #define TRIG 7 //just for testing
+
 
 boolean running = false;
 volatile bool calc;
@@ -63,6 +67,11 @@ typedef struct {
     uint8_t data;
     uint8_t cksum;
 } Response;
+
+typedef struct {
+    unsigned int pos;
+    uint8_t cksum;
+} Slave;
 
 //ring buffer for movement commands
 #define BUFFER_SIZE 32 //must be a power of 2!
@@ -130,6 +139,7 @@ ISR(TIMER1_OVF_vect)
 void setup()
 {
     Serial.begin(115200);
+    mySerial.begin(19200);
 
     TCCR1A = 0;
     TCCR1B = 0;
@@ -150,8 +160,10 @@ void setup()
     digitalWrite(REV,LOW);
     pinMode(LED, OUTPUT);
 
+    pinMode(SerialTxControl, OUTPUT);  
     pinMode(SSerialTxControl, OUTPUT);  
-    digitalWrite(SSerialTxControl, RS485Receive);  // Init Transceiver
+    digitalWrite(SerialTxControl, RS485Receive);  // Init Transceiver
+    digitalWrite(SSerialTxControl, RS485Transmit);  // Init Transceiver
 
     pinMode(TRIG, OUTPUT);
 
@@ -174,7 +186,10 @@ void loop()
             Packet pos;
             status = bufferRead(&pos);
             if (status != BUFFER_EMPTY)
+            {
                 posref = pos.lpos;
+                send_slave(pos.rpos);
+            }
         }
 
         //pid calculation
@@ -243,6 +258,7 @@ void loop()
 
 void send_response(uint8_t status, uint8_t data)
 {
+    //wait for master to finish transmitting and listen
     delay(10);
     Response resp;
     resp.status = status;
@@ -255,9 +271,8 @@ void send_response(uint8_t status, uint8_t data)
     memcpy(&buf, &resp, sizeof(Response));
 
     // Enable RS485 Transmit    
-//    delay(0);
     digitalWrite(LED, true);
-    digitalWrite(SSerialTxControl, RS485Transmit);  
+    digitalWrite(SerialTxControl, RS485Transmit);  
     delay(1);
 
     for(int b = 0; b < sizeof(Response); b++)
@@ -266,10 +281,25 @@ void send_response(uint8_t status, uint8_t data)
     Serial.flush();
     delay(1);
     // Disable RS485 Transmit      
-    digitalWrite(SSerialTxControl, RS485Receive); 
+    digitalWrite(SerialTxControl, RS485Receive); 
     digitalWrite(LED, false);
 }
 
+void send_slave(unsigned int data)
+{
+    Slave resp;
+    resp.pos = data;
+    
+    char buf[sizeof(Slave)];
+    memcpy(&buf, &resp, sizeof(Slave));
+    resp.cksum = CRC8(buf,sizeof(Slave)-1);
+
+    memcpy(&buf, &resp, sizeof(Slave));
+
+    for(int b = 0; b < sizeof(Slave); b++)
+        mySerial.write(buf[b]);
+
+}
 void load(Packet data)
 {
     //check id is next in series

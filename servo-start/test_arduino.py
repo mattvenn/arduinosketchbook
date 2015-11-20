@@ -217,7 +217,7 @@ class TestBuffer(unittest.TestCase):
         self.assertEqual(status, BUFFER_EMPTY)
         
         i = 1
-        while i < len(points['i']):
+        while i < 200: # len(points['i']):
             if i == buflen / 2:
                 self.send_packet(START)
                 status, data = self.get_response()
@@ -241,8 +241,8 @@ class TestBuffer(unittest.TestCase):
 
     
 if __name__ == '__main__':
-    #unittest.main()
-    #exit(0)
+    unittest.main()
+    exit(0)
     log_file = 'log_file.txt'
     f = open(log_file, "a")
     runner = unittest.TextTestRunner(f)
