@@ -3,7 +3,7 @@
 #include <Ticker.h>
 
 const char *ssid =	"flat5";		// cannot be longer than 32 characters!
-const char *pass =	"matt&inma";		//
+const char *pass =	"matt_and_inma";		//
 
 Ticker t_publish;
 boolean publish_now = false;
@@ -47,6 +47,7 @@ void dial(int amount)
 
 void setup() 
 {
+  WiFi.mode(WIFI_STA);
   analogWriteFreq(50);
   dial(0);
   Serial.begin(9600);
@@ -65,6 +66,7 @@ void loop()
   if (WiFi.status() != WL_CONNECTED) 
   {
     dial(250);
+    WiFi.mode(WIFI_STA);
     Serial.print("Connecting to ");
     Serial.print(ssid);
     Serial.println("...");
@@ -73,6 +75,7 @@ void loop()
     if (WiFi.waitForConnectResult() != WL_CONNECTED)
       return;
     Serial.println("WiFi connected");
+    WiFi.mode(WIFI_STA);
   }
   else if(WiFi.status() == WL_CONNECTED) 
   {
