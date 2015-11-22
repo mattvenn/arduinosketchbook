@@ -312,8 +312,6 @@ if __name__ == '__main__':
     slave.addTest(TestBuffer('test_slave_comms')) 
 
     log_file = 'log_file.txt'
-    f = open(log_file, "a")
-    runner = unittest.TextTestRunner(f)
-
-    runner.run(slave)
-    f.close()
+    with open(log_file, "a") as fh:
+        runner = unittest.TextTestRunner(fh)
+        runner.run(slave)
