@@ -15,12 +15,14 @@ BAD_CKSUM = 3
 MISSING_DATA = 4
 BUFFER_LOW = 5
 BUFFER_HIGH = 6
+BAD_CMD = 7
 
 #commands
-START = 0
-STOP = 1
-LOAD = 2
-FLUSH = 3
+START = 8
+STOP = 9
+LOAD = 10 
+FLUSH = 11 
+STATUS = 12 
 
 buflen = 32
 freq = 50.0
@@ -38,7 +40,7 @@ class TestBuffer(unittest.TestCase):
         cls._serial_port.open()
         cls._serial_port.setRTS(True)
 
-        time.sleep(2);
+#        time.sleep(2);
 
     @classmethod
     def tearDownClass(cls):
@@ -98,11 +100,12 @@ class TestBuffer(unittest.TestCase):
         self._serial_port.flushInput()
         self.send_packet(STOP)
         status, data = self.get_response()
+        self.assertEqual(status, STOP)
         self.send_packet(FLUSH)
         status, data = self.get_response()
-        for i in range(1,100):
+        for i in range(1,500):
             logging.debug(i)
-            self.send_packet(START, i, i, 0)
+            self.send_packet(LOAD, i, i, i % 256)
             status, data = self.get_response()
             self.assertNotEqual(status, BAD_CKSUM)
 
@@ -123,9 +126,10 @@ class TestBuffer(unittest.TestCase):
         self._serial_port.flushInput()
         self.send_packet(FLUSH)
         status, data = self.get_response()
+        self.assertEqual(status, BUFFER_EMPTY)
         self.send_packet(START)
         status, data = self.get_response()
-        self.assertEqual(status, BUFFER_EMPTY)
+        self.assertEqual(status, START)
 
         # run at less than frequency
         for i in range(1, buflen / 2):
@@ -134,7 +138,7 @@ class TestBuffer(unittest.TestCase):
             status, data = self.get_response()
             time.sleep(20 * (1 / freq))
 
-        self.send_packet(STOP)
+        self.send_packet(STATUS)
         status, data = self.get_response()
         self.assertEqual(status, BUFFER_EMPTY)
 
@@ -142,9 +146,10 @@ class TestBuffer(unittest.TestCase):
         self._serial_port.flushInput()
         self.send_packet(FLUSH)
         status, data = self.get_response()
+        self.assertEqual(status, BUFFER_EMPTY)
         self.send_packet(STOP)
         status, data = self.get_response()
-        self.assertEqual(status, BUFFER_EMPTY)
+        self.assertEqual(status, STOP)
 
         for i in range(1, buflen + 1):
             logging.debug(i)
@@ -174,20 +179,22 @@ class TestBuffer(unittest.TestCase):
         self.assertEqual(status, MISSING_DATA)
         self.assertEqual(data, buflen / 2 - 1)
 
-    def test_keep_buffer_full(self):
+    def test_keep_buffer_full(self, num=1000):
         self._serial_port.flushInput()
         self.send_packet(STOP)
         status, data = self.get_response()
+        self.assertEqual(status, STOP)
         self.send_packet(FLUSH)
         status, data = self.get_response()
         self.assertEqual(status, BUFFER_EMPTY)
 
-        i = 1
-        while i < 1000:
+        for i in range(1, num):
             logging.debug(i)
             if i == buflen / 2:
+                logging.debug("starting servo")
                 self.send_packet(START)
                 status, data = self.get_response()
+                self.assertEqual(status, START)
 
             self.send_packet(LOAD, i, i, i % 256)
             status, data = self.get_response()
@@ -197,17 +204,16 @@ class TestBuffer(unittest.TestCase):
             elif status == BUFFER_LOW:
                 pass
             elif status == BUFFER_HIGH:
-                time.sleep(buflen / 2 * (1 / freq))
+                logging.debug("buffer high, waiting...")
+                time.sleep(buflen / 4 * (1 / freq))
             else:
                 self.fail("packet %d unexpected status: %s [%s]" % (i, self.status_str(status), data))
-
-            i += 1
 
 
     def test_run_robot(self):
         with open('points.d') as fh:
             points = pickle.load(fh)
-        logging.info("file is %d points long" % len(points['i']))
+        logging.debug("file is %d points long" % len(points['i']))
 
         self._serial_port.flushInput()
         self.send_packet(STOP)
@@ -239,12 +245,75 @@ class TestBuffer(unittest.TestCase):
 
             i += 1
 
+    """
+    timing info
+
+    * messages sent every 20ms (50Hz).
+    * software serial has stop & start bits, plus 8 bits for the data.
+    * slave messages are 3 bytes (so 30 bits with software serial)
+        * 57600 msg takes 0.5ms
+        * 19200 msg takes 1.6ms
+        * 9600 msg takes 3.1ms
+        * 2400 msg takes 12ms
+
+
+
+    """
+    def test_read_slave_nums(self):
+        slave_port=serial.Serial()
+        slave_port.port='/dev/ttyACM0' # leonardo serial port
+        slave_port.timeout=1
+        slave_port.baudrate=115200
+        slave_port.open()
+
+        slave_port.write('a')
+        ok = int(slave_port.readline())
+        bad_cksum = int(slave_port.readline())
+        logging.debug("bad cksum = %d, ok = %d" % (bad_cksum, ok))
+
+    def test_slave_comms(self):
+        slave_port=serial.Serial()
+        slave_port.port='/dev/ttyACM0' # leonardo serial port
+        slave_port.timeout=1
+        slave_port.baudrate=115200
+        slave_port.open()
+        
+        slave_port.write('b') # clear sums
+        slave_port.write('a')
+        ok = int(slave_port.readline())
+        bad_cksum = int(slave_port.readline())
+        self.assertEqual(ok, 0)
+        self.assertEqual(bad_cksum, 0)
+
+        # run tests on buffer
+        num = 1000
+        self.test_keep_buffer_full(num)
+
+        # wait for buffer to empty
+        time.sleep(1.5 * buflen * (1 / freq))
+
+        self.send_packet(STATUS)
+        status, data = self.get_response()
+        self.assertEqual(status, BUFFER_EMPTY)
+
+        slave_port.write('a')
+        ok = int(slave_port.readline())
+        bad_cksum = int(slave_port.readline())
+        logging.debug("bad cksum = %d, ok = %d" % (bad_cksum, ok))
+        self.assertEqual(ok, num-2)  # starts at 1, ends at num - 1
+        self.assertEqual(bad_cksum, 0)
     
 if __name__ == '__main__':
-    unittest.main()
-    exit(0)
+#    unittest.main()
+#    exit(0)
+
+    # just run the one test
+    slave = unittest.TestSuite()
+    slave.addTest(TestBuffer('test_slave_comms')) 
+
     log_file = 'log_file.txt'
     f = open(log_file, "a")
     runner = unittest.TextTestRunner(f)
-    unittest.main(testRunner=runner)
+
+    runner.run(slave)
     f.close()
