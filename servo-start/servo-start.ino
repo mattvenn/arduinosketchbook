@@ -22,12 +22,12 @@ http://www.leonardomiliani.com/en/2013/un-semplice-crc8-per-arduino/
 #define RS485Receive     LOW
 
 #include <Encoder.h>
-Encoder myEnc(2,3);
+Encoder myEnc(3,2);
 #include <SoftwareSerial.h>
 SoftwareSerial slave_serial(9, 8); // RX, TX
 
-#define FOR 5
-#define REV 6
+#define FOR 6
+#define REV 5
 #define LED 13
 
 #define TRIG 7 //just for testing
@@ -37,6 +37,9 @@ boolean running = false;
 volatile bool calc;
 int timer1_counter = 0;
 uint8_t last_id = 0;
+
+const float mm_to_pulse = 35.3688;
+const int enc_offset = 14851;
 
 //pid globals
 int pwm = 128;
@@ -49,9 +52,9 @@ double ynm1 = 0;
 float xn = 0;
 float xnm1 = 0;
 float xnm2 = 0;
-float kp = .9;
+float kp = .45;
 float ki = 0.000;
-float kd = .5;
+float kd = .25;
 
 //message structures
 typedef struct {
@@ -187,13 +190,13 @@ void loop()
             status = bufferRead(&pos);
             if (status != BUFFER_EMPTY)
             {
-                posref = pos.lpos;
+                posref = pos.lpos * mm_to_pulse;
                 send_slave(pos.rpos);
             }
         }
 
         //pid calculation
-        long newPosition = myEnc.read();
+        long newPosition = myEnc.read() + enc_offset;
         xn = float(posref - newPosition);
         yn = ynm1 + (b0*xn) + (b1*xnm1) + (b2*xnm2);
         ynm1 = yn;
@@ -288,7 +291,7 @@ void send_response(uint8_t status, uint8_t data)
     for(int b = 0; b < sizeof(Response); b++)
         Serial.write(buf[b]);
 
-    Serial.flush();
+    Serial.flush(); // remove this as it will block?
     delay(1);
     // Disable RS485 Transmit      
     digitalWrite(SerialTxControl, RS485Receive); 
