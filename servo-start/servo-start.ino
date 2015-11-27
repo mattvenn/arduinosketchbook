@@ -7,6 +7,22 @@ http://www.gammon.com.au/forum/?id=11428
 
 crc tips
 http://www.leonardomiliani.com/en/2013/un-semplice-crc8-per-arduino/
+
+pwm:
+http://playground.arduino.cc/Code/PwmFrequency
+https://www.arduino.cc/en/Tutorial/SecretsOfArduinoPWM
+Want to increase pwm freq to avoid horrid noise.
+
+ * Pins 5 and 6 are paired on timer0 (also used for delay and millis)
+ * Pins 9 and 10 are paired on timer1 (timer1 used for our pid calc)
+ * Pins 3 and 11 are paired on timer2 (available for use)
+
+So, I need to switch the interrupt pid timer to timer2 so I can continue using 2&3 for encoder. Then use timer 1 for faster pwm on 9&10.
+
+Then need to check that can do SW serial on other pins (using 8&9 ATM)
+
+
+
 */
 
 #ifndef cbi
@@ -16,22 +32,24 @@ http://www.leonardomiliani.com/en/2013/un-semplice-crc8-per-arduino/
 #define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
 #endif
 
-#define SerialTxControl 4   //RS485 Direction control
-#define SSerialTxControl 10   //RS485 Direction control
 #define RS485Transmit    HIGH
 #define RS485Receive     LOW
 
 #include <Encoder.h>
-Encoder myEnc(3,2);
-#include <SoftwareSerial.h>
-SoftwareSerial slave_serial(9, 8); // RX, TX
-
-#define FOR 6
+#define ENCA 3
+#define ENCB 2
+#define SerialTxControl 4   //RS485 Direction control
 #define REV 5
+#define FOR 6
+#define TRIG 7 //just for testing
+#define SLAVE_TX 8
+#define SLAVE_RX 9
+#define SSerialTxControl 10   //RS485 Direction control
 #define LED 13
 
-#define TRIG 7 //just for testing
-
+Encoder myEnc(ENCA, ENCB);
+#include <SoftwareSerial.h>
+SoftwareSerial slave_serial(SLAVE_RX, SLAVE_TX); // RX, TX
 
 boolean running = false;
 volatile bool calc;
