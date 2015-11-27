@@ -4,13 +4,16 @@ typedef struct {
 } Slave;
 
 #define LED 13
-#define FOR 5
-#define REV 6
+#define FOR 5 
+#define REV 11 
 
 #include <Encoder.h>
 Encoder myEnc(2,3);
 #include <SoftwareSerial.h>
 SoftwareSerial master_serial(8, 9); // RX, TX
+
+const float mm_to_pulse = 35.3688;
+const int enc_offset = 14851;
 
 volatile bool calc;
 int timer1_counter = 0;
@@ -26,9 +29,9 @@ double ynm1 = 0;
 float xn = 0;
 float xnm1 = 0;
 float xnm2 = 0;
-float kp = .9;
+float kp = .45;
 float ki = 0.000;
-float kd = .5;
+float kd = .25;
 
 //interrupt service routine 
 ISR(TIMER1_OVF_vect)        
@@ -46,6 +49,11 @@ void setup()
     Serial.begin(115200);
     master_serial.begin(57600); // 115200 too fast for reliable soft serial
     pinMode(LED, OUTPUT);
+
+    pinMode(FOR, OUTPUT);
+    digitalWrite(FOR,LOW);
+    pinMode(REV, OUTPUT);
+    digitalWrite(REV,LOW);
 
     TCCR1A = 0;
     TCCR1B = 0;
@@ -76,7 +84,7 @@ void loop()
         digitalWrite(LED, HIGH);
 
         //pid calculation
-        long newPosition = myEnc.read();
+        long newPosition = myEnc.read() + enc_offset;
         xn = float(posref - newPosition);
         yn = ynm1 + (b0*xn) + (b1*xnm1) + (b2*xnm2);
         ynm1 = yn;
@@ -98,7 +106,6 @@ void loop()
         xnm2 = xnm1;
         digitalWrite(LED, LOW);
     }
-
     if(master_serial.available() >= sizeof(Slave))
     {
         Slave data;
@@ -119,7 +126,7 @@ void loop()
         ok ++;
         //Serial.println("ok!");
         //set the servo position
-        posref = data.pos;
+        posref = data.pos * mm_to_pulse;
     }
     if(Serial.available())
     {
