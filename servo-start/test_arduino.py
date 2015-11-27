@@ -27,7 +27,7 @@ STATUS = 12
 buflen = 32
 freq = 50.0
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 crc8_func = crcmod.predefined.mkPredefinedCrcFun("crc-8-maxim")
 
 class TestBuffer(unittest.TestCase):
@@ -179,7 +179,31 @@ class TestBuffer(unittest.TestCase):
         self.assertEqual(status, MISSING_DATA)
         self.assertEqual(data, buflen / 2 - 1)
 
-    def test_keep_buffer_full(self, num=1000):
+    def test_move(self, amount=420):
+        self._serial_port.flushInput()
+        self.send_packet(STOP)
+        status, data = self.get_response()
+        self.assertEqual(status, STOP)
+        self.send_packet(FLUSH)
+        status, data = self.get_response()
+        self.assertEqual(status, BUFFER_EMPTY)
+
+        self.send_packet(START)
+        status, data = self.get_response()
+        self.assertEqual(status, START)
+
+        # needs more than 1 packet to actually make the servo work, why?
+        for i in range(1,10):
+            self.send_packet(LOAD, amount, amount, i)
+            status, data = self.get_response()
+            logging.debug(self.status_str(status))
+
+        self.send_packet(STATUS)
+        status, data = self.get_response()
+        logging.debug(self.status_str(status))
+
+
+    def test_keep_buffer_full(self, num=100):
         self._serial_port.flushInput()
         self.send_packet(STOP)
         status, data = self.get_response()
@@ -223,14 +247,14 @@ class TestBuffer(unittest.TestCase):
         self.assertEqual(status, BUFFER_EMPTY)
         
         i = 1
-        while i < 200: # len(points['i']):
+        while i < len(points['i']):
             if i == buflen / 2:
                 self.send_packet(START)
                 status, data = self.get_response()
 
-            logging.debug("writing %d" % i)
             a = points['i'][i]['a']
             b = points['i'][i]['b']
+            logging.debug("writing %d (%d,%d)" % (i,a,b))
             self.send_packet(LOAD, a, b, i % 256)
             status, data = self.get_response()
 
@@ -304,8 +328,8 @@ class TestBuffer(unittest.TestCase):
         self.assertEqual(bad_cksum, 0)
     
 if __name__ == '__main__':
-#    unittest.main()
-#    exit(0)
+    unittest.main()
+    exit(0)
 
     # just run the one test
     slave = unittest.TestSuite()
