@@ -179,7 +179,7 @@ class TestBuffer(unittest.TestCase):
         self.assertEqual(status, MISSING_DATA)
         self.assertEqual(data, buflen / 2 - 1)
 
-    def test_move(self, amount=420):
+    def test_single_load(self, amount=420):
         self._serial_port.flushInput()
         self.send_packet(STOP)
         status, data = self.get_response()
@@ -192,15 +192,13 @@ class TestBuffer(unittest.TestCase):
         status, data = self.get_response()
         self.assertEqual(status, START)
 
-        # needs more than 1 packet to actually make the servo work, why?
-        for i in range(1,10):
-            self.send_packet(LOAD, amount, amount, i)
-            status, data = self.get_response()
-            logging.debug(self.status_str(status))
-
-        self.send_packet(STATUS)
+        self.send_packet(LOAD, amount, amount, 1)
         status, data = self.get_response()
-        logging.debug(self.status_str(status))
+        self.assertEqual(status, BUFFER_LOW)
+
+
+        
+
 
 
     def test_keep_buffer_full(self, num=100):

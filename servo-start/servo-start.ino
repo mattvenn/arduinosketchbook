@@ -142,7 +142,7 @@ enum BufferStatus bufferRead(Packet *byte){
 	}
 	*byte = buffer.data[buffer.oldest_index];
 	buffer.oldest_index = (buffer.oldest_index+1) % BUFFER_SIZE;
-	return bufferStatus();
+	return BUFFER_OK;
 }
 
 //interrupt service routine 
@@ -348,7 +348,7 @@ void load(Packet data)
         //success, so store last id
         last_id = data.id;
 
-    //send response
+    //send response, which will let master know how full the buffer is
     send_response(status, last_id);
 }
 
