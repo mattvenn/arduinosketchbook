@@ -61,7 +61,8 @@ const int enc_offset = 14851;
 
 //pid globals
 int pwm = 128;
-unsigned int posref = 0;
+unsigned int posref = 0; //servo setpoint in mm
+long curpos = 0;
 float b0 = 0;
 float b1 = 0;
 float b2 = 0;
@@ -85,7 +86,7 @@ typedef struct {
 
 typedef struct {
     uint8_t status;
-    uint8_t data;
+    unsigned int data;
     uint8_t cksum;
 } Response;
 
@@ -214,8 +215,8 @@ void loop()
         }
 
         //pid calculation
-        long newPosition = myEnc.read() + enc_offset;
-        xn = float(posref - newPosition);
+        curpos = myEnc.read() + enc_offset;
+        xn = float(posref - curpos);
         yn = ynm1 + (b0*xn) + (b1*xnm1) + (b2*xnm2);
         ynm1 = yn;
 
