@@ -86,7 +86,7 @@ typedef struct {
 
 typedef struct {
     uint8_t status;
-    unsigned int data;
+    uint8_t data;
     uint8_t cksum;
 } Response;
 
