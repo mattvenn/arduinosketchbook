@@ -46,6 +46,12 @@ Then need to check that can do SW serial on other pins (using 8&9 ATM)
 #define SLAVE_RX 9
 #define SSerialTxControl 10   //RS485 Direction control
 #define LED 13
+#define LED_ERROR 12
+#define CURRENT A5 //current of DC motor, using ACS712 185mV/A, 2.5v = 0A
+
+#define STALL_CURRENT 4 // amps
+static const float FILTER = 0.9; //coefficient for LPF on current sense
+float filteredRawCurrent = 1024/2; //0A with no load
 
 Encoder myEnc(ENCA, ENCB);
 #include <SoftwareSerial.h>
@@ -105,7 +111,8 @@ struct Buffer {
 
 struct Buffer buffer = {{}, 0, 0};;
 
-//command definitions
+//command definitions - could separate this out into different types of things
+//and have each type taking a few bits in a status byte.
 enum BufferStatus {BUFFER_OK, BUFFER_EMPTY, BUFFER_FULL, BAD_CKSUM, MISSING_DATA,BUFFER_LOW, BUFFER_HIGH, BAD_CMD, START, STOP, LOAD, FLUSH, STATUS };
 
 //ring buffer functions
@@ -287,6 +294,19 @@ void loop()
                 send_response(BAD_CMD,0);
         }
     }
+
+    // protect against too much current draw
+    if(abs(read_current()) > STALL_CURRENT)
+    {
+        digitalWrite(LED_ERROR, HIGH);
+        //substitute this for drive(0) after branch merge
+        analogWrite(FOR,0);
+        analogWrite(REV,0);
+        delay(1000);
+        digitalWrite(LED_ERROR, LOW);
+        //could flush here too
+    }
+        
 }
 
 void send_response(uint8_t status, uint8_t data)
@@ -372,4 +392,14 @@ byte CRC8(char *data, byte len)
         }
     }
     return crc;
+}
+
+float read_current()
+{
+    //100 times average of current.
+    filteredRawCurrent = filteredRawCurrent * FILTER  + ( 1 - FILTER ) * analogRead(CURRENT);
+    float currentMV = (5000.0 / 1024.0 ) * filteredRawCurrent;
+    //current sense chip is powered by arduino supply
+    float current = ( currentMV - 2500 ) / 185; //185mv per amp
+    return current;
 }
