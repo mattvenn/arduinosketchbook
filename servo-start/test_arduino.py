@@ -23,7 +23,6 @@ STOP = 9
 LOAD = 10 
 FLUSH = 11 
 STATUS = 12 
-GETPOS = 13
 
 buflen = 32
 freq = 50.0
@@ -68,8 +67,8 @@ class TestBuffer(unittest.TestCase):
     def get_response(self):
         response = self._serial_port.read(3)
         if response:
-            status, data, cksum = struct.unpack('<BHB', response)
-            bin = struct.pack('<BH',status,data)
+            status, data, cksum = struct.unpack('<BBB', response)
+            bin = struct.pack('<BB',status,data)
             # check cksum
             self.assertEqual(cksum, crc8_func(bin))
             return status, data
@@ -196,6 +195,11 @@ class TestBuffer(unittest.TestCase):
         self.send_packet(LOAD, amount, amount, 1)
         status, data = self.get_response()
         self.assertEqual(status, BUFFER_LOW)
+
+
+        
+
+
 
     def test_keep_buffer_full(self, num=100):
         self._serial_port.flushInput()
