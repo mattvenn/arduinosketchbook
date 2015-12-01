@@ -8,6 +8,10 @@ http://www.gammon.com.au/forum/?id=11428
 crc tips
 http://www.leonardomiliani.com/en/2013/un-semplice-crc8-per-arduino/
 
+timer calculation:
+http://maxembedded.com/2011/06/avr-timers-timer2/
+http://eleccelerator.com/avr-timer-calculator/
+
 pwm:
 http://playground.arduino.cc/Code/PwmFrequency
 https://www.arduino.cc/en/Tutorial/SecretsOfArduinoPWM
@@ -19,32 +23,20 @@ Want to increase pwm freq to avoid horrid noise.
 
 So, I need to switch the interrupt pid timer to timer2 so I can continue using 2&3 for encoder. Then use timer 1 for faster pwm on 9&10.
 
-Then need to check that can do SW serial on other pins (using 8&9 ATM)
-
-
-
 */
-
-#ifndef cbi
-#define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
-#endif
-#ifndef sbi
-#define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
-#endif
 
 #define RS485Transmit    HIGH
 #define RS485Receive     LOW
 
 #include <Encoder.h>
-#define ENCA 3
-#define ENCB 2
-#define SerialTxControl 4   //RS485 Direction control
-#define REV 5
-#define FOR 6
-#define TRIG 7 //just for testing
-#define SLAVE_TX 8
-#define SLAVE_RX 9
-#define SSerialTxControl 10   //RS485 Direction control
+#define ENCB 2               //hardware ints
+#define ENCA 3               //hardware ints
+#define SerialTxControl 4    //RS485 Direction control
+#define SLAVE_TX 5           //software serial
+#define SLAVE_RX 6           //software serial
+#define SSerialTxControl 7   //RS485 Direction control
+#define REV 9                //timer 1
+#define FOR 10               //timer 1
 #define LED 13
 
 Encoder myEnc(ENCA, ENCB);
@@ -53,7 +45,9 @@ SoftwareSerial slave_serial(SLAVE_RX, SLAVE_TX); // RX, TX
 
 boolean running = false;
 volatile bool calc;
-int timer1_counter = 0;
+volatile byte timer2_overflows = 0;
+uint8_t timer2_overflow = 0;
+uint8_t timer2_remainder = 0;
 uint8_t last_id = 0;
 
 const float mm_to_pulse = 35.3688;
@@ -147,14 +141,20 @@ enum BufferStatus bufferRead(Packet *byte){
 }
 
 //interrupt service routine 
-ISR(TIMER1_OVF_vect)        
+ISR(TIMER2_OVF_vect)        
 {
-    //flash light
-    //sbi(PORTD,TRIG);
-    //preload timer
-    TCNT1 = timer1_counter;   
-    calc = true;
-    //cbi(PORTD,TRIG);
+    timer2_overflows ++;
+    if(timer2_overflows == timer2_overflow)
+    {
+        //preload timer
+        TCNT2 = timer2_remainder;
+    }
+    if(timer2_overflows > timer2_overflow)
+    {
+        timer2_overflows = 0;
+        calc = true;
+        TCNT2 = 0;
+    }
 }
 
 void setup()
@@ -162,18 +162,22 @@ void setup()
     Serial.begin(115200);
     slave_serial.begin(57600); // 115200 too fast for reliable soft serial
 
-    TCCR1A = 0;
+    // timer 2 setup
+    TCCR2A = 0;
     TCCR1B = 0;
 
-    // Set timer1_counter to the correct value for our interrupt interval
-    //timer1_counter = 64911;   // preload timer 65536-16MHz/256/100Hz
-    timer1_counter = 64286;   // preload timer 65536-16MHz/256/50Hz
-    //timer1_counter = 34286;   // preload timer 65536-16MHz/256/2Hz
+    // set timer prescalar to 1024
+    TCCR2B |= (1 << CS22) | (1 << CS21) | (1 << CS20);
+    // turn on interrupt overflow
+    TIMSK2 |= (1 << TOIE2);
 
-    TCNT1 = timer1_counter;   // preload timer
-    TCCR1B |= (1 << CS12);    // 256 prescaler 
-    TIMSK1 |= (1 << TOIE1);   // enable timer overflow interrupt
-    interrupts();             // enable all interrupts
+    // preload timer2 (8 bits)
+    timer2_overflow = 1;
+    timer2_remainder = 256 - 56;
+    TCNT2 = 0;
+
+    // set pwm frequency on pins 9&10 (timer1) to 31250Hz
+    TCCR1B = TCCR1B & 0b11111000 | 0x01;
 
     pinMode(FOR, OUTPUT);
     digitalWrite(FOR,LOW);
@@ -186,11 +190,13 @@ void setup()
     digitalWrite(SerialTxControl, RS485Receive);  // Init Transceiver
     digitalWrite(SSerialTxControl, RS485Transmit);  // Init Transceiver
 
-    pinMode(TRIG, OUTPUT);
-
+    // pid init
     b0 = kp+ki+kd;
     b1 = -kp-2*kd;
     b2 = kd;
+
+    // turn on interrupts
+    interrupts();
 }
 
 

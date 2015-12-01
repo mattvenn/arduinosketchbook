@@ -281,6 +281,7 @@ class TestBuffer(unittest.TestCase):
 
 
     """
+    @unittest.skip("skipping")
     def test_read_slave_nums(self):
         slave_port=serial.Serial()
         slave_port.port='/dev/ttyACM0' # leonardo serial port
@@ -293,6 +294,7 @@ class TestBuffer(unittest.TestCase):
         bad_cksum = int(slave_port.readline())
         logging.debug("bad cksum = %d, ok = %d" % (bad_cksum, ok))
 
+    @unittest.skip("skipping")
     def test_slave_comms(self):
         slave_port=serial.Serial()
         slave_port.port='/dev/ttyACM0' # leonardo serial port

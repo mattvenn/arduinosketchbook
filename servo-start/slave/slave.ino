@@ -3,19 +3,25 @@ typedef struct {
     uint8_t cksum;
 } Slave;
 
+#define ENCA 2               //hardware ints
+#define ENCB 3               //hardware ints
+#define SS_RX 4
+#define SS_TX 5
+#define REV 9                //timer 1
+#define FOR 10               //timer 1
 #define LED 13
-#define FOR 5 
-#define REV 11 
 
 #include <Encoder.h>
-Encoder myEnc(2,3);
+Encoder myEnc(ENCA,ENCB);
 #include <SoftwareSerial.h>
-SoftwareSerial master_serial(8, 9); // RX, TX
+SoftwareSerial master_serial(SS_RX, SS_TX); // RX, TX
 
 const float mm_to_pulse = 35.3688;
-const int enc_offset = 14851;
 
 volatile bool calc;
+volatile byte timer2_overflows = 0;
+uint8_t timer2_overflow = 0;
+uint8_t timer2_remainder = 0;
 int timer1_counter = 0;
 
 //pid globals
@@ -34,14 +40,20 @@ float ki = 0.000;
 float kd = .25;
 
 //interrupt service routine 
-ISR(TIMER1_OVF_vect)        
+//interrupt service routine 
+ISR(TIMER2_OVF_vect)        
 {
-    //flash light
-    //sbi(PORTD,TRIG);
-    //preload timer
-    TCNT1 = timer1_counter;   
-    calc = true;
-    //cbi(PORTD,TRIG);
+    timer2_overflows ++;
+    if(timer2_overflows == timer2_overflow)
+    {
+        //preload timer
+        TCNT2 = timer2_remainder;
+    }
+    if(timer2_overflows > timer2_overflow)
+    {
+        calc = true;
+        TCNT2 = 0;
+    }
 }
 
 void setup()
@@ -55,22 +67,30 @@ void setup()
     pinMode(REV, OUTPUT);
     digitalWrite(REV,LOW);
 
-    TCCR1A = 0;
+    // timer 2 setup
+    TCCR2A = 0;
     TCCR1B = 0;
 
-    // Set timer1_counter to the correct value for our interrupt interval
-    //timer1_counter = 64911;   // preload timer 65536-16MHz/256/100Hz
-    timer1_counter = 64286;   // preload timer 65536-16MHz/256/50Hz
-    //timer1_counter = 34286;   // preload timer 65536-16MHz/256/2Hz
+    // set timer prescalar to 1024
+    TCCR2B |= (1 << CS22) | (1 << CS21) | (1 << CS20);
+    // turn on interrupt overflow
+    TIMSK2 |= (1 << TOIE2);
 
-    TCNT1 = timer1_counter;   // preload timer
-    TCCR1B |= (1 << CS12);    // 256 prescaler 
-    TIMSK1 |= (1 << TOIE1);   // enable timer overflow interrupt
-    interrupts();             // enable all interrupts
+    // preload timer2 (8 bits)
+    timer2_overflow = 1;
+    timer2_remainder = 256 - 56;
+    TCNT2 = 0;
+
+    // set pwm frequency on pins 9&10 (timer1) to 31250Hz
+    TCCR1B = TCCR1B & 0b11111000 | 0x01;
+
 
     b0 = kp+ki+kd;
     b1 = -kp-2*kd;
     b2 = kd;
+
+    // turn on interrupts
+    interrupts();
 }
 
 int bad_cksum = 0;
@@ -81,10 +101,9 @@ void loop()
     if(calc)
     {
         calc = false;
-        digitalWrite(LED, HIGH);
 
         //pid calculation
-        long newPosition = myEnc.read() + enc_offset;
+        long newPosition = myEnc.read();
         xn = float(posref - newPosition);
         yn = ynm1 + (b0*xn) + (b1*xnm1) + (b2*xnm2);
         ynm1 = yn;
@@ -104,7 +123,6 @@ void loop()
         //set previous input and output values
         xnm1 = xn;
         xnm2 = xnm1;
-        digitalWrite(LED, LOW);
     }
     if(master_serial.available() >= sizeof(Slave))
     {
