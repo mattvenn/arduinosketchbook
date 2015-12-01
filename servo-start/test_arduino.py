@@ -23,6 +23,7 @@ STOP = 9
 LOAD = 10 
 FLUSH = 11 
 STATUS = 12 
+SET_POS = 13
 
 buflen = 32
 freq = 50.0
@@ -95,6 +96,13 @@ class TestBuffer(unittest.TestCase):
     def test_send_flush(self):
         self.send_packet(FLUSH)
         status, data = self.get_response()
+        self.assertEqual(status, BUFFER_EMPTY)
+
+    def test_set_pos(self):
+        self.send_packet(SET_POS,420,420)
+        status, data = self.get_response()
+        self.assertEqual(status, SET_POS)
+
 
     def test_good_cksum(self):
         self._serial_port.flushInput()
@@ -179,7 +187,7 @@ class TestBuffer(unittest.TestCase):
         self.assertEqual(status, MISSING_DATA)
         self.assertEqual(data, buflen / 2 - 1)
 
-    def test_single_load(self, amount=420):
+    def test_single_load(self, amount=415):
         self._serial_port.flushInput()
         self.send_packet(STOP)
         status, data = self.get_response()
@@ -277,6 +285,9 @@ class TestBuffer(unittest.TestCase):
 
 
     """
+
+        
+
     @unittest.skip("skipping")
     def test_read_slave_nums(self):
         slave_port=serial.Serial()
@@ -299,6 +310,7 @@ class TestBuffer(unittest.TestCase):
         slave_port.open()
 
         # this doesn't always work, don't know why
+        import ipdb; ipdb.set_trace()
         slave_port.write('b') # clear sums
         slave_port.write('a')
         ok = int(slave_port.readline())

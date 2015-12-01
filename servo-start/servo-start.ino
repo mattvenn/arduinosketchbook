@@ -33,7 +33,6 @@ So, I need to switch the interrupt pid timer to timer2 so I can continue using 2
 #include "pindefs.h"
 #include <Encoder.h>
 
-const int enc_offset = 14851;
 
 Encoder myEnc(ENCA, ENCB);
 #include <SoftwareSerial.h>
@@ -81,6 +80,7 @@ typedef struct {
 } Response;
 
 typedef struct {
+    uint8_t command;
     unsigned int pos;
     uint8_t cksum;
 } Slave;
@@ -97,13 +97,16 @@ struct Buffer buffer = {{}, 0, 0};;
 
 //command definitions - could separate this out into different types of things
 //and have each type taking a few bits in a status byte.
-enum BufferStatus {BUFFER_OK, BUFFER_EMPTY, BUFFER_FULL, BAD_CKSUM, MISSING_DATA,BUFFER_LOW, BUFFER_HIGH, BAD_CMD, START, STOP, LOAD, FLUSH, STATUS };
+enum BufferStatus {BUFFER_OK, BUFFER_EMPTY, BUFFER_FULL, BAD_CKSUM, MISSING_DATA,BUFFER_LOW, BUFFER_HIGH, BAD_CMD, START, STOP, LOAD, FLUSH, STATUS, SET_POS };
+
+typedef enum {SLV_LOAD, SLV_SET_POS} SlaveCommand;
 
 //ring buffer functions
 void load(Packet data);
 enum BufferStatus bufferWrite(Packet byte);
 enum BufferStatus bufferRead(Packet *byte);
 enum BufferStatus bufferStatus();
+void send_slave(SlaveCommand command, unsigned int data);
 
 enum BufferStatus bufferStatus()
 {
@@ -237,12 +240,12 @@ void loop()
             if (status != BUFFER_EMPTY)
             {
                 posref = pos.lpos * mm_to_pulse;
-                send_slave(pos.rpos);
+                send_slave(SLV_LOAD, pos.rpos);
             }
         }
 
         //pid calculation
-        curpos = myEnc.read() + enc_offset ;
+        curpos = myEnc.read();
         xn = float(posref - curpos);
         yn = ynm1 + (b0*xn) + (b1*xnm1) + (b2*xnm2);
         ynm1 = yn;
@@ -301,6 +304,13 @@ void loop()
                 buffer.newest_index = 0;
                 send_response(bufferStatus(),0);
                 break;
+            case SET_POS:
+                //update servo pos
+                posref = data.lpos * mm_to_pulse;
+                myEnc.write(posref);
+                send_slave(SLV_SET_POS, data.rpos);
+                send_response(SET_POS,0);
+                break;
             default:
                 //shouldn't get here
                 send_response(BAD_CMD,0);
@@ -348,10 +358,11 @@ void send_response(uint8_t status, uint8_t data)
     digitalWrite(SerialTxControl, RS485Receive); 
 }
 
-void send_slave(unsigned int data)
+void send_slave(SlaveCommand command, unsigned int data)
 {
     Slave resp;
     resp.pos = data;
+    resp.command = command;
     
     char buf[sizeof(Slave)];
     memcpy(&buf, &resp, sizeof(Slave));

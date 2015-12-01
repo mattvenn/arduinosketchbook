@@ -1,10 +1,11 @@
 typedef struct {
+    uint8_t command;
     unsigned int pos;
     uint8_t cksum;
 } Slave;
 
+enum SlaveCommand {SLV_LOAD, SLV_SET_POS};
 
-const int enc_offset = 14851;
 
 #define RS485Transmit    HIGH
 #define RS485Receive     LOW
@@ -131,7 +132,7 @@ void loop()
         digitalWrite(LED,HIGH);
 
         //pid calculation
-        long newPosition = myEnc.read() + enc_offset;
+        long newPosition = myEnc.read();
         xn = float(posref - newPosition);
         yn = ynm1 + (b0*xn) + (b1*xnm1) + (b2*xnm2);
         ynm1 = yn;
@@ -173,7 +174,20 @@ void loop()
         ok ++;
         //Serial.println("ok!");
         //set the servo position
-        posref = data.pos * mm_to_pulse;
+        switch(data.command)
+        {
+            case SLV_LOAD:
+                Serial.print("loaded:");
+                Serial.println(data.pos);
+                posref = data.pos * mm_to_pulse;
+                break;
+            case SLV_SET_POS:
+                Serial.print("setpos:");
+                Serial.println(data.pos);
+                posref = data.pos * mm_to_pulse;
+                myEnc.write(posref);
+                break;
+        }
     }
     if(Serial.available())
     {
