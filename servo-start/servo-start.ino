@@ -151,6 +151,7 @@ ISR(TIMER2_OVF_vect)
     }
     if(timer2_overflows > timer2_overflow)
     {
+        timer2_overflows = 0;
         calc = true;
         TCNT2 = 0;
     }
