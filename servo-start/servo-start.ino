@@ -31,24 +31,21 @@ So, I need to switch the interrupt pid timer to timer2 so I can continue using 2
 #include "buttons.h"
 #include "utils.h"
 #include "pindefs.h"
+#include "timer.h"
 #include <Encoder.h>
-
 
 Encoder myEnc(ENCA, ENCB);
 #include <SoftwareSerial.h>
 SoftwareSerial slave_serial(SLAVE_RX, SLAVE_TX); // RX, TX
 
 boolean running = false;
-volatile bool calc;
-volatile byte timer2_overflows = 0;
-uint8_t timer2_overflow = 0;
-uint8_t timer2_remainder = 0;
-uint8_t last_id = 0;
+volatile bool calc = false;
 
 const float mm_to_pulse = 35.3688;
 
 //pid globals
 int pwm = 128;
+uint8_t last_id = 0;
 #define MAX_POSREF 65535
 unsigned int posref = 0; //servo setpoint in mm
 long curpos = 0;
@@ -140,45 +137,14 @@ enum BufferStatus bufferRead(Packet *byte){
 	return BUFFER_OK;
 }
 
-//interrupt service routine 
-ISR(TIMER2_OVF_vect)        
-{
-    timer2_overflows ++;
-    if(timer2_overflows == timer2_overflow)
-    {
-        //preload timer
-        TCNT2 = timer2_remainder;
-    }
-    if(timer2_overflows > timer2_overflow)
-    {
-        timer2_overflows = 0;
-        calc = true;
-        TCNT2 = 0;
-    }
-}
 
 void setup()
 {
     Serial.begin(115200);
     slave_serial.begin(57600); // 115200 too fast for reliable soft serial
+
     buttons_setup();
-
-    // timer 2 setup
-    TCCR2A = 0;
-    TCCR1B = 0;
-
-    // set timer prescalar to 1024
-    TCCR2B |= (1 << CS22) | (1 << CS21) | (1 << CS20);
-    // turn on interrupt overflow
-    TIMSK2 |= (1 << TOIE2);
-
-    // preload timer2 (8 bits)
-    timer2_overflow = 1;
-    timer2_remainder = 256 - 56;
-    TCNT2 = 0;
-
-    // set pwm frequency on pins 9&10 (timer1) to 31250Hz
-    TCCR1B = TCCR1B & 0b11111000 | 0x01;
+    setup_timer2();
 
     pinMode(FOR, OUTPUT);
     digitalWrite(FOR,LOW);
@@ -186,7 +152,6 @@ void setup()
     digitalWrite(REV,LOW);
     pinMode(LED, OUTPUT);
     pinMode(LED_ERROR, OUTPUT);
-
 
     pinMode(SerialTxControl, OUTPUT);  
     pinMode(SSerialTxControl, OUTPUT);  
