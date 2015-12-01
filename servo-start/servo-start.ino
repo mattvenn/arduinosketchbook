@@ -42,7 +42,7 @@ So, I need to switch the interrupt pid timer to timer2 so I can continue using 2
 #define LED_ERROR 12
 #define CURRENT A5 //current of DC motor, using ACS712 185mV/A, 2.5v = 0A
 
-#define STALL_CURRENT 4 // amps
+#define STALL_CURRENT 0.8 // amps
 static const float FILTER = 0.9; //coefficient for LPF on current sense
 float filteredRawCurrent = 1024/2; //0A with no load
 
@@ -58,7 +58,6 @@ uint8_t timer2_remainder = 0;
 uint8_t last_id = 0;
 
 const float mm_to_pulse = 35.3688;
-const int enc_offset = 14851;
 
 //pid globals
 int pwm = 128;
@@ -193,6 +192,8 @@ void setup()
     pinMode(REV, OUTPUT);
     digitalWrite(REV,LOW);
     pinMode(LED, OUTPUT);
+    pinMode(LED_ERROR, OUTPUT);
+
 
     pinMode(SerialTxControl, OUTPUT);  
     pinMode(SSerialTxControl, OUTPUT);  
@@ -247,7 +248,7 @@ void loop()
         }
 
         //pid calculation
-        curpos = myEnc.read() + enc_offset;
+        curpos = myEnc.read();
         xn = float(posref - curpos);
         yn = ynm1 + (b0*xn) + (b1*xnm1) + (b2*xnm2);
         ynm1 = yn;
@@ -323,7 +324,6 @@ void loop()
         digitalWrite(LED_ERROR, LOW);
         //could flush here too
     }
-        
 }
 
 void drive(int yn)
