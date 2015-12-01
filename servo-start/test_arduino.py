@@ -68,6 +68,7 @@ class TestBuffer(unittest.TestCase):
     def get_response(self):
         response = self._serial_port.read(3)
         if response:
+            self.assertEqual(len(response), 4)
             status, data, cksum = struct.unpack('<BHB', response)
             bin = struct.pack('<BH',status,data)
             # check cksum
