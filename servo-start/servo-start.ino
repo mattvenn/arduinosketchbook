@@ -28,6 +28,7 @@ So, I need to switch the interrupt pid timer to timer2 so I can continue using 2
 #define RS485Transmit    HIGH
 #define RS485Receive     LOW
 
+#include "buttons.h"
 #include <Encoder.h>
 #define ENCB 2               //hardware ints
 #define ENCA 3               //hardware ints
@@ -161,6 +162,7 @@ void setup()
 {
     Serial.begin(115200);
     slave_serial.begin(57600); // 115200 too fast for reliable soft serial
+    buttons_setup();
 
     // timer 2 setup
     TCCR2A = 0;
@@ -202,6 +204,23 @@ void setup()
 
 void loop()
 {
+    switch(buttons_check())
+    {
+        case IN:
+            posref += 100;
+            break;
+        case OUT:
+            posref -= 100;
+            break;
+        case HOME:
+            while(buttons_check() != LIMIT)
+                drive(HOME_PWM);
+            drive(0);
+            posref = 0;
+            myEnc.write(0);
+            break;
+    }
+
     enum BufferStatus status;
 
     if(calc)
@@ -226,17 +245,9 @@ void loop()
         yn = ynm1 + (b0*xn) + (b1*xnm1) + (b2*xnm2);
         ynm1 = yn;
 
-        //limit
-        if(yn > 127)
-            yn = 127;
-        if(yn < -128)
-            yn = -128;
-
-        pwm = 128 + int(yn);   
 
         //write pwm values
-        analogWrite(FOR,255-pwm);
-        analogWrite(REV,pwm);
+        drive(yn);
 
         //set previous input and output values
         xnm1 = xn;
@@ -293,6 +304,19 @@ void loop()
                 send_response(BAD_CMD,0);
         }
     }
+}
+
+void drive(int yn)
+{
+    //limit
+    if(yn > 127)
+        yn = 127;
+    if(yn < -128)
+        yn = -128;
+
+    int pwm = 128 + int(yn);   
+    analogWrite(FOR,255-pwm);
+    analogWrite(REV,pwm);
 }
 
 void send_response(uint8_t status, uint8_t data)
