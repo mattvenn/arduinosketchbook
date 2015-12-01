@@ -29,22 +29,11 @@ So, I need to switch the interrupt pid timer to timer2 so I can continue using 2
 #define RS485Receive     LOW
 
 #include "buttons.h"
+#include "utils.h"
+#include "pindefs.h"
 #include <Encoder.h>
-#define ENCB 2               //hardware ints
-#define ENCA 3               //hardware ints
-#define SerialTxControl 4    //RS485 Direction control
-#define SLAVE_TX 5           //software serial
-#define SLAVE_RX 6           //software serial
-#define SSerialTxControl 7   //RS485 Direction control
-#define REV 9                //timer 1
-#define FOR 10               //timer 1
-#define LED 13
-#define LED_ERROR 12
-#define CURRENT A5 //current of DC motor, using ACS712 185mV/A, 2.5v = 0A
 
-#define STALL_CURRENT 0.8 // amps
-static const float FILTER = 0.9; //coefficient for LPF on current sense
-float filteredRawCurrent = 1024/2; //0A with no load
+const int enc_offset = 14851;
 
 Encoder myEnc(ENCA, ENCB);
 #include <SoftwareSerial.h>
@@ -61,6 +50,7 @@ const float mm_to_pulse = 35.3688;
 
 //pid globals
 int pwm = 128;
+#define MAX_POSREF 65535
 unsigned int posref = 0; //servo setpoint in mm
 long curpos = 0;
 float b0 = 0;
@@ -215,10 +205,14 @@ void loop()
     switch(buttons_check())
     {
         case IN:
-            posref += 100;
+            if(posref < MAX_POSREF)
+                posref ++;
+            delay(1);
             break;
         case OUT:
-            posref -= 100;
+            if(posref > 0)
+                posref --;
+            delay(1);
             break;
         case HOME:
             while(buttons_check() != LIMIT)
@@ -248,7 +242,7 @@ void loop()
         }
 
         //pid calculation
-        curpos = myEnc.read();
+        curpos = myEnc.read() + enc_offset ;
         xn = float(posref - curpos);
         yn = ynm1 + (b0*xn) + (b1*xnm1) + (b2*xnm2);
         ynm1 = yn;
@@ -326,18 +320,6 @@ void loop()
     }
 }
 
-void drive(int yn)
-{
-    //limit
-    if(yn > 127)
-        yn = 127;
-    if(yn < -128)
-        yn = -128;
-
-    int pwm = 128 + int(yn);   
-    analogWrite(FOR,255-pwm);
-    analogWrite(REV,pwm);
-}
 
 void send_response(uint8_t status, uint8_t data)
 {
@@ -401,35 +383,4 @@ void load(Packet data)
 
     //send response, which will let master know how full the buffer is
     send_response(status, last_id);
-}
-
-//crc from Dallas Semi
-byte CRC8(char *data, byte len) 
-{
-    byte crc = 0x00;
-    while (len--)
-    {
-        byte extract = *data++;
-        for (byte tempI = 8; tempI; tempI--) 
-        {
-            byte sum = (crc ^ extract) & 0x01;
-            crc >>= 1;
-            if(sum) 
-            {
-                crc ^= 0x8C;
-            }
-            extract >>= 1;
-        }
-    }
-    return crc;
-}
-
-float read_current()
-{
-    //100 times average of current.
-    filteredRawCurrent = filteredRawCurrent * FILTER  + ( 1 - FILTER ) * analogRead(CURRENT);
-    float currentMV = (5000.0 / 1024.0 ) * filteredRawCurrent;
-    //current sense chip is powered by arduino supply
-    float current = ( currentMV - 2500 ) / 185; //185mv per amp
-    return current;
 }

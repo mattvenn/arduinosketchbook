@@ -1,0 +1,15 @@
+#ifndef pindefs_h
+#define pindefs_h
+
+#define ENCA 2               //hardware ints
+#define ENCB 3               //hardware ints
+#define SS_RX 4
+#define SS_TX 5
+#define SSerialTxControl 6    //RS485 Direction control
+#define REV 9                //timer 1
+#define FOR 10               //timer 1
+#define LED 13
+#define LED_ERROR 12
+#define CURRENT A5
+
+#endif

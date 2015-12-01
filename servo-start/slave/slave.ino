@@ -3,14 +3,15 @@ typedef struct {
     uint8_t cksum;
 } Slave;
 
-#define ENCA 2               //hardware ints
-#define ENCB 3               //hardware ints
-#define SS_RX 4
-#define SS_TX 5
-#define REV 9                //timer 1
-#define FOR 10               //timer 1
-#define LED 13
 
+const int enc_offset = 14851;
+
+#define RS485Transmit    HIGH
+#define RS485Receive     LOW
+
+#include "buttons.h"
+#include "utils.h"
+#include "pindefs.h"
 #include <Encoder.h>
 Encoder myEnc(ENCA,ENCB);
 #include <SoftwareSerial.h>
@@ -26,6 +27,7 @@ int timer1_counter = 0;
 
 //pid globals
 int pwm = 128;
+#define MAX_POSREF 65535
 unsigned int posref = 0;
 float b0 = 0;
 float b1 = 0;
@@ -51,6 +53,7 @@ ISR(TIMER2_OVF_vect)
     }
     if(timer2_overflows > timer2_overflow)
     {
+        timer2_overflows = 0;
         calc = true;
         TCNT2 = 0;
     }
@@ -58,9 +61,13 @@ ISR(TIMER2_OVF_vect)
 
 void setup()
 {
+    buttons_setup();
     Serial.begin(115200);
     master_serial.begin(57600); // 115200 too fast for reliable soft serial
     pinMode(LED, OUTPUT);
+
+    pinMode(SSerialTxControl, OUTPUT);  
+    digitalWrite(SSerialTxControl, RS485Receive);  // Init Transceiver
 
     pinMode(FOR, OUTPUT);
     digitalWrite(FOR,LOW);
@@ -98,12 +105,33 @@ int ok = 0;
 
 void loop()
 {
+    switch(buttons_check())
+    {
+        case IN:
+            if(posref < MAX_POSREF)
+                posref ++;
+            delay(1);
+            break;
+        case OUT:
+            if(posref > 0)
+                posref --;
+            delay(1);
+            break;
+        case HOME:
+            while(buttons_check() != LIMIT)
+                drive(HOME_PWM);
+            drive(0);
+            posref = 0;
+            myEnc.write(0);
+            break;
+    }
     if(calc)
     {
         calc = false;
+        digitalWrite(LED,HIGH);
 
         //pid calculation
-        long newPosition = myEnc.read();
+        long newPosition = myEnc.read() + enc_offset;
         xn = float(posref - newPosition);
         yn = ynm1 + (b0*xn) + (b1*xnm1) + (b2*xnm2);
         ynm1 = yn;
@@ -123,6 +151,7 @@ void loop()
         //set previous input and output values
         xnm1 = xn;
         xnm2 = xnm1;
+        digitalWrite(LED,LOW);
     }
     if(master_serial.available() >= sizeof(Slave))
     {
@@ -161,25 +190,4 @@ void loop()
                 break;
         }
     }
-}
-
-//crc from Dallas Semi
-byte CRC8(char *data, byte len) 
-{
-    byte crc = 0x00;
-    while (len--)
-    {
-        byte extract = *data++;
-        for (byte tempI = 8; tempI; tempI--) 
-        {
-            byte sum = (crc ^ extract) & 0x01;
-            crc >>= 1;
-            if(sum) 
-            {
-                crc ^= 0x8C;
-            }
-            extract >>= 1;
-        }
-    }
-    return crc;
 }

@@ -34,7 +34,7 @@ class TestBuffer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls._serial_port=serial.Serial()
-        cls._serial_port.port='/dev/ttyUSB0'
+        cls._serial_port.port='/dev/ttyUSB1'
         cls._serial_port.timeout=1
         cls._serial_port.baudrate=115200
         cls._serial_port.open()
@@ -197,10 +197,6 @@ class TestBuffer(unittest.TestCase):
         self.assertEqual(status, BUFFER_LOW)
 
 
-        
-
-
-
     def test_keep_buffer_full(self, num=100):
         self._serial_port.flushInput()
         self.send_packet(STOP)
@@ -284,7 +280,7 @@ class TestBuffer(unittest.TestCase):
     @unittest.skip("skipping")
     def test_read_slave_nums(self):
         slave_port=serial.Serial()
-        slave_port.port='/dev/ttyACM0' # leonardo serial port
+        slave_port.port='/dev/ttyUSB0'
         slave_port.timeout=1
         slave_port.baudrate=115200
         slave_port.open()
@@ -294,14 +290,15 @@ class TestBuffer(unittest.TestCase):
         bad_cksum = int(slave_port.readline())
         logging.debug("bad cksum = %d, ok = %d" % (bad_cksum, ok))
 
-    @unittest.skip("skipping")
+    # @unittest.skip("skipping")
     def test_slave_comms(self):
         slave_port=serial.Serial()
-        slave_port.port='/dev/ttyACM0' # leonardo serial port
+        slave_port.port='/dev/ttyUSB0'
         slave_port.timeout=1
         slave_port.baudrate=115200
         slave_port.open()
-        
+
+        # this doesn't always work, don't know why
         slave_port.write('b') # clear sums
         slave_port.write('a')
         ok = int(slave_port.readline())
@@ -324,7 +321,7 @@ class TestBuffer(unittest.TestCase):
         ok = int(slave_port.readline())
         bad_cksum = int(slave_port.readline())
         logging.debug("bad cksum = %d, ok = %d" % (bad_cksum, ok))
-        self.assertEqual(ok, num-2)  # starts at 1, ends at num - 1
+        self.assertEqual(ok, num-1)  # starts at 1
         self.assertEqual(bad_cksum, 0)
     
 if __name__ == '__main__':

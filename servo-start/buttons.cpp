@@ -6,10 +6,10 @@ void buttons_setup()
     pinMode(BUT_OUT, INPUT);
     pinMode(BUT_HOME, INPUT);
     pinMode(BUT_LIMIT, INPUT);
-    digitalWrite(BUT_IN, LOW);
-    digitalWrite(BUT_OUT, LOW);
-    digitalWrite(BUT_HOME, LOW);
-    digitalWrite(BUT_LIMIT, LOW);
+    digitalWrite(BUT_IN, HIGH);
+    digitalWrite(BUT_OUT, HIGH);
+    digitalWrite(BUT_HOME, HIGH);
+    digitalWrite(BUT_LIMIT, HIGH);
 }
 
 enum ButtonStatus buttons_check()
