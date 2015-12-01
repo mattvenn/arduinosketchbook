@@ -23,7 +23,6 @@ STOP = 9
 LOAD = 10 
 FLUSH = 11 
 STATUS = 12 
-GETPOS = 13
 
 buflen = 32
 freq = 50.0
@@ -40,12 +39,6 @@ class TestBuffer(unittest.TestCase):
         cls._serial_port.baudrate=115200
         cls._serial_port.open()
         cls._serial_port.setRTS(True)
-
-        slave_port=serial.Serial()
-        slave_port.port='/dev/ttyACM0' # leonardo serial port
-        slave_port.timeout=1
-        slave_port.baudrate=115200
-        slave_port.open()
 
 #        time.sleep(2);
 
@@ -74,7 +67,6 @@ class TestBuffer(unittest.TestCase):
     def get_response(self):
         response = self._serial_port.read(3)
         if response:
-            self.assertEqual(len(response), 3)
             status, data, cksum = struct.unpack('<BBB', response)
             bin = struct.pack('<BB',status,data)
             # check cksum
@@ -204,6 +196,11 @@ class TestBuffer(unittest.TestCase):
         status, data = self.get_response()
         self.assertEqual(status, BUFFER_LOW)
 
+
+        
+
+
+
     def test_keep_buffer_full(self, num=100):
         self._serial_port.flushInput()
         self.send_packet(STOP)
@@ -284,7 +281,7 @@ class TestBuffer(unittest.TestCase):
 
 
     """
-    @unittest.skip("not testing slave")
+    @unittest.skip("skipping")
     def test_read_slave_nums(self):
         slave_port=serial.Serial()
         slave_port.port='/dev/ttyACM0' # leonardo serial port
@@ -297,8 +294,13 @@ class TestBuffer(unittest.TestCase):
         bad_cksum = int(slave_port.readline())
         logging.debug("bad cksum = %d, ok = %d" % (bad_cksum, ok))
 
-    @unittest.skip("not testing slave")
+    @unittest.skip("skipping")
     def test_slave_comms(self):
+        slave_port=serial.Serial()
+        slave_port.port='/dev/ttyACM0' # leonardo serial port
+        slave_port.timeout=1
+        slave_port.baudrate=115200
+        slave_port.open()
         
         slave_port.write('b') # clear sums
         slave_port.write('a')
@@ -332,7 +334,6 @@ if __name__ == '__main__':
     # just run the one test
     slave = unittest.TestSuite()
     slave.addTest(TestBuffer('test_slave_comms')) 
-
 
     log_file = 'log_file.txt'
     with open(log_file, "a") as fh:
