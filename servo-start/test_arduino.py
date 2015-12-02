@@ -77,6 +77,7 @@ class TestBuffer(unittest.TestCase):
             logging.error("response time out")
 
     def send_packet(self, command, lpos=0, rpos=0, id=0):
+        id = id % 256
         bin = struct.pack('<BHHB', command, lpos, rpos, id)
         bin = struct.pack('<BHHBB',command, lpos, rpos, id, crc8_func(bin))
 
@@ -99,7 +100,7 @@ class TestBuffer(unittest.TestCase):
         self.assertEqual(status, BUFFER_EMPTY)
 
     def test_set_pos(self):
-        self.send_packet(SET_POS,420,420)
+        self.send_packet(SET_POS,100,100)
         status, data = self.get_response()
         self.assertEqual(status, SET_POS)
 
@@ -187,7 +188,41 @@ class TestBuffer(unittest.TestCase):
         self.assertEqual(status, MISSING_DATA)
         self.assertEqual(data, buflen / 2 - 1)
 
-    def test_single_load(self, amount=50):
+    def test_accuracy(self, num=500, amount=50):
+        self._serial_port.flushInput()
+        self.send_packet(STOP)
+        status, data = self.get_response()
+        self.assertEqual(status, STOP)
+        self.send_packet(FLUSH)
+        status, data = self.get_response()
+        self.assertEqual(status, BUFFER_EMPTY)
+
+        self.send_packet(SET_POS,0,0)
+        status, data = self.get_response()
+        self.assertEqual(status, SET_POS)
+
+        self.send_packet(START)
+        status, data = self.get_response()
+        self.assertEqual(status, START)
+
+        i = 1
+        while i < num * 2:
+            logging.debug(i)
+            self.send_packet(LOAD, amount, amount, i)
+            status, data = self.get_response()
+            self.assertEqual(status, BUFFER_LOW)
+
+            time.sleep(3)
+            i += 1
+
+            self.send_packet(LOAD, 0, 0, i)
+            status, data = self.get_response()
+            self.assertEqual(status, BUFFER_LOW)
+
+            i += 1
+            time.sleep(3)
+
+    def test_single_load(self, amount=00):
         self._serial_port.flushInput()
         self.send_packet(STOP)
         status, data = self.get_response()
@@ -301,6 +336,13 @@ class TestBuffer(unittest.TestCase):
         bad_cksum = int(slave_port.readline())
         logging.debug("bad cksum = %d, ok = %d" % (bad_cksum, ok))
 
+    def test_slave_direct(self):
+        slave_port=serial.Serial()
+        slave_port.port='/dev/ttyUSB0'
+        slave_port.timeout=1
+        slave_port.baudrate=57600
+        slave_port.open()
+        
     # @unittest.skip("skipping")
     def test_slave_comms(self):
         slave_port=serial.Serial()
