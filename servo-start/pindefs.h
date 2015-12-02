@@ -1,8 +1,8 @@
 #ifndef pindefs_h
 #define pindefs_h
 
-#define ENCB 2               //hardware ints
-#define ENCA 3               //hardware ints
+#define ENCB 3               //hardware ints
+#define ENCA 2               //hardware ints
 #define SerialTxControl 4    //RS485 Direction control
 #define SLAVE_TX 5           //software serial
 #define SLAVE_RX 6           //software serial

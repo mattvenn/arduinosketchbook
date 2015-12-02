@@ -35,7 +35,7 @@ class TestBuffer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls._serial_port=serial.Serial()
-        cls._serial_port.port='/dev/ttyUSB1'
+        cls._serial_port.port='/dev/ttyUSB0'
         cls._serial_port.timeout=1
         cls._serial_port.baudrate=115200
         cls._serial_port.open()
@@ -187,7 +187,7 @@ class TestBuffer(unittest.TestCase):
         self.assertEqual(status, MISSING_DATA)
         self.assertEqual(data, buflen / 2 - 1)
 
-    def test_single_load(self, amount=415):
+    def test_single_load(self, amount=50):
         self._serial_port.flushInput()
         self.send_packet(STOP)
         status, data = self.get_response()
