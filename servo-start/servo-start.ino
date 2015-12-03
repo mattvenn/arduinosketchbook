@@ -25,6 +25,7 @@ So, I need to switch the interrupt pid timer to timer2 so I can continue using 2
 
 */
 
+// #define LIMITCURRENT
 #define RS485Transmit    HIGH
 #define RS485Receive     LOW
 
@@ -37,6 +38,7 @@ So, I need to switch the interrupt pid timer to timer2 so I can continue using 2
 Encoder myEnc(ENCA, ENCB);
 #include <SoftwareSerial.h>
 SoftwareSerial slave_serial(SLAVE_RX, SLAVE_TX); // RX, TX
+SoftwareSerial can_serial(A5, SpraySSerialTx); //need another pin!
 
 boolean running = false;
 volatile bool calc = false;
@@ -66,6 +68,7 @@ typedef struct {
     uint8_t command;
     unsigned int lpos;
     unsigned int rpos;
+    uint8_t can;
     uint8_t id;
     uint8_t cksum;
 } Packet;
@@ -81,6 +84,11 @@ typedef struct {
     unsigned int pos;
     uint8_t cksum;
 } Slave;
+
+typedef struct {
+    uint8_t amount;
+    uint8_t cksum;
+} Can;
 
 //ring buffer for movement commands
 #define BUFFER_SIZE 32 //must be a power of 2!
@@ -142,6 +150,7 @@ void setup()
 {
     Serial.begin(115200);
     slave_serial.begin(57600); // 115200 too fast for reliable soft serial
+    can_serial.begin(57600);
 
     buttons_setup();
     setup_timer2();
@@ -150,8 +159,11 @@ void setup()
     digitalWrite(FOR,LOW);
     pinMode(REV, OUTPUT);
     digitalWrite(REV,LOW);
-    pinMode(LED, OUTPUT);
+
+    pinMode(LED_STATUS, OUTPUT);
     pinMode(LED_ERROR, OUTPUT);
+    pinMode(LED_POWER, OUTPUT);
+    digitalWrite(LED_POWER, HIGH);
 
     pinMode(SerialTxControl, OUTPUT);  
     pinMode(SSerialTxControl, OUTPUT);  
@@ -196,7 +208,7 @@ void loop()
     if(calc)
     {
         calc = false;
-        digitalWrite(LED, HIGH);
+//        digitalWrite(LED_STATUS, HIGH);
         //get next command from buffer
         if(running)
         {
@@ -206,6 +218,7 @@ void loop()
             {
                 posref = pos.lpos * mm_to_pulse;
                 send_slave(SLV_LOAD, pos.rpos);
+                send_can(pos.can);
             }
         }
 
@@ -222,7 +235,7 @@ void loop()
         //set previous input and output values
         xnm1 = xn;
         xnm2 = xnm1;
-        digitalWrite(LED, LOW);
+ //       digitalWrite(LED_STATUS, LOW);
     }
     
     // must respond if we get a packet
@@ -282,6 +295,7 @@ void loop()
         }
     }
 
+    #ifdef LIMITCURRENT
     // protect against too much current draw
     if(abs(read_current()) > STALL_CURRENT)
     {
@@ -293,6 +307,7 @@ void loop()
         digitalWrite(LED_ERROR, LOW);
         //could flush here too
     }
+    #endif
 }
 
 
@@ -321,6 +336,21 @@ void send_response(uint8_t status, uint8_t data)
     delay(1);
     // Disable RS485 Transmit      
     digitalWrite(SerialTxControl, RS485Receive); 
+}
+
+void send_can(uint8_t amount)
+{
+    Can cmd;
+    cmd.amount = amount;
+    
+    char buf[sizeof(Can)];
+    memcpy(&buf, &cmd, sizeof(Can));
+    cmd.cksum = CRC8(buf,sizeof(Can)-1);
+
+    memcpy(&buf, &cmd, sizeof(Can));
+
+    for(int b = 0; b < sizeof(Can); b++)
+        can_serial.write(buf[b]);
 }
 
 void send_slave(SlaveCommand command, unsigned int data)

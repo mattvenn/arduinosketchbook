@@ -35,13 +35,13 @@ class TestBuffer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls._serial_port=serial.Serial()
-        cls._serial_port.port='/dev/ttyUSB0'
-        cls._serial_port.timeout=1
+        cls._serial_port.port='/dev/ttyACM0'
+        cls._serial_port.timeout=2
         cls._serial_port.baudrate=115200
         cls._serial_port.open()
         cls._serial_port.setRTS(True)
 
-#        time.sleep(2);
+        time.sleep(3);
 
     @classmethod
     def tearDownClass(cls):
@@ -76,10 +76,10 @@ class TestBuffer(unittest.TestCase):
         else:
             logging.error("response time out")
 
-    def send_packet(self, command, lpos=0, rpos=0, id=0):
+    def send_packet(self, command, lpos=0, rpos=0, can=0, id=0):
         id = id % 256
-        bin = struct.pack('<BHHB', command, lpos, rpos, id)
-        bin = struct.pack('<BHHBB',command, lpos, rpos, id, crc8_func(bin))
+        bin = struct.pack('<BHHBB', command, lpos, rpos, can, id)
+        bin = struct.pack('<BHHBBB',command, lpos, rpos, can, id, crc8_func(bin))
 
         self.send_rs485_data(bin)
 
@@ -114,7 +114,7 @@ class TestBuffer(unittest.TestCase):
         status, data = self.get_response()
         for i in range(1,500):
             logging.debug(i)
-            self.send_packet(LOAD, i, i, i % 256)
+            self.send_packet(LOAD, i, i, 0, i)
             status, data = self.get_response()
             self.assertNotEqual(status, BAD_CKSUM)
 
@@ -143,7 +143,7 @@ class TestBuffer(unittest.TestCase):
         # run at less than frequency
         for i in range(1, buflen / 2):
             logging.debug(i)
-            self.send_packet(LOAD, i, i, i)
+            self.send_packet(LOAD, i, i, 0, i)
             status, data = self.get_response()
             time.sleep(20 * (1 / freq))
 
@@ -162,7 +162,7 @@ class TestBuffer(unittest.TestCase):
 
         for i in range(1, buflen + 1):
             logging.debug(i)
-            self.send_packet(LOAD, i, i, i)
+            self.send_packet(LOAD, i, i, 0, i)
             status, data = self.get_response()
             time.sleep(0.1 * (1 / freq))
 
@@ -179,7 +179,7 @@ class TestBuffer(unittest.TestCase):
 
         for i in range(1, buflen / 2):
             logging.debug(i)
-            self.send_packet(LOAD, i, i, i)
+            self.send_packet(LOAD, i, i, 0, i)
             status, data = self.get_response()
 
         self.send_packet(LOAD)
@@ -208,14 +208,14 @@ class TestBuffer(unittest.TestCase):
         i = 1
         while i < num * 2:
             logging.debug(i)
-            self.send_packet(LOAD, amount, amount, i)
+            self.send_packet(LOAD, amount, amount, 0, i)
             status, data = self.get_response()
             self.assertEqual(status, BUFFER_LOW)
 
             time.sleep(3)
             i += 1
 
-            self.send_packet(LOAD, 0, 0, i)
+            self.send_packet(LOAD, 0, 0, 0, i)
             status, data = self.get_response()
             self.assertEqual(status, BUFFER_LOW)
 
@@ -235,12 +235,11 @@ class TestBuffer(unittest.TestCase):
         status, data = self.get_response()
         self.assertEqual(status, START)
 
-        self.send_packet(LOAD, amount, amount, 1)
+        self.send_packet(LOAD, amount, amount, 30, 1)
         status, data = self.get_response()
         self.assertEqual(status, BUFFER_LOW)
 
-
-    def test_keep_buffer_full(self, num=100):
+    def test_keep_buffer_full(self, num=500):
         self._serial_port.flushInput()
         self.send_packet(STOP)
         status, data = self.get_response()
@@ -257,7 +256,8 @@ class TestBuffer(unittest.TestCase):
                 status, data = self.get_response()
                 self.assertEqual(status, START)
 
-            self.send_packet(LOAD, i, i, i % 256)
+            can = i % 70
+            self.send_packet(LOAD, i, i, can, i)
             status, data = self.get_response()
 
             if status == BUFFER_OK:
@@ -291,9 +291,15 @@ class TestBuffer(unittest.TestCase):
 
             a = points['i'][i]['a']
             b = points['i'][i]['b']
-            logging.debug("writing %d (%d,%d)" % (i,a,b))
-            self.send_packet(LOAD, a, b, i % 256)
+            can = points['i'][i]['can']
+            if can == 0:
+                can = 30
+            if can == 1:
+                can = 90
+            logging.debug("writing %d (%d,%d can %d)" % (i,a,b,can))
+            self.send_packet(LOAD, a, b, can, i)
             status, data = self.get_response()
+            logging.debug(self.status_str(status))
 
             if status == BUFFER_OK:
                 pass
