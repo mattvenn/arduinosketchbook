@@ -45,7 +45,6 @@ void setup()
     setup_timer2();
     Serial.begin(115200);
     master_serial.begin(57600); // 115200 too fast for reliable soft serial
-    pinMode(LED, OUTPUT);
 
     pinMode(SSerialTxControl, OUTPUT);  
     digitalWrite(SSerialTxControl, RS485Receive);  // Init Transceiver
@@ -54,6 +53,11 @@ void setup()
     digitalWrite(FOR,LOW);
     pinMode(REV, OUTPUT);
     digitalWrite(REV,LOW);
+
+    pinMode(LED_STATUS, OUTPUT);
+    pinMode(LED_ERROR, OUTPUT);
+    pinMode(LED_POWER, OUTPUT);
+    digitalWrite(LED_POWER, HIGH);
 
 
     // pid init
@@ -93,7 +97,7 @@ void loop()
     if(calc)
     {
         calc = false;
-        digitalWrite(LED,HIGH);
+        digitalWrite(LED_STATUS,HIGH);
 
         //pid calculation
         long newPosition = myEnc.read();
@@ -116,7 +120,7 @@ void loop()
         //set previous input and output values
         xnm1 = xn;
         xnm2 = xnm1;
-        digitalWrite(LED,LOW);
+        digitalWrite(LED_STATUS,LOW);
     }
     if(master_serial.available() >= sizeof(Slave))
     {
