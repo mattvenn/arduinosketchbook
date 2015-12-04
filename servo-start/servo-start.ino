@@ -43,7 +43,7 @@ SoftwareSerial can_serial(A5, SpraySSerialTx); //need another pin!
 boolean running = false;
 volatile bool calc = false;
 
-const float mm_to_pulse = 35.3688;
+const float mm_to_pulse = 1.6985;
 
 //pid globals
 int pwm = 128;

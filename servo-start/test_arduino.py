@@ -35,13 +35,12 @@ class TestBuffer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls._serial_port=serial.Serial()
-        cls._serial_port.port='/dev/ttyACM0'
+        cls._serial_port.port='/dev/ttyUSB1'
         cls._serial_port.timeout=2
         cls._serial_port.baudrate=115200
         cls._serial_port.open()
         cls._serial_port.setRTS(True)
 
-        time.sleep(3);
 
     @classmethod
     def tearDownClass(cls):
@@ -100,7 +99,7 @@ class TestBuffer(unittest.TestCase):
         self.assertEqual(status, BUFFER_EMPTY)
 
     def test_set_pos(self):
-        self.send_packet(SET_POS,100,100)
+        self.send_packet(SET_POS,0,0)
         status, data = self.get_response()
         self.assertEqual(status, SET_POS)
 
@@ -188,7 +187,7 @@ class TestBuffer(unittest.TestCase):
         self.assertEqual(status, MISSING_DATA)
         self.assertEqual(data, buflen / 2 - 1)
 
-    def test_accuracy(self, num=500, amount=50):
+    def test_accuracy(self, num=2, amount=500):
         self._serial_port.flushInput()
         self.send_packet(STOP)
         status, data = self.get_response()
@@ -210,19 +209,22 @@ class TestBuffer(unittest.TestCase):
             logging.debug(i)
             self.send_packet(LOAD, amount, amount, 0, i)
             status, data = self.get_response()
-            self.assertEqual(status, BUFFER_LOW)
+            logging.debug(self.status_str(status))
+            #self.assertEqual(status, BUFFER_LOW)
 
             time.sleep(3)
             i += 1
 
+            logging.debug(i)
             self.send_packet(LOAD, 0, 0, 0, i)
             status, data = self.get_response()
-            self.assertEqual(status, BUFFER_LOW)
+            logging.debug(self.status_str(status))
+            #self.assertEqual(status, BUFFER_LOW)
 
             i += 1
             time.sleep(3)
 
-    def test_single_load(self, amount=00):
+    def test_single_load(self, amount=100):
         self._serial_port.flushInput()
         self.send_packet(STOP)
         status, data = self.get_response()
