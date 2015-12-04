@@ -40,6 +40,7 @@ class TestBuffer(unittest.TestCase):
         cls._serial_port.baudrate=115200
         cls._serial_port.open()
         cls._serial_port.setRTS(True)
+        time.sleep(2)
 
 
     @classmethod
