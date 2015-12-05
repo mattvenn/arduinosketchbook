@@ -6,8 +6,8 @@
 #define SS_RX 4
 #define SS_TX 5
 #define SSerialTxControl 6    //RS485 Direction control
-#define REV 9                //timer 1
-#define FOR 10               //timer 1
+#define REV 10                //timer 1
+#define FOR 9               //timer 1
 
 #define LED_POWER 11
 #define LED_ERROR 12

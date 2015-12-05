@@ -19,7 +19,7 @@ Encoder myEnc(ENCA,ENCB);
 #include <SoftwareSerial.h>
 SoftwareSerial master_serial(SS_RX, SS_TX); // RX, TX
 
-const float mm_to_pulse = 35.3688;
+const float mm_to_pulse = 1.6985;
 
 volatile bool calc = false;
 
@@ -67,6 +67,7 @@ void setup()
 
     // turn on interrupts
     interrupts();
+
 }
 
 int bad_cksum = 0;
@@ -87,9 +88,11 @@ void loop()
             delay(1);
             break;
         case HOME:
+            /*
             while(buttons_check() != LIMIT)
                 drive(HOME_PWM);
             drive(0);
+            */
             posref = 0;
             myEnc.write(0);
             break;
@@ -105,17 +108,8 @@ void loop()
         yn = ynm1 + (b0*xn) + (b1*xnm1) + (b2*xnm2);
         ynm1 = yn;
 
-        //limit
-        if(yn > 127)
-            yn = 127;
-        if(yn < -128)
-            yn = -128;
-
-        pwm = 128 + int(yn);   
-
         //write pwm values
-        analogWrite(FOR,255-pwm);
-        analogWrite(REV,pwm);
+        drive(yn);
 
         //set previous input and output values
         xnm1 = xn;
@@ -139,7 +133,6 @@ void loop()
             //Serial.println("bad cksum");
             return;
         }
-        ok ++;
         //Serial.println("ok!");
         //set the servo position
         switch(data.command)
@@ -147,6 +140,7 @@ void loop()
             case SLV_LOAD:
                 //Serial.print("loaded:");
                 //Serial.println(data.pos);
+                ok ++;
                 posref = data.pos * mm_to_pulse;
                 break;
             case SLV_SET_POS:
@@ -157,6 +151,8 @@ void loop()
                 break;
         }
     }
+    /*
+    leaving this in seems to stop the servo from taking new serial commands until the serial monitor is opened 
     if(Serial.available())
     {
         char cmd = Serial.read();
@@ -172,4 +168,5 @@ void loop()
                 break;
         }
     }
+    */
 }

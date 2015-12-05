@@ -38,7 +38,7 @@ So, I need to switch the interrupt pid timer to timer2 so I can continue using 2
 Encoder myEnc(ENCA, ENCB);
 #include <SoftwareSerial.h>
 SoftwareSerial slave_serial(SLAVE_RX, SLAVE_TX); // RX, TX
-SoftwareSerial can_serial(A5, SpraySSerialTx); //need another pin!
+SoftwareSerial can_serial(A4, SpraySSerialTx); //need another pin!
 
 boolean running = false;
 volatile bool calc = false;
@@ -195,9 +195,11 @@ void loop()
             delay(1);
             break;
         case HOME:
+            /*
             while(buttons_check() != LIMIT)
                 drive(HOME_PWM);
             drive(0);
+            */
             posref = 0;
             myEnc.write(0);
             break;
@@ -207,8 +209,8 @@ void loop()
 
     if(calc)
     {
+        digitalWrite(LED_STATUS, HIGH);
         calc = false;
-//        digitalWrite(LED_STATUS, HIGH);
         //get next command from buffer
         if(running)
         {
@@ -235,12 +237,13 @@ void loop()
         //set previous input and output values
         xnm1 = xn;
         xnm2 = xnm1;
- //       digitalWrite(LED_STATUS, LOW);
+        digitalWrite(LED_STATUS, LOW);
     }
     
     // must respond if we get a packet
     if(Serial.available() >= sizeof(Packet))
     {
+        digitalWrite(LED_STATUS, HIGH);
         Packet data;
         char buf[sizeof(Packet)];
         // do something with status?
@@ -249,6 +252,7 @@ void loop()
         //copy buffer to structure
         memcpy(&data, &buf, sizeof(Packet));
         //calculate cksum is ok
+        digitalWrite(LED_STATUS, LOW);
         if(data.cksum != CRC8(buf,sizeof(Packet)-1))
         {
             send_response(BAD_CKSUM,0);
@@ -293,6 +297,7 @@ void loop()
                 //shouldn't get here
                 send_response(BAD_CMD,0);
         }
+        digitalWrite(LED_STATUS, LOW);
     }
 
     #ifdef LIMITCURRENT
