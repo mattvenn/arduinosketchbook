@@ -131,7 +131,11 @@ class Control():
         status, data = self.get_response()
         assert status == LOAD_D
 
+<<<<<<< HEAD
     def test_run_robot(self, file_name='points.d'):
+=======
+    def run_robot(self, file_name='points.d'):
+>>>>>>> pid-load
         with open(file_name) as fh:
             points = pickle.load(fh)
         logging.debug("file is %d points long" % len(points['i']))
@@ -174,9 +178,7 @@ class Control():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="control megadrawbz")
-
     parser.add_argument('--file', help='megadrawbz file to draw')
-
     parser.add_argument('--port', action='store', help="serial port", default='/dev/ttyUSB0')
     parser.add_argument('--setpos', action='store', help="length of strings a,b")
     parser.add_argument('--setpid', action='store', help="p,i,d")
@@ -194,4 +196,6 @@ if __name__ == '__main__':
     elif args.setpid:
         p, i, d = args.setpid.split(',')
         robot.setpid(float(p), float(i), float(d))
+    elif args.file:
+        robot.run_robot(args.file)
         

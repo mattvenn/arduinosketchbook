@@ -24,6 +24,9 @@ LOAD = 10
 FLUSH = 11 
 STATUS = 12 
 SET_POS = 13
+LOAD_P = 14
+LOAD_I = 15
+LOAD_D = 16
 
 buflen = 32
 freq = 50.0
@@ -35,13 +38,11 @@ class TestBuffer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls._serial_port=serial.Serial()
-        cls._serial_port.port='/dev/ttyUSB0'
+        cls._serial_port.port='/dev/ttyUSB1'
         cls._serial_port.timeout=2
         cls._serial_port.baudrate=115200
         cls._serial_port.open()
-        cls._serial_port.setRTS(True)
-        time.sleep(2)
-
+        cls._serial_port.setDTR(True)
 
     @classmethod
     def tearDownClass(cls):
@@ -84,12 +85,12 @@ class TestBuffer(unittest.TestCase):
         self.send_rs485_data(bin)
 
     def send_rs485_data(self, bin):
-        self._serial_port.setRTS(False)
+        self._serial_port.setDTR(False)
         time.sleep(0.001)
         self._serial_port.write(bin)
         time.sleep(0.001)
 #        time.sleep(0.001)
-        self._serial_port.setRTS(True)
+        self._serial_port.setDTR(True)
 
     def send_rs232_data(bin):
         self._serial_port.write(bin)
@@ -98,6 +99,24 @@ class TestBuffer(unittest.TestCase):
         self.send_packet(FLUSH)
         status, data = self.get_response()
         self.assertEqual(status, BUFFER_EMPTY)
+
+    def test_send_PID(self):
+        """
+        float kp = .45;
+        float ki = 0.000;
+        float kd = .25;
+        """
+        self.send_packet(LOAD_P, 450)
+        status, data = self.get_response()
+        self.assertEqual(status, LOAD_P)
+
+        self.send_packet(LOAD_I, 0)
+        status, data = self.get_response()
+        self.assertEqual(status, LOAD_I)
+
+        self.send_packet(LOAD_D, 250)
+        status, data = self.get_response()
+        self.assertEqual(status, LOAD_D)
 
     def test_set_pos(self):
         self.send_packet(SET_POS,1150,1150)
