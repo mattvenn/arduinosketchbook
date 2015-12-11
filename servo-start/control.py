@@ -131,11 +131,7 @@ class Control():
         status, data = self.get_response()
         assert status == LOAD_D
 
-<<<<<<< HEAD
-    def test_run_robot(self, file_name='points.d'):
-=======
     def run_robot(self, file_name='points.d'):
->>>>>>> pid-load
         with open(file_name) as fh:
             points = pickle.load(fh)
         logging.debug("file is %d points long" % len(points['i']))
