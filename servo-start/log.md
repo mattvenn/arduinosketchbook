@@ -9,3 +9,10 @@ investigating why keep getting serial timeout on the unit tests
 * commented out sserial stuff, starst working
 * uncomment, fails
 * change TX pin from A5 to A4, seems to start working again??!!
+
+## Fri Dec 11 17:59:16 GMT 2015
+
+played with pid, and this seemed good over weights from 350 to 1.4kg
+paying in and out 500mm
+
+./control.py  --setpid 0.55,0.001,0.55 --port=/dev/ttyUSB1
