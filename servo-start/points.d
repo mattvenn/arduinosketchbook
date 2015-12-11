@@ -1,0 +1,1 @@
+test_files/square.d
