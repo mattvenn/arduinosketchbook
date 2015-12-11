@@ -93,8 +93,8 @@ class Control():
         time.sleep(0.001)
         self._serial_port.setDTR(True)
 
-    def set_pos(self, l, r):
-        logging.debug("setpos %d,%d" % (l,r))
+    def touchoff(self, l, r):
+        logging.debug("touchoff %d,%d" % (l,r))
         self.send_packet(SET_POS,l,r)
         status, data = self.get_response()
         assert status == SET_POS
@@ -176,16 +176,16 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="control megadrawbz")
     parser.add_argument('--file', help='megadrawbz file to draw')
     parser.add_argument('--port', action='store', help="serial port", default='/dev/ttyUSB0')
-    parser.add_argument('--setpos', action='store', help="length of strings a,b")
+    parser.add_argument('--touchoff', action='store', help="specify length of strings a,b (mm)")
     parser.add_argument('--setpid', action='store', help="p,i,d")
-    parser.add_argument('--moveto', action='store', help="change string lengths to a,b")
+    parser.add_argument('--moveto', action='store', help="change string lengths to a,b (mm)")
     #parser.add_argument('--safez', action='store', dest='safez', type=float, default=1, help="z safety")
 
     args = parser.parse_args()
     robot = Control(args.port)
-    if args.setpos:
-        l, r = args.setpos.split(',')
-        robot.set_pos(int(l), int(r))
+    if args.touchoff:
+        l, r = args.touchoff.split(',')
+        robot.touchoff(int(l), int(r))
     elif args.moveto:
         l, r = args.moveto.split(',')
         robot.single_load(int(l), int(r))
@@ -194,4 +194,5 @@ if __name__ == '__main__':
         robot.setpid(float(p), float(i), float(d))
     elif args.file:
         robot.run_robot(args.file)
-        
+    else:
+        parser.print_help()
