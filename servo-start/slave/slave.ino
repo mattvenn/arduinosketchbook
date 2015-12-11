@@ -73,6 +73,12 @@ void pid_init()
     b0 = kp+ki+kd;
     b1 = -kp-2*kd;
     b2 = kd;
+
+    yn = 0;
+    ynm1 = 0;
+    xn = 0;
+    xnm1 = 0;
+    xnm2 = 0;
 }
 
 int bad_cksum = 0;
