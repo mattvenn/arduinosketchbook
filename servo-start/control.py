@@ -94,11 +94,13 @@ class Control():
         self._serial_port.setDTR(True)
 
     def set_pos(self, l, r):
+        logging.debug("setpos %d,%d" % (l,r))
         self.send_packet(SET_POS,l,r)
         status, data = self.get_response()
         assert status == SET_POS
 
     def single_load(self, l=0, r=0, can=0):
+        logging.debug("move to %d,%d" % (l,r))
         self._serial_port.flushInput()
         self.send_packet(STOP)
         status, data = self.get_response()
