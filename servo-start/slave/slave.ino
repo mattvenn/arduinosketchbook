@@ -4,7 +4,7 @@ typedef struct {
     uint8_t cksum;
 } Slave;
 
-enum SlaveCommand {SLV_LOAD, SLV_SET_POS};
+enum SlaveCommand {SLV_LOAD, SLV_SET_POS, SLV_LOAD_P, SLV_LOAD_I, SLV_LOAD_D};
 
 
 #define RS485Transmit    HIGH
@@ -61,13 +61,18 @@ void setup()
 
 
     // pid init
-    b0 = kp+ki+kd;
-    b1 = -kp-2*kd;
-    b2 = kd;
+    pid_init();
 
     // turn on interrupts
     interrupts();
 
+}
+
+void pid_init()
+{
+    b0 = kp+ki+kd;
+    b1 = -kp-2*kd;
+    b2 = kd;
 }
 
 int bad_cksum = 0;
@@ -149,6 +154,19 @@ void loop()
                 posref = data.pos * mm_to_pulse;
                 myEnc.write(posref);
                 break;
+            case SLV_LOAD_P:
+                kp = data.pos / 1000.0;
+                pid_init();
+                break;
+            case SLV_LOAD_I:
+                ki = data.pos / 1000.0;
+                pid_init();
+                break;
+            case SLV_LOAD_D:
+                kd = data.pos / 1000.0;
+                pid_init();
+                break;
+                
         }
     }
     /*

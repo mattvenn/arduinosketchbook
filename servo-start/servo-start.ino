@@ -1,4 +1,6 @@
 /*
+bootloader is uno running on atmega328
+
 buffer tips:
 http://hackaday.com/2015/10/29/embed-with-elliot-going-round-with-circular-buffers/
 
@@ -38,7 +40,7 @@ So, I need to switch the interrupt pid timer to timer2 so I can continue using 2
 Encoder myEnc(ENCA, ENCB);
 #include <SoftwareSerial.h>
 SoftwareSerial slave_serial(SLAVE_RX, SLAVE_TX); // RX, TX
-SoftwareSerial can_serial(A4, SpraySSerialTx); //need another pin!
+//SoftwareSerial can_serial(A4, SpraySSerialTx); //need another pin!
 
 boolean running = false;
 volatile bool calc = false;
@@ -102,9 +104,9 @@ struct Buffer buffer = {{}, 0, 0};;
 
 //command definitions - could separate this out into different types of things
 //and have each type taking a few bits in a status byte.
-enum BufferStatus {BUFFER_OK, BUFFER_EMPTY, BUFFER_FULL, BAD_CKSUM, MISSING_DATA,BUFFER_LOW, BUFFER_HIGH, BAD_CMD, START, STOP, LOAD, FLUSH, STATUS, SET_POS };
+enum BufferStatus {BUFFER_OK, BUFFER_EMPTY, BUFFER_FULL, BAD_CKSUM, MISSING_DATA,BUFFER_LOW, BUFFER_HIGH, BAD_CMD, START, STOP, LOAD, FLUSH, STATUS, SET_POS, LOAD_P, LOAD_I, LOAD_D };
 
-typedef enum {SLV_LOAD, SLV_SET_POS} SlaveCommand;
+typedef enum {SLV_LOAD, SLV_SET_POS, SLV_LOAD_P, SLV_LOAD_I, SLV_LOAD_D} SlaveCommand;
 
 //ring buffer functions
 void load(Packet data);
@@ -150,7 +152,7 @@ void setup()
 {
     Serial.begin(115200);
     slave_serial.begin(57600); // 115200 too fast for reliable soft serial
-    can_serial.begin(57600);
+    //can_serial.begin(57600);
 
     buttons_setup();
     setup_timer2();
@@ -171,12 +173,17 @@ void setup()
     digitalWrite(SSerialTxControl, RS485Transmit);  // Init Transceiver
 
     // pid init
-    b0 = kp+ki+kd;
-    b1 = -kp-2*kd;
-    b2 = kd;
+    pid_init();
 
     // turn on interrupts
     interrupts();
+}
+
+void pid_init()
+{
+    b0 = kp+ki+kd;
+    b1 = -kp-2*kd;
+    b2 = kd;
 }
 
 
@@ -220,7 +227,7 @@ void loop()
             {
                 posref = pos.lpos * mm_to_pulse;
                 send_slave(SLV_LOAD, pos.rpos);
-                send_can(pos.can);
+                //send_can(pos.can);
             }
         }
 
@@ -293,6 +300,24 @@ void loop()
                 send_slave(SLV_SET_POS, data.rpos);
                 send_response(SET_POS,0);
                 break;
+            case LOAD_P:
+                kp = data.lpos / 1000.0;
+                pid_init();
+                send_slave(SLV_LOAD_P, data.rpos);
+                send_response(LOAD_P,0);
+                break;
+            case LOAD_I:
+                ki = data.lpos / 1000.0;
+                pid_init();
+                send_slave(SLV_LOAD_I, data.rpos);
+                send_response(LOAD_I,0);
+                break;
+            case LOAD_D:
+                kd = data.lpos / 1000.0;
+                pid_init();
+                send_slave(SLV_LOAD_D, data.rpos);
+                send_response(LOAD_D,0);
+                break;
             default:
                 //shouldn't get here
                 send_response(BAD_CMD,0);
@@ -343,6 +368,7 @@ void send_response(uint8_t status, uint8_t data)
     digitalWrite(SerialTxControl, RS485Receive); 
 }
 
+/*
 void send_can(uint8_t amount)
 {
     Can cmd;
@@ -357,6 +383,7 @@ void send_can(uint8_t amount)
     for(int b = 0; b < sizeof(Can); b++)
         can_serial.write(buf[b]);
 }
+*/
 
 void send_slave(SlaveCommand command, unsigned int data)
 {
