@@ -28,7 +28,6 @@ void loop()
 {
     if(xbee_serial.available() >= sizeof(Can))
     {
-        digitalWrite(LED_PIN,LOW);
         Can data;
         char buf[sizeof(Can)];
         // do something with status?
@@ -44,9 +43,12 @@ void loop()
             return;
         }
         servo.write(data.amount);
+        if(data.amount > 80)
+            digitalWrite(LED_PIN,HIGH);
+        else
+            digitalWrite(LED_PIN,LOW);
         Serial.println(data.amount);
     }
-  digitalWrite(LED_PIN,HIGH);
 }
 
 
