@@ -100,7 +100,7 @@ class Control():
         assert status == SET_POS
 
     def single_load(self, l=0, r=0, can=0):
-        logging.debug("move to %d,%d" % (l,r))
+        logging.debug("move to %d,%d can = %d" % (l, r, can))
         self._serial_port.flushInput()
         self.send_packet(STOP)
         status, data = self.get_response()
@@ -179,6 +179,7 @@ if __name__ == '__main__':
     parser.add_argument('--touchoff', action='store', help="specify length of strings a,b (mm)")
     parser.add_argument('--setpid', action='store', help="p,i,d")
     parser.add_argument('--moveto', action='store', help="change string lengths to a,b (mm)")
+    parser.add_argument('--can', action='store', default=90, help="can trigger amount", type=int)
     #parser.add_argument('--safez', action='store', dest='safez', type=float, default=1, help="z safety")
 
     args = parser.parse_args()
@@ -188,7 +189,8 @@ if __name__ == '__main__':
         robot.touchoff(int(l), int(r))
     elif args.moveto:
         l, r = args.moveto.split(',')
-        robot.single_load(int(l), int(r))
+        can = args.can
+        robot.single_load(int(l), int(r), can)
     elif args.setpid:
         p, i, d = args.setpid.split(',')
         robot.setpid(float(p), float(i), float(d))
