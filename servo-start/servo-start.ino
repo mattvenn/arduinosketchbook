@@ -40,7 +40,7 @@ So, I need to switch the interrupt pid timer to timer2 so I can continue using 2
 Encoder myEnc(ENCA, ENCB);
 #include <SoftwareSerial.h>
 SoftwareSerial slave_serial(SLAVE_RX, SLAVE_TX); // RX, TX
-//SoftwareSerial can_serial(A4, SpraySSerialTx); //need another pin!
+SoftwareSerial can_serial(A4, SpraySSerialTx); //need another pin!
 
 boolean running = false;
 volatile bool calc = false;
@@ -152,7 +152,7 @@ void setup()
 {
     Serial.begin(115200);
     slave_serial.begin(57600); // 115200 too fast for reliable soft serial
-    //can_serial.begin(57600);
+    can_serial.begin(57600);
 
     buttons_setup();
     setup_timer2();
@@ -233,7 +233,7 @@ void loop()
             {
                 posref = pos.lpos * mm_to_pulse;
                 send_slave(SLV_LOAD, pos.rpos);
-                //send_can(pos.can);
+                send_can(pos.can);
             }
         }
 
@@ -374,7 +374,6 @@ void send_response(uint8_t status, uint8_t data)
     digitalWrite(SerialTxControl, RS485Receive); 
 }
 
-/*
 void send_can(uint8_t amount)
 {
     Can cmd;
@@ -389,7 +388,6 @@ void send_can(uint8_t amount)
     for(int b = 0; b < sizeof(Can); b++)
         can_serial.write(buf[b]);
 }
-*/
 
 void send_slave(SlaveCommand command, unsigned int data)
 {
