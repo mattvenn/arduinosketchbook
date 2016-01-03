@@ -12,7 +12,7 @@ fix motor on at pc boot
 #define EXT_RUN A1
 #define EXT_SPD A2
 #include <LiquidCrystal.h>
-
+#define SAFE_OFF_TIME 10000
 LiquidCrystal lcd(4, 6, 7, 8, 9, 10);
 
 boolean usePID = true;
@@ -34,7 +34,7 @@ void setup()
   myPID.SetSampleTime(100);
   //had to load these in again, as they didn't seem to take on the contructor above.
   myPID.SetTunings(0.007,0.006,0);
-    noInterrupts();           // disable all interrupts
+  
   pinMode(RPM,INPUT);
 //  digitalWrite(RPM,HIGH);
   pinMode(EXT_RUN,INPUT);
@@ -54,6 +54,13 @@ void setup()
   // Print a message to the LCD.
   lcd.print("motor pid");
 
+
+ Serial.println("disable spindle for SAFE_OFF_TIME");
+  delay(SAFE_OFF_TIME);
+  
+  noInterrupts();           // disable all interrupts
+
+  //the following will stop delay & millis from working
   //setup for the RPM counter on timer 1
   //clear the control registers
   TCCR1A = 0;
@@ -80,10 +87,11 @@ void setup()
   myPID.SetOutputLimits(min_pulse,max_pulse);
   myPID.Compute();
 
-  delay(500);    
+  
   attachInterrupt(0,ZC_INT,FALLING); //set the interrupt handler for the RPM counter
   disableSpindle();
-
+ 
+    
 }
 
 void enableSpindle()
