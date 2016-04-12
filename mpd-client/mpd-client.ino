@@ -73,15 +73,17 @@ void setup()
 
 }
 
+const int knob_multi = 8;
+
 bool read_knob()
 {
-    knob_pos = knob.read();
+    knob_pos = knob.read(); 
     if(knob_pos != old_knob_pos)
     {
-        if(knob_pos > knob_max)
+        if(knob_pos > knob_max * knob_multi)
         {
-            knob_pos = knob_max;
-            knob.write(knob_max);
+            knob_pos = knob_max * knob_multi;
+            knob.write(knob_max * knob_multi);
         }
         if(knob_pos < 0)
         {
@@ -90,8 +92,10 @@ bool read_knob()
         }
         old_knob_pos = knob_pos;
         Serial.println(knob_pos);
+        knob_pos /= knob_multi;
         return true;
     }
+    knob_pos /= knob_multi;
     return false;
 }
 
@@ -116,13 +120,14 @@ void loop()
 
             if(connect_mpd())
                 state = MENU_START;
+            delay(200);
             break;
 
         case MENU_START:
             lcd.clear();
             lcd.print("menu");
             knob_max = MENU_LAST_ITEM - 1;
-            knob.write(last_menu);
+            knob.write(last_menu*knob_multi);
             knob_pos = last_menu;
             state = MENU_UPDATE;
             Serial.println("menu start");
@@ -175,8 +180,9 @@ void loop()
         case VOLUME_START:
             Serial.println("change volume");
             lcd.clear();
+            last_volume = get_mpd_volume();
             lcd.print("volume");
-            knob.write(last_volume);
+            knob.write(last_volume*knob_multi);
             knob_pos = last_volume;
             knob_max = 100;
             state = VOLUME_UPDATE;
@@ -189,7 +195,6 @@ void loop()
             if(digitalRead(BUTTON) == LOW)
             {
                 delay(500); //TODO debounce
-                last_volume = knob_pos;
                 state = MENU_START;
             }
             break;
@@ -361,7 +366,33 @@ bool set_vol(int vol)
         return false;
 }
 
-
+int get_mpd_volume()
+{
+    Serial.println("getting mpd volume");
+    int current_vol = 0;
+    //request current song
+    client.print("status\n");
+    delay(10);
+    
+    // Read all the lines of the reply from server and print them to Serial
+    while(client.available())
+    {
+        String line = client.readStringUntil('\n');
+        if(line == "OK")
+        {
+            Serial.println("got OK");
+            break;
+        }
+        int ind = line.indexOf(':');
+        if(ind == -1)
+            break;
+        String field = line.substring(0, ind);
+        String value = line.substring(ind + 2);
+        if(field == "volume")
+            current_vol = value.toInt();
+    }
+    return current_vol;
+}
 
 bool load_random_album()
 {
@@ -412,8 +443,6 @@ bool load_random_album()
 
 String get_current_album()
 {
-    //Serial.print("avail:");
-    //Serial.println(client.available());
     String current_album = "no album playing";
     //request current song
     client.print("currentsong\n");
@@ -433,18 +462,14 @@ String get_current_album()
             break;
         String field = line.substring(0, ind);
         String value = line.substring(ind + 2);
-        //Serial.println(ind);
-        //Serial.println(field);
-        //Serial.println(value);
-        //value.trim();
         if(field == "Artist")
             current_album = value + " - ";
         if(field == "Album")
             current_album += value;
-        //Serial.println(field + "=" + value);
     }
     return current_album;
 }
+
 void start_wifi()
 {
     Serial.print("Connecting to ");
