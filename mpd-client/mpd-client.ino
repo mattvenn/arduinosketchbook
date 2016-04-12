@@ -2,6 +2,13 @@
 mpd command ref:
 https://www.musicpd.org/doc/protocol/command_reference.html
 http://www.nerdparadise.com/tech/interview/randomobjectfromstream/
+
+PCB notes
+* added pullup/down resisters as per instructable
+http://www.instructables.com/id/ESP8266-Using-GPIO0-GPIO2-as-inputs/?ALLSTEPS
+* worth noting correct direction of encoder
+* how to avoid lcd pot
+
 */
 
 #include <PCD8544.h>
@@ -11,64 +18,290 @@ IPAddress server(192,168,1,113);
 WiFiClient client;
 
 #include <Encoder.h>
-Encoder myEnc(4,5); //didn't work with 13, 15, 14, 16
+int knob_pos = 0;
+int old_knob_pos = 0;
+int knob_max = 0;
+int last_volume = 0;
+int last_menu = 0;
+unsigned long state_timer = 0;
+
+Encoder knob(4,5); //didn't work with 13, 15, 14, 16
+
+enum states
+{
+    WIFI,
+    MPD_CONNECT,
+    MENU_START,
+    MENU_WAIT,
+    MENU_UPDATE,
+    VOLUME_START,
+    VOLUME_WAIT,
+    VOLUME_UPDATE,
+    RANDOM,
+    FIP,
+};
+
+enum menus
+{
+    MENU_VOLUME,
+    MENU_RANDOM,
+    MENU_FIP,
+    MENU_LAST_ITEM, // MUST BE THE LAST ITEM //
+};
+
+int state = WIFI;
+int next_state = 0;
+
+#define BUTTON 0
+
+// include the library code:
+#include <LiquidCrystal.h>
+
+// initialize the library with the numbers of the interface pins
+LiquidCrystal lcd(2, 15, 13,12,14,16);
 
 void setup()
 {
+    pinMode(BUTTON, INPUT); //has external pullup
+
     Serial.begin(9600);
     Serial.println();
     Serial.println();
 
-    start_wifi();
-    randomSeed(ESP.getCycleCount());
+    lcd.begin(16, 2);
+    lcd.clear();
 
-    while(true)
-        if(connect_mpd())
-            break;
-    /*
-    while(true)
-    {
-        if(connect_mpd())
-        {
-            clear_playlist();
-            set_vol(50);
-            if(load_random_album())
-            {
-                play();
-                Serial.println(get_current_album());
-            }
-            Serial.println("finished");
-            break;
-        }
-        delay(500);
-    }
-    */
 }
 
-long oldPosition = -999;
+bool read_knob()
+{
+    knob_pos = knob.read();
+    if(knob_pos != old_knob_pos)
+    {
+        if(knob_pos > knob_max)
+        {
+            knob_pos = knob_max;
+            knob.write(knob_max);
+        }
+        if(knob_pos < 0)
+        {
+            knob.write(0);
+            knob_pos = 0;
+        }
+        old_knob_pos = knob_pos;
+        Serial.println(knob_pos);
+        return true;
+    }
+    return false;
+}
+
 void loop()
 {
-    //nothing
-    long newPosition = myEnc.read();
-    if (newPosition != oldPosition) 
-    {
-        if(newPosition > 100)
-        {
-            newPosition = 100;
-            myEnc.write(100);
-        }
-        if(newPosition < 0)
-        {
-            myEnc.write(0);
-            newPosition = 0;
-        }
-        oldPosition = newPosition;
 
-        Serial.println(newPosition);
-        set_vol(newPosition);
+    switch(state)
+    {
+        case WIFI:
+            lcd.print("connect wifi");
+            lcd.setCursor(0,1);
+            lcd.print(ssid);
+            start_wifi();
+            state = MPD_CONNECT;
+            break;
+        
+        case MPD_CONNECT:
+            lcd.clear();
+            lcd.print("connect mpd");
+            lcd.setCursor(0,1);
+            lcd.print(server);
+
+            if(connect_mpd())
+                state = MENU_START;
+            break;
+
+        case MENU_START:
+            lcd.clear();
+            lcd.print("menu");
+            knob_max = MENU_LAST_ITEM - 1;
+            knob.write(last_menu);
+            knob_pos = last_menu;
+            state = MENU_UPDATE;
+            Serial.println("menu start");
+            Serial.println(knob_pos);
+            break;
+        
+        case MENU_WAIT:
+            //if knob changed update lcd
+            if(read_knob()) 
+            {
+                state = MENU_UPDATE;
+            }
+            //button
+            if(digitalRead(BUTTON) == LOW && next_state >= 0)
+            {
+                delay(500); //TODO debounce
+                Serial.print("nextstate:"); Serial.println(next_state);
+                last_menu = knob_pos;
+
+                //ensure MPD is connected
+                if(! mpd_connected())
+                    state = MPD_CONNECT;
+                else
+                    state = next_state;
+            }
+            break;
+    
+        case MENU_UPDATE:
+            switch(knob_pos)
+            {
+                case MENU_VOLUME:
+                    lcd.setCursor(0,1);
+                    lcd.print("volume          ");
+                    next_state = VOLUME_START;
+                    break;
+                case MENU_RANDOM:
+                    lcd.setCursor(0,1);
+                    lcd.print("play random     ");
+                    next_state = RANDOM;
+                    break;
+                case MENU_FIP:
+                    lcd.setCursor(0,1);
+                    lcd.print("play FIP        ");
+                    next_state = FIP;
+                    break;
+            }
+            state = MENU_WAIT;
+            break;
+
+        case VOLUME_START:
+            Serial.println("change volume");
+            lcd.clear();
+            lcd.print("volume");
+            knob.write(last_volume);
+            knob_pos = last_volume;
+            knob_max = 100;
+            state = VOLUME_UPDATE;
+            break;
+
+        case VOLUME_WAIT:
+            if(read_knob())
+                state = VOLUME_UPDATE;
+
+            if(digitalRead(BUTTON) == LOW)
+            {
+                delay(500); //TODO debounce
+                last_volume = knob_pos;
+                state = MENU_START;
+            }
+            break;
+
+        case VOLUME_UPDATE:
+            lcd.setCursor(0,1);
+            lcd.print(knob_pos);
+            lcd.print("  ");
+            set_vol(knob_pos);
+            state = VOLUME_WAIT;
+            break;
+            
+        case RANDOM:
+            Serial.println("play random");
+            menu_play_random();
+            state = MENU_START;
+            break;
+
+        case FIP:
+            Serial.println("play fip");
+            menu_play_fip();
+            state = MENU_START;
+            break;
     }
 }
 
+void menu_play_fip()
+{
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("loading fip");
+    lcd.setCursor(0,1);
+    if(!clear_playlist())
+    {
+        lcd.print("mpd error");
+        delay(500);
+        return;
+    }
+
+    client.print("load fip\n");
+    delay(10);
+
+    String ack = client.readStringUntil('\n');
+    if(! ack.startsWith("OK"))
+    {
+        lcd.print("mpd error");
+        delay(500);
+        return;
+    }
+
+    lcd.print("loaded..");
+
+    if(!play())
+    {
+        lcd.print("mpd error");
+        delay(500);
+        return;
+    }
+    delay(500);
+}
+
+void menu_play_random()
+{
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("loading random");
+    lcd.setCursor(0,1);
+    if(!clear_playlist())
+    {
+        lcd.print("mpd error");
+        delay(500);
+        return;
+    } 
+
+    if(!load_random_album())
+    {
+        lcd.print("mpd error");
+        delay(500);
+        return;
+    }
+
+    if(!play())
+    {
+        lcd.print("mpd error");
+        delay(500);
+        return;
+    }
+
+
+    lcd.clear();
+    lcd.autoscroll();
+    lcd.setCursor(16,1);
+    String album = get_current_album();
+    for(int c = 0; c < album.length(); c ++)
+    {
+        lcd.print(album.charAt(c));
+        delay(150);
+    }
+    lcd.noAutoscroll();
+    lcd.clear(); //have to call clear before printing works again
+}
+
+bool mpd_connected()
+{
+    Serial.println("try to connect");
+    client.print("clearerror\n");
+    delay(10);
+    String ack = client.readStringUntil('\n');
+    if(! ack.startsWith("OK"))
+        return false;
+    return true;
+}
 
 bool connect_mpd()
 {
@@ -128,8 +361,11 @@ bool set_vol(int vol)
         return false;
 }
 
+
+
 bool load_random_album()
 {
+    randomSeed(ESP.getCycleCount());
     client.print("list album\n");
     delay(10);
 
@@ -202,7 +438,7 @@ String get_current_album()
         //Serial.println(value);
         //value.trim();
         if(field == "Artist")
-            current_album = value + ":";
+            current_album = value + " - ";
         if(field == "Album")
             current_album += value;
         //Serial.println(field + "=" + value);
