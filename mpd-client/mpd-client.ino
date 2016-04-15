@@ -11,25 +11,15 @@ http://www.instructables.com/id/ESP8266-Using-GPIO0-GPIO2-as-inputs/?ALLSTEPS
 
 */
 
-#include <PCD8544.h>
 #include <ESP8266WiFi.h>
 #include "secrets.h"
-IPAddress server(192,168,1,113);
-WiFiClient client;
-
 #include <Encoder.h>
-int knob_pos = 0;
-int old_knob_pos = 0;
-int knob_max = 0;
-int last_volume = 0;
-int last_menu = 0;
-unsigned long state_timer = 0;
-
-Encoder knob(4,5); //didn't work with 13, 15, 14, 16
+#include <LiquidCrystal.h>
 
 enum states
 {
-    WIFI,
+    WIFI_START,
+    WIFI_WAIT,
     MPD_CONNECT,
     MENU_START,
     MENU_WAIT,
@@ -39,6 +29,8 @@ enum states
     VOLUME_UPDATE,
     RANDOM,
     FIP,
+    POWER_OFF,
+    CONN_FAIL,
 };
 
 enum menus
@@ -49,20 +41,34 @@ enum menus
     MENU_LAST_ITEM, // MUST BE THE LAST ITEM //
 };
 
-int state = WIFI;
-int next_state = 0;
+const int knob_multi = 8; // knob is too sensitive
+int knob_pos = 0;
+int old_knob_pos = 0;
+int knob_max = 0;
+int last_volume = 0;
+int last_menu = 0;
+int connect_attempts = 0;
+unsigned long power_timer = 0;
+int state = WIFI_START;
+int next_state = VOLUME_START; //used for transferring state on button press, should match the state required for the 1st menu item
 
-#define BUTTON 0
+#define POWER_TIME 10000 // ms after before power off
+#define DISPLAY_TIMEOUT 1000 // ms for display to time out
+#define CONN_ATTEMPTS 10 // how many times to attempt to connect before power off
+#define DEBOUNCE 200 //crap button debouncing
 
-// include the library code:
-#include <LiquidCrystal.h>
+#define BUTTON A0
+#define POWER 13
 
-// initialize the library with the numbers of the interface pins
-LiquidCrystal lcd(2, 15, 13,12,14,16);
+Encoder knob(4,5); //didn't work with 13, 15, 14, 16
+LiquidCrystal lcd(0, 2, 15, 12, 14, 16);
+IPAddress server(192, 168, 0, 200);
+WiFiClient client;
 
 void setup()
 {
-    pinMode(BUTTON, INPUT); //has external pullup
+    pinMode(POWER, OUTPUT); //has external pullup
+    digitalWrite(POWER, HIGH);
 
     Serial.begin(9600);
     Serial.println();
@@ -70,56 +76,67 @@ void setup()
 
     lcd.begin(16, 2);
     lcd.clear();
-
-}
-
-const int knob_multi = 8;
-
-bool read_knob()
-{
-    knob_pos = knob.read(); 
-    if(knob_pos != old_knob_pos)
-    {
-        if(knob_pos > knob_max * knob_multi)
-        {
-            knob_pos = knob_max * knob_multi;
-            knob.write(knob_max * knob_multi);
-        }
-        if(knob_pos < 0)
-        {
-            knob.write(0);
-            knob_pos = 0;
-        }
-        old_knob_pos = knob_pos;
-        Serial.println(knob_pos);
-        knob_pos /= knob_multi;
-        return true;
-    }
-    knob_pos /= knob_multi;
-    return false;
 }
 
 void loop()
 {
+    //shutdown after timeout
+    if(millis() - power_timer > POWER_TIME)
+        state = POWER_OFF;
 
+    //state machine
     switch(state)
     {
-        case WIFI:
-            lcd.print("connect wifi");
+        case WIFI_START:
+            WiFi.begin(ssid, password);
+            state = WIFI_WAIT;
+            break;
+
+        case WIFI_WAIT:
+            power_timer = millis(); // prevent early shutdown
+            lcd.clear();
+            lcd.print("connect wifi: ");
+            lcd.print(CONN_ATTEMPTS - connect_attempts);
             lcd.setCursor(0,1);
             lcd.print(ssid);
-            start_wifi();
-            state = MPD_CONNECT;
+
+            if(WiFi.status() == WL_CONNECTED) 
+            {
+                Serial.println("WiFi connected");  
+                Serial.println("IP address: ");
+                Serial.println(WiFi.localIP());
+                state = MPD_CONNECT;
+                connect_attempts = 0;
+            }
+            else
+            {
+                connect_attempts ++;
+                delay(1000);
+            }
+
+            if(connect_attempts > CONN_ATTEMPTS)
+                state = CONN_FAIL;
+
             break;
         
         case MPD_CONNECT:
+            power_timer = millis(); // prevent early shutdown
             lcd.clear();
-            lcd.print("connect mpd");
+            lcd.print("connect mpd: ");
+            lcd.print(CONN_ATTEMPTS - connect_attempts);
             lcd.setCursor(0,1);
             lcd.print(server);
 
             if(connect_mpd())
+            {
                 state = MENU_START;
+                connect_attempts = 0;
+            }
+            else
+                connect_attempts ++;
+
+            if(connect_attempts > CONN_ATTEMPTS)
+                state = CONN_FAIL;
             delay(200);
             break;
 
@@ -131,7 +148,6 @@ void loop()
             knob_pos = last_menu;
             state = MENU_UPDATE;
             Serial.println("menu start");
-            Serial.println(knob_pos);
             break;
         
         case MENU_WAIT:
@@ -141,10 +157,8 @@ void loop()
                 state = MENU_UPDATE;
             }
             //button
-            if(digitalRead(BUTTON) == LOW && next_state >= 0)
+            if(button_pressed())
             {
-                delay(500); //TODO debounce
-                Serial.print("nextstate:"); Serial.println(next_state);
                 last_menu = knob_pos;
 
                 //ensure MPD is connected
@@ -153,6 +167,7 @@ void loop()
                 else
                     state = next_state;
             }
+
             break;
     
         case MENU_UPDATE:
@@ -160,17 +175,17 @@ void loop()
             {
                 case MENU_VOLUME:
                     lcd.setCursor(0,1);
-                    lcd.print("volume          ");
+                    lcd.print("1: volume       ");
                     next_state = VOLUME_START;
                     break;
                 case MENU_RANDOM:
                     lcd.setCursor(0,1);
-                    lcd.print("play random     ");
+                    lcd.print("2: play random  ");
                     next_state = RANDOM;
                     break;
                 case MENU_FIP:
                     lcd.setCursor(0,1);
-                    lcd.print("play FIP        ");
+                    lcd.print("3: play FIP     ");
                     next_state = FIP;
                     break;
             }
@@ -181,7 +196,7 @@ void loop()
             Serial.println("change volume");
             lcd.clear();
             last_volume = get_mpd_volume();
-            lcd.print("volume");
+            lcd.print("set volume %");
             knob.write(last_volume*knob_multi);
             knob_pos = last_volume;
             knob_max = 100;
@@ -192,11 +207,8 @@ void loop()
             if(read_knob())
                 state = VOLUME_UPDATE;
 
-            if(digitalRead(BUTTON) == LOW)
-            {
-                delay(500); //TODO debounce
+            if(button_pressed())
                 state = MENU_START;
-            }
             break;
 
         case VOLUME_UPDATE:
@@ -218,7 +230,59 @@ void loop()
             menu_play_fip();
             state = MENU_START;
             break;
+
+        case CONN_FAIL:
+            lcd.clear();
+            lcd.print("connection");
+            lcd.setCursor(0,1);
+            lcd.print("failed");
+            delay(DISPLAY_TIMEOUT);
+            state = POWER_OFF;
+            break;
+
+        case POWER_OFF:
+            lcd.clear();
+            lcd.print("power off");
+            delay(DISPLAY_TIMEOUT);
+            digitalWrite(POWER, LOW);
+            break;
     }
+}
+
+bool button_pressed()
+{
+    if(analogRead(BUTTON) > 750)
+    {
+        power_timer = millis(); //something happened
+        delay(DEBOUNCE);
+        return true;
+    }
+    return false;
+}
+
+bool read_knob()
+{
+    knob_pos = knob.read(); 
+    if(knob_pos != old_knob_pos)
+    {
+        power_timer = millis(); //something happened
+        Serial.print("A0="); Serial.println(analogRead(A0));
+        if(knob_pos > knob_max * knob_multi)
+        {
+            knob_pos = knob_max * knob_multi;
+            knob.write(knob_max * knob_multi);
+        }
+        if(knob_pos < 0)
+        {
+            knob.write(0);
+            knob_pos = 0;
+        }
+        old_knob_pos = knob_pos;
+        knob_pos /= knob_multi;
+        return true;
+    }
+    knob_pos /= knob_multi;
+    return false;
 }
 
 void menu_play_fip()
@@ -230,7 +294,7 @@ void menu_play_fip()
     if(!clear_playlist())
     {
         lcd.print("mpd error");
-        delay(500);
+        delay(DISPLAY_TIMEOUT);
         return;
     }
 
@@ -241,19 +305,19 @@ void menu_play_fip()
     if(! ack.startsWith("OK"))
     {
         lcd.print("mpd error");
-        delay(500);
+        delay(DISPLAY_TIMEOUT);
         return;
     }
 
-    lcd.print("loaded..");
+    lcd.print("loaded");
 
     if(!play())
     {
         lcd.print("mpd error");
-        delay(500);
+        delay(DISPLAY_TIMEOUT);
         return;
     }
-    delay(500);
+    delay(DISPLAY_TIMEOUT);
 }
 
 void menu_play_random()
@@ -265,21 +329,21 @@ void menu_play_random()
     if(!clear_playlist())
     {
         lcd.print("mpd error");
-        delay(500);
+        delay(DISPLAY_TIMEOUT);
         return;
     } 
 
     if(!load_random_album())
     {
         lcd.print("mpd error");
-        delay(500);
+        delay(DISPLAY_TIMEOUT);
         return;
     }
 
     if(!play())
     {
         lcd.print("mpd error");
-        delay(500);
+        delay(DISPLAY_TIMEOUT);
         return;
     }
 
@@ -296,6 +360,8 @@ void menu_play_random()
     lcd.noAutoscroll();
     lcd.clear(); //have to call clear before printing works again
 }
+
+// lower level MPD related stuff //
 
 bool mpd_connected()
 {
@@ -469,24 +535,3 @@ String get_current_album()
     }
     return current_album;
 }
-
-void start_wifi()
-{
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
-
-    WiFi.begin(ssid, password);
-
-    while (WiFi.status() != WL_CONNECTED) 
-    {
-        delay(500);
-        Serial.print(".");
-        //update_lcd(0);
-    }
-
-    Serial.println("");
-    Serial.println("WiFi connected");  
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
-}
-
