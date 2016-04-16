@@ -27,8 +27,10 @@ enum states
     VOLUME_START,
     VOLUME_WAIT,
     VOLUME_UPDATE,
-    RANDOM,
-    FIP,
+    PLAY_FIP,
+    PLAY_CADENA,
+    PLAY_KLARA,
+    PLAY_RANDOM,
     POWER_OFF,
     CONN_FAIL,
 };
@@ -38,6 +40,8 @@ enum menus
     MENU_VOLUME,
     MENU_RANDOM,
     MENU_FIP,
+    MENU_KLARA,
+    MENU_CADENA,
     MENU_LAST_ITEM, // MUST BE THE LAST ITEM //
 };
 
@@ -53,8 +57,10 @@ int state = WIFI_START;
 int next_state = VOLUME_START; //used for transferring state on button press, should match the state required for the 1st menu item
 
 #define POWER_TIME 10000 // ms after before power off
+#define MPD_WAIT 100 // ms to wait for mpd replies
 #define DISPLAY_TIMEOUT 1000 // ms for display to time out
 #define CONN_ATTEMPTS 10 // how many times to attempt to connect before power off
+#define CONN_TIMEOUT 1000 // ms wait in between each conn attempt
 #define DEBOUNCE 200 //crap button debouncing
 
 #define BUTTON A0
@@ -111,7 +117,7 @@ void loop()
             else
             {
                 connect_attempts ++;
-                delay(1000);
+                delay(CONN_TIMEOUT);
             }
 
             if(connect_attempts > CONN_ATTEMPTS)
@@ -133,11 +139,14 @@ void loop()
                 connect_attempts = 0;
             }
             else
+            {
                 connect_attempts ++;
+                delay(CONN_TIMEOUT);
+            }
 
             if(connect_attempts > CONN_ATTEMPTS)
                 state = CONN_FAIL;
-            delay(200);
+
             break;
 
         case MENU_START:
@@ -171,22 +180,28 @@ void loop()
             break;
     
         case MENU_UPDATE:
+            lcd.setCursor(0,1);
             switch(knob_pos)
             {
                 case MENU_VOLUME:
-                    lcd.setCursor(0,1);
                     lcd.print("1: volume       ");
                     next_state = VOLUME_START;
                     break;
                 case MENU_RANDOM:
-                    lcd.setCursor(0,1);
                     lcd.print("2: play random  ");
-                    next_state = RANDOM;
+                    next_state = PLAY_RANDOM;
                     break;
                 case MENU_FIP:
-                    lcd.setCursor(0,1);
-                    lcd.print("3: play FIP     ");
-                    next_state = FIP;
+                    lcd.print("3: FIP          ");
+                    next_state = PLAY_FIP;
+                    break;
+                case MENU_KLARA:
+                    lcd.print("4: Klara        ");
+                    next_state = PLAY_KLARA;
+                    break;
+                case MENU_CADENA:
+                    lcd.print("5: Cadena Ser   ");
+                    next_state = PLAY_CADENA;
                     break;
             }
             state = MENU_WAIT;
@@ -219,15 +234,27 @@ void loop()
             state = VOLUME_WAIT;
             break;
             
-        case RANDOM:
+        case PLAY_RANDOM:
             Serial.println("play random");
             menu_play_random();
             state = MENU_START;
             break;
 
-        case FIP:
-            Serial.println("play fip");
-            menu_play_fip();
+        case PLAY_CADENA:
+            Serial.println("play cadena");
+            menu_playlist("cadena ser");
+            state = MENU_START;
+            break;
+
+        case PLAY_KLARA:
+            Serial.println("play KLARA");
+            menu_playlist("klara");
+            state = MENU_START;
+            break;
+
+        case PLAY_FIP:
+            Serial.println("play FIP");
+            menu_playlist("fip");
             state = MENU_START;
             break;
 
@@ -266,7 +293,7 @@ bool read_knob()
     if(knob_pos != old_knob_pos)
     {
         power_timer = millis(); //something happened
-        Serial.print("A0="); Serial.println(analogRead(A0));
+//        Serial.print("A0="); Serial.println(analogRead(A0));
         if(knob_pos > knob_max * knob_multi)
         {
             knob_pos = knob_max * knob_multi;
@@ -285,11 +312,12 @@ bool read_knob()
     return false;
 }
 
-void menu_play_fip()
+void menu_playlist(String name)
 {
     lcd.clear();
     lcd.setCursor(0,0);
-    lcd.print("loading fip");
+    lcd.print("loading "); 
+    lcd.print(name);
     lcd.setCursor(0,1);
     if(!clear_playlist())
     {
@@ -298,8 +326,12 @@ void menu_play_fip()
         return;
     }
 
-    client.print("load fip\n");
-    delay(10);
+    client.print("load ");
+    client.print('"');
+    client.print(name);
+    client.print('"');
+    client.print('\n');
+    delay(MPD_WAIT);
 
     String ack = client.readStringUntil('\n');
     if(! ack.startsWith("OK"))
@@ -328,21 +360,21 @@ void menu_play_random()
     lcd.setCursor(0,1);
     if(!clear_playlist())
     {
-        lcd.print("mpd error");
+        lcd.print("err: playlist");
         delay(DISPLAY_TIMEOUT);
         return;
     } 
 
     if(!load_random_album())
     {
-        lcd.print("mpd error");
+        lcd.print("err: load rand");
         delay(DISPLAY_TIMEOUT);
         return;
     }
 
     if(!play())
     {
-        lcd.print("mpd error");
+        lcd.print("err: play");
         delay(DISPLAY_TIMEOUT);
         return;
     }
@@ -367,7 +399,7 @@ bool mpd_connected()
 {
     Serial.println("try to connect");
     client.print("clearerror\n");
-    delay(10);
+    delay(MPD_WAIT);
     String ack = client.readStringUntil('\n');
     if(! ack.startsWith("OK"))
         return false;
@@ -385,7 +417,7 @@ bool connect_mpd()
     }
     boolean conn = false;
     //wait for the ack
-    delay(10);
+    delay(MPD_WAIT);
     //get the ack
     while(client.available())
     {
@@ -405,7 +437,7 @@ bool clear_playlist()
 {
     //clear playlist
     client.print("clear\n");
-    delay(10);
+    delay(MPD_WAIT);
     String ack = client.readStringUntil('\n');
     if(! ack.startsWith("OK"))
         return false;
@@ -415,7 +447,7 @@ bool clear_playlist()
 bool play()
 {
     client.print("play\n");
-    delay(10);
+    delay(MPD_WAIT);
     String ack = client.readStringUntil('\n');
     if(! ack.startsWith("OK"))
         return false;
@@ -426,7 +458,7 @@ bool set_vol(int vol)
     client.print("setvol ");
     client.print(vol);
     client.println();
-    delay(10);
+    delay(MPD_WAIT);
     String ack = client.readStringUntil('\n');
     if(! ack.startsWith("OK"))
         return false;
@@ -438,7 +470,7 @@ int get_mpd_volume()
     int current_vol = 0;
     //request current song
     client.print("status\n");
-    delay(10);
+    delay(MPD_WAIT);
     
     // Read all the lines of the reply from server and print them to Serial
     while(client.available())
@@ -464,10 +496,15 @@ bool load_random_album()
 {
     randomSeed(ESP.getCycleCount());
     client.print("list album\n");
-    delay(10);
+    delay(50);
 
     int albums = 1;
     String choice;
+    if(client.available() == 0)
+    {
+        Serial.println("no reply from MPD");
+        return false;
+    }    
     while(client.available())
     {
         String line = client.readStringUntil('\n');
@@ -500,7 +537,7 @@ bool load_random_album()
     client.print('"');
     client.print(choice);
     client.println('"');
-    delay(10);
+    delay(MPD_WAIT);
     String ack = client.readStringUntil('\n');
     if(! ack.startsWith("OK"))
         return false;
@@ -512,7 +549,7 @@ String get_current_album()
     String current_album = "no album playing";
     //request current song
     client.print("currentsong\n");
-    delay(10);
+    delay(MPD_WAIT);
     
     // Read all the lines of the reply from server and print them to Serial
     while(client.available())
