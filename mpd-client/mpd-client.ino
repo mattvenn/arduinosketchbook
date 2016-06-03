@@ -10,7 +10,6 @@ http://www.instructables.com/id/ESP8266-Using-GPIO0-GPIO2-as-inputs/?ALLSTEPS
 * how to avoid lcd pot
 
 */
-
 #include <ESP8266WiFi.h>
 #include "secrets.h"
 #include <Encoder.h>
@@ -57,7 +56,7 @@ int state = WIFI_START;
 int next_state = VOLUME_START; //used for transferring state on button press, should match the state required for the 1st menu item
 
 #define POWER_TIME 10000 // ms after before power off
-#define MPD_WAIT 100 // ms to wait for mpd replies
+#define MPD_WAIT 250 // ms to wait for mpd replies
 #define DISPLAY_TIMEOUT 1000 // ms for display to time out
 #define CONN_ATTEMPTS 10 // how many times to attempt to connect before power off
 #define CONN_TIMEOUT 1000 // ms wait in between each conn attempt
@@ -68,7 +67,7 @@ int next_state = VOLUME_START; //used for transferring state on button press, sh
 
 Encoder knob(4,5); //didn't work with 13, 15, 14, 16
 LiquidCrystal lcd(0, 2, 15, 12, 14, 16);
-IPAddress server(192, 168, 0, 200);
+IPAddress server(192, 168, 1, 241);
 WiFiClient client;
 
 void setup()
@@ -496,7 +495,7 @@ bool load_random_album()
 {
     randomSeed(ESP.getCycleCount());
     client.print("list album\n");
-    delay(50);
+    delay(MPD_WAIT);
 
     int albums = 1;
     String choice;
