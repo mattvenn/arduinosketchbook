@@ -10,7 +10,6 @@ http://www.instructables.com/id/ESP8266-Using-GPIO0-GPIO2-as-inputs/?ALLSTEPS
 * how to avoid lcd pot
 
 */
-
 #include <ESP8266WiFi.h>
 #include "secrets.h"
 #include <Encoder.h>
@@ -37,11 +36,11 @@ enum states
 
 enum menus
 {
+    MENU_VOLUME,
     MENU_RANDOM,
     MENU_FIP,
     MENU_KLARA,
     MENU_CADENA,
-    MENU_VOLUME,
     MENU_LAST_ITEM, // MUST BE THE LAST ITEM //
 };
 
@@ -56,9 +55,8 @@ unsigned long power_timer = 0;
 int state = WIFI_START;
 int next_state = VOLUME_START; //used for transferring state on button press, should match the state required for the 1st menu item
 
-#define SCROLL_SPEED 100 // ms scroll speed for showing current playing
-#define POWER_TIME 15000 // ms after before power off
-#define MPD_WAIT 100 // ms to wait for mpd replies
+#define POWER_TIME 10000 // ms after before power off
+#define MPD_WAIT 250 // ms to wait for mpd replies
 #define DISPLAY_TIMEOUT 1000 // ms for display to time out
 #define CONN_ATTEMPTS 10 // how many times to attempt to connect before power off
 #define CONN_TIMEOUT 1000 // ms wait in between each conn attempt
@@ -184,25 +182,25 @@ void loop()
             lcd.setCursor(0,1);
             switch(knob_pos)
             {
+                case MENU_VOLUME:
+                    lcd.print("1: volume       ");
+                    next_state = VOLUME_START;
+                    break;
                 case MENU_RANDOM:
-                    lcd.print("play random     ");
+                    lcd.print("2: play random  ");
                     next_state = PLAY_RANDOM;
                     break;
                 case MENU_FIP:
-                    lcd.print("play FIP        ");
+                    lcd.print("3: FIP          ");
                     next_state = PLAY_FIP;
                     break;
                 case MENU_KLARA:
-                    lcd.print("play Klara      ");
+                    lcd.print("4: Klara        ");
                     next_state = PLAY_KLARA;
                     break;
                 case MENU_CADENA:
-                    lcd.print("play Cadena Ser ");
+                    lcd.print("5: Cadena Ser   ");
                     next_state = PLAY_CADENA;
-                    break;
-                case MENU_VOLUME:
-                    lcd.print("volume          ");
-                    next_state = VOLUME_START;
                     break;
             }
             state = MENU_WAIT;
@@ -388,7 +386,7 @@ void menu_play_random()
     for(int c = 0; c < album.length(); c ++)
     {
         lcd.print(album.charAt(c));
-        delay(SCROLL_SPEED);
+        delay(150);
     }
     lcd.noAutoscroll();
     lcd.clear(); //have to call clear before printing works again
