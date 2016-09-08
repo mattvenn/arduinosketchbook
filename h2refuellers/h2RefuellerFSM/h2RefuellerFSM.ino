@@ -15,13 +15,13 @@
 #define  led6  10
 
 #define  fullSwitchPin 2
-#define  syringePin 3 //pin 11 is blown cos I put 10v in
 #define  solenoidPin  13
 
 #define refillSafetyTime 5000 //seconds
 //initialize states
 
 void ledsOff();
+void fullSwitchInt();
 void refuel();
 void waitUnclip();
 State Ready = State(ledsOff);
@@ -42,7 +42,6 @@ void setup()  {
   pinMode (buttonLed, OUTPUT );
   pinMode (button, INPUT);      
   pinMode (fullSwitchPin, INPUT);
-  pinMode (syringePin, INPUT);
   pinMode (solenoidPin, OUTPUT);
   
   //pullups
@@ -82,16 +81,10 @@ void ledsOff() {          // Ready state - turn off LEDs and wait for button pus
  
  while(true)
  {
-   if( digitalRead(syringePin) )
-   {
-     digitalWrite(buttonLed, HIGH );
      if(digitalRead(button)==LOW ) //we have pull ups
        return;
-   }
    else
-   {
      digitalWrite(buttonLed, LOW );
-   }
  }
  
  }
@@ -105,7 +98,7 @@ void refuel () {
   digitalWrite(solenoidPin,HIGH);   // pin for electrolyser on
   filling = true;
   double startTime = millis();
-  while( filling && ( ( millis() - startTime  ) < refillSafetyTime) && digitalRead(syringePin))
+  while( filling && ( ( millis() - startTime  ) < refillSafetyTime))
   {
     Serial.println( millis() - startTime );
   digitalWrite(led1,HIGH);    // turn on LED1
