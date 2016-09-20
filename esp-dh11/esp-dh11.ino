@@ -7,13 +7,19 @@ git@github.com:adafruit/DHT-sensor-library.git
 #include "secrets.h"
 
 #include "DHT.h"
-#define LEDPIN 5
-#define DHTPIN 4     // what digital pin we're connected to
-#define DHTTYPE DHT11   // DHT 11
+//#define LEDPIN 5
+//#define DHTPIN 4     // what digital pin we're connected to
+#define LEDPIN 0
+#define FANPIN 4
+#define DHTPIN 2
+#define DHTTYPE DHT22 
 
 DHT dht(DHTPIN, DHTTYPE);
 
 #define POST_TIME_MS 1000 * 60 * 1 //sample every 1 mins
+int wifi_connects = 0;
+float set_point = 0;
+boolean fan = false;
 
 // state machine
 enum states
@@ -32,6 +38,7 @@ void setup()
 {
     Serial.begin(9600);
     pinMode(LEDPIN, OUTPUT);
+    pinMode(FANPIN, OUTPUT);
     Serial.println();
     Serial.println();
     dht.begin();
@@ -93,9 +100,22 @@ void loop()
         }
         case POSTING:
         {
+            set_point = map(analogRead(A0), 0, 1024, 30, 80); //map between 30 and 80%
+            Serial.print("setpoint = ");
+            Serial.println(set_point);
+
+            // simple bang bang controller for the fan
+            if(total_humidity/samples  > set_point)
+                fan = true;
+            else
+                fan = false;
+
+            digitalWrite(FANPIN, fan);
+
             Serial.print("averaging samples:");
             Serial.println(samples);
-            post(total_temp/samples, total_humidity/samples);
+            post(total_temp/samples, total_humidity/samples, fan, set_point);
+
             total_temp = 0;
             total_humidity = 0;
             samples = 0;
@@ -107,7 +127,7 @@ void loop()
 
 }
 
-void post(float temp, float humidity)
+void post(float temp, float humidity, boolean fan, float set_point)
 {
     digitalWrite(LEDPIN, HIGH);
     Serial.print("Humidity: ");
@@ -139,6 +159,14 @@ void post(float temp, float humidity)
     url += temp;
     url += "&humidity=";
     url += humidity;
+    url += "&uptime=";
+    url += millis();
+    url += "&connects=";
+    url += wifi_connects;
+    url += "&fan=";
+    url += fan;
+    url += "&setpoint=";
+    url += set_point;
     
     Serial.print("Requesting URL: ");
     Serial.println(url);
@@ -180,5 +208,6 @@ void start_wifi()
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
     digitalWrite(LEDPIN, LOW);
+    wifi_connects ++;
 }
 
