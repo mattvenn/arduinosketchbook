@@ -9,9 +9,9 @@ git@github.com:adafruit/DHT-sensor-library.git
 #include "DHT.h"
 //#define LEDPIN 5
 //#define DHTPIN 4     // what digital pin we're connected to
-#define LEDPIN 0
-#define FANPIN 4
-#define DHTPIN 2
+#define LEDPIN 2
+#define FANPIN 0
+#define DHTPIN 4
 #define DHTTYPE DHT22 
 
 DHT dht(DHTPIN, DHTTYPE);
