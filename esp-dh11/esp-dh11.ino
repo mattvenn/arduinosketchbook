@@ -7,10 +7,18 @@ git@github.com:adafruit/DHT-sensor-library.git
 #include "secrets.h"
 
 #include "DHT.h"
-//#define LEDPIN 5
-//#define DHTPIN 4     // what digital pin we're connected to
+/*
+with ESP8266 avoid using pins 0, 2 and 15 as they are involved with the boot process
+https://zoetrope.io/tech-blog/esp8266-bootloader-modes-and-gpio-state-startup
+                                    GPIO0   GPIO2   GPIO15
+UART Download Mode (Programming)    0       1       0
+Flash Startup (Normal)              1       1       0
+SD-Card Boot                        0       0       1
+
+additionally, 40ms after startup, GPIO0 line is driven with a signal at around 350 Hz for around 100 ms
+*/
 #define LEDPIN 2
-#define FANPIN 0
+#define FANPIN 13 
 #define DHTPIN 4
 #define DHTTYPE DHT22 
 
@@ -40,7 +48,7 @@ void setup()
     pinMode(LEDPIN, OUTPUT);
     pinMode(FANPIN, OUTPUT);
     Serial.println();
-    Serial.println();
+    Serial.println("started");
     dht.begin();
 }
 
@@ -68,7 +76,9 @@ void loop()
         }
         case SAMPLING:
         {
+            digitalWrite(LEDPIN, HIGH);
             delay(500);
+            digitalWrite(LEDPIN, LOW);
             // Reading temperature or humidity takes about 250 milliseconds!
             // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
             float humidity = dht.readHumidity();
