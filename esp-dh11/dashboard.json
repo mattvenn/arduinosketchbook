@@ -1,0 +1,158 @@
+{
+	"version": 1,
+	"allow_edit": true,
+	"plugins": [],
+	"panes": [
+		{
+			"title": "system",
+			"width": 1,
+			"row": {
+				"3": 13
+			},
+			"col": {
+				"3": 1
+			},
+			"col_width": 1,
+			"widgets": [
+				{
+					"type": "text_widget",
+					"settings": {
+						"title": "uptime",
+						"size": "big",
+						"value": "\nsecs = parseInt(datasources[\"esp-humidity\"][0][\"uptime\"]) / 1000;\nhours = secs / 3600;\nreturn Math.round(hours);",
+						"animate": true,
+						"units": "hours"
+					}
+				},
+				{
+					"type": "text_widget",
+					"settings": {
+						"title": "wifi connects",
+						"size": "big",
+						"value": "datasources[\"esp-humidity\"][0][\"connects\"]",
+						"animate": true
+					}
+				},
+				{
+					"type": "indicator",
+					"settings": {
+						"title": "feed live",
+						"value": "\nvar ts = new Date(datasources[\"esp-humidity\"][\"0\"][\"timestamp\"]).getTime();\nvar ms = new Date().getTime();\nvar d = ms - ts;\n\nif (d > 5 * 60 * 1000) {\n    return 0;\n} else {\n    return 1;\n}"
+					}
+				}
+			]
+		},
+		{
+			"title": "humidity control",
+			"width": 1,
+			"row": {
+				"3": 1
+			},
+			"col": {
+				"3": 2
+			},
+			"col_width": 1,
+			"widgets": [
+				{
+					"type": "gauge",
+					"settings": {
+						"title": "humidity",
+						"value": "datasources[\"esp-humidity\"][0][\"humidity\"]",
+						"units": "%",
+						"min_value": 0,
+						"max_value": 100
+					}
+				},
+				{
+					"type": "sparkline",
+					"settings": {
+						"title": "last 24 hours",
+						"value": [
+							"datasources[\"esp-humidity-historic\"][\"humidity\"]"
+						]
+					}
+				},
+				{
+					"type": "gauge",
+					"settings": {
+						"title": "setpoint",
+						"value": "datasources[\"esp-humidity\"][0][\"setpoint\"]",
+						"units": "%",
+						"min_value": 0,
+						"max_value": 100
+					}
+				},
+				{
+					"type": "indicator",
+					"settings": {
+						"title": "fan running",
+						"value": "datasources[\"esp-humidity\"][0][\"fan\"] == 1"
+					}
+				},
+				{
+					"type": "sparkline",
+					"settings": {
+						"title": "last 24 hours",
+						"value": [
+							"datasources[\"esp-humidity-historic\"][\"fan\"]"
+						]
+					}
+				}
+			]
+		},
+		{
+			"title": "temperature",
+			"width": 1,
+			"row": {
+				"3": 1
+			},
+			"col": {
+				"3": 1
+			},
+			"col_width": 1,
+			"widgets": [
+				{
+					"type": "gauge",
+					"settings": {
+						"title": "temperature",
+						"value": "datasources[\"esp-humidity\"][0][\"temp\"]",
+						"units": "C",
+						"min_value": "10",
+						"max_value": "50"
+					}
+				},
+				{
+					"type": "sparkline",
+					"settings": {
+						"title": "last 24 hours",
+						"value": [
+							"datasources[\"esp-humidity-historic\"][\"temp\"]"
+						]
+					}
+				}
+			]
+		}
+	],
+	"datasources": [
+		{
+			"name": "esp-humidity",
+			"type": "JSON",
+			"settings": {
+				"url": "http://phant.cursivedata.co.uk/output/vyPVKLaoG3hpYLdZblbbF6WpZNK.json?limit=1",
+				"use_thingproxy": true,
+				"refresh": 60,
+				"method": "GET"
+			}
+		},
+		{
+			"name": "esp-humidity-historic",
+			"type": "playback",
+			"settings": {
+				"datafile": "http://phant.cursivedata.co.uk/output/vyPVKLaoG3hpYLdZblbbF6WpZNK.json?limit=144&sample=10",
+				"refresh": 0.01,
+				"name": "esp-humidity-historic"
+			}
+		}
+	],
+	"columns": 3
+}
