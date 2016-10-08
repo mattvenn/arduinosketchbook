@@ -7,13 +7,17 @@ void setup() {
     delay(100);
     digitalWrite(LED,LOW);
   Wire.begin(); // join i2c bus (address optional for master)
+//  Wire.setClock(50000);
+  Wire.setClockStretchLimit(1500);    // in µs
+  Serial.begin(9600);
 }
 
 void loop() {
 
   Wire.requestFrom(8, 1); 
-  if (Wire.available()) { // slave may send less than requested
+  if (Wire.available() == 1) { // slave may send less than requested
     char c = Wire.read(); // receive a byte as character
+    Serial.println(c,HEX);
     if(c)
     {
         digitalWrite(LED,HIGH);
