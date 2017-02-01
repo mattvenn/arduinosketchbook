@@ -6,11 +6,10 @@ fix motor on at pc boot
 #define STATUS_LED 12
 #define RUN_LED 11
 #define TRIAC 3
-#define SPEED A0
 #define RPM 5
 #include <PID_v1.h>
-#define EXT_RUN A1
-#define EXT_SPD A2
+#define EXT_RUN A1 // external connection for turning on and off spindle
+#define EXT_SPD A2 // external connection for setting spindle speed
 #include <LiquidCrystal.h>
 #define SAFE_OFF_TIME 10000
 LiquidCrystal lcd(4, 6, 7, 8, 9, 10);
@@ -134,8 +133,6 @@ void loop()
     Serial.println(d,5);
     myPID.SetTunings(p,i,d);
   }  
-   //delay(100);
-  //   target_rpm = map(analogRead(SPEED),0,1024,0,30000);
   target_rpm = map(analogRead(EXT_SPD),0,1000,5000,30000);
   run = digitalRead(EXT_RUN);
   if( run )
@@ -148,8 +145,6 @@ void loop()
      pulse_length = Output;
    else
      pulse_length = map(analogRead(EXT_SPD),1024,0,min_pulse,max_pulse);
-
-   //pulse_length = map(analogRead(SPEED),0,1024,min_pulse,max_pulse);
   }
   else
   {
