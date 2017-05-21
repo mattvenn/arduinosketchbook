@@ -1,16 +1,14 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <Ticker.h>
-
-const char *ssid =	"flat5";		// cannot be longer than 32 characters!
-const char *pass =	"matt_and_inma";		//
+#include "secrets.h"
 
 Ticker t_publish;
 boolean publish_now = false;
 
-IPAddress server(192,168,0,200);
+IPAddress server(192,168,0,10);
 WiFiClient wclient;
-PubSubClient client(wclient, server);
+PubSubClient client(wclient);
 
 const int dial_pin = 5;
 const int dial_min = 5;
@@ -18,15 +16,20 @@ const int dial_max = 995;
 const int dial_min_allow = 30; //it gets stuck at amounts below 30
 const int dial_max_allow = dial_max;
 
+char message_buff[100];
+
 //client callback for MQTT subscriptions
-void callback(const MQTT::Publish& pub) {
-  Serial.print(pub.topic());
-  Serial.print("=");
-  Serial.println(pub.payload_string());
-  if(pub.topic() == "/dial/guage")
+void callback(char* topic, byte* payload, unsigned int len) 
+{
+  Serial.print("topic");
+  Serial.println(topic);
+  payload[len] = '\0';
+  if(strcmp(topic,"/dial/guage") == 0)
   {
-    int value = pub.payload_string().toInt();
-    dial(value);
+      String s = String((char*)payload);
+      int value = s.toInt();
+      dial(value);
+      Serial.println(value);
   }
 }
 
@@ -56,7 +59,8 @@ void setup()
   Serial.println();
 
   //client callback for MQTT subscriptions
-  client.set_callback(callback);
+  client.setCallback(callback);
+  client.setServer(host, 1883);
   //publish uptime every 60 seconds
   t_publish.attach(60, publish);
 }
@@ -96,8 +100,10 @@ void loop()
       else if(publish_now)
       {
         Serial.println("publishing uptime to MQTT");
-        client.publish("/dial/uptime",String(millis()));
-        client.publish("/dial/heap",String(ESP.getFreeHeap()));
+        String pubString = String(millis());
+        pubString.toCharArray(message_buff, pubString.length()+1);
+        client.publish("/dial/uptime",message_buff);
+
         publish_now = false;
       }
   }
